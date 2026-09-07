@@ -192,7 +192,16 @@ function demanderRendu(etat) {
   const tenter = () => {
     renduEnAttente = null;
     const actif = document.activeElement;
-    const champActif = actif && (actif.dataset?.path || actif.dataset?.pathMobilier);
+    // Seuls les champs texte/nombre risquent la concaténation si le rendu
+    // les recrée pendant la frappe (voir le commentaire détaillé plus bas) —
+    // une case à cocher ou un menu déroulant n'a rien à "concaténer" et
+    // garde en général le focus après l'action (aucun blur naturel ne
+    // survient), ce qui bloquait le re-rendu indéfiniment pour ces
+    // éléments : la jauge et les gains d'actions ne se mettaient jamais à
+    // jour tant qu'on ne cliquait pas ailleurs. On ne fait donc attendre
+    // que les types de champs réellement concernés par le risque initial.
+    const typeSensible = actif && (actif.tagName === 'INPUT') && (actif.type === 'text' || actif.type === 'number');
+    const champActif = typeSensible && (actif.dataset?.path || actif.dataset?.pathMobilier);
     if (champActif) { renduEnAttente = setTimeout(tenter, 150); return; }
     rendreEcran(etat);
   };

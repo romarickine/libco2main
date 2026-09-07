@@ -1014,6 +1014,20 @@ function rendreActionCard(etat, action, valeurPoste) {
 
 // ---------------------------------------------------------------------------
 // ÉCOUTEURS D'ÉVÉNEMENTS
+// Affiche un petit message flottant temporaire (3,5 s), pour prévenir d'une
+// saisie visiblement erronée sans interrompre la saisie avec un alert()
+// bloquant. Réutilisable pour d'autres validations similaires à l'avenir.
+function afficherBulle(texte) {
+  const ancienne = document.getElementById('bulle-avertissement');
+  if (ancienne) ancienne.remove();
+  const bulle = document.createElement('div');
+  bulle.id = 'bulle-avertissement';
+  bulle.textContent = texte;
+  bulle.style.cssText = 'position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1B2B26; color:#fff; padding:14px 22px; border-radius:10px; font-size:14px; max-width:min(90vw, 420px); text-align:center; box-shadow:0 8px 24px rgba(0,0,0,.25); z-index:9999; line-height:1.4;';
+  document.body.appendChild(bulle);
+  setTimeout(() => bulle.remove(), 3500);
+}
+
 function attacherEcouteurs(app) {
   // Sélectionne tout le contenu au focus pour les champs numériques et
   // texte : sans ça, taper dans un champ affichant déjà "0" par défaut
@@ -1024,9 +1038,18 @@ function attacherEcouteurs(app) {
 
   app.querySelectorAll('[data-path]').forEach(input => {
     input.addEventListener('change', () => {
-      const valeur = input.type === 'checkbox' ? input.checked
+      let valeur = input.type === 'checkbox' ? input.checked
         : input.type === 'number' ? parseFloat(input.value) || 0
         : input.value;
+      // Une année ne comporte que 52 semaines : au-delà, la saisie est
+      // presque toujours une erreur de frappe (ou une confusion avec un
+      // nombre de jours). On prévient avec une bulle plutôt que de laisser
+      // passer silencieusement une valeur impossible, puis on ramène à 52.
+      if (input.dataset.path.endsWith('.semainesTravailleesAn') && valeur > 52) {
+        afficherBulle('👀 Wow, vous travaillez beaucoup sur une année ! Une année ne comporte que 52 semaines — on ramène la valeur à 52.');
+        valeur = 52;
+        input.value = 52;
+      }
       majEtat(input.dataset.path, valeur);
     });
   });
