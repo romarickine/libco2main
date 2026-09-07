@@ -30,7 +30,10 @@
     }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: var(--sans); background: var(--fond); color: var(--encre); line-height: 1.6; }
-    .conteneur { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+    .conteneur { max-width: 980px; margin-left: auto; margin-right: auto; padding-left: 20px; padding-right: 20px; }
+    .nav-haut { display: flex; justify-content: flex-end; gap: 22px; padding-top: 20px; }
+    .nav-haut a { font-size: 13.5px; font-weight: 600; text-decoration: none; color: var(--discret); }
+    .nav-haut a:hover { color: var(--vert); }
     a { color: var(--vert); }
 
     /* Hero */
@@ -41,7 +44,12 @@
     .hero .badge { display: inline-flex; align-items: center; gap: 7px; background: var(--vert-fond); color: var(--vert); font-weight: 700; font-size: 12.5px; padding: 6px 14px; border-radius: 999px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: .4px; }
 
     /* Sections génériques */
-    section { padding: 50px 0; }
+    /* Marge (et non padding) pour l'espacement vertical entre sections :
+       un padding aurait été systématiquement écrasé par .conteneur, qui
+       partage souvent la même balise et impose padding:0 en haut/bas
+       (spécificité de classe > sélecteur de balise) — c'est ce qui causait
+       un espacement quasi nul entre certaines sections. */
+    section { margin: 50px 0; }
     .titre-section { font-family: var(--serif); font-size: 26px; margin: 0 0 8px; text-align: center; }
     .sous-titre-section { text-align: center; color: var(--discret); font-size: 14.5px; max-width: 560px; margin: 0 auto 36px; }
 
@@ -103,6 +111,12 @@
   </script>
 </head>
 <body>
+
+  <div class="nav-haut conteneur">
+    <a href="#outils">Nos outils</a>
+    <a href="blog/">Blog</a>
+    <a href="mailto:libetco2@gmail.com">Contact</a>
+  </div>
 
   <div class="hero conteneur">
     <img src="assets/logo/logo-libco2.png" alt="Lib&CO2" />
@@ -178,7 +192,7 @@
   </section>
 
   <footer>
-    Lib&CO2 SASU — Code source ouvert sur <a href="https://github.com/romarickine/libco2cab" target="_blank" rel="noopener">GitHub</a> · <a href="mentions-legales.html">Mentions légales</a>
+    Lib&CO2 SASU — Code source ouvert sur <a href="https://github.com/romarickine/libco2cab" target="_blank" rel="noopener">GitHub</a> · <a href="blog/">Blog</a> · <a href="mentions-legales.html">Mentions légales</a>
   </footer>
 
 </body>

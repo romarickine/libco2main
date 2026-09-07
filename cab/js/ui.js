@@ -28,6 +28,7 @@ function fmt(n, dec = 0) { return Number(n).toLocaleString("fr-FR", { minimumFra
 export function renderIntro(root, { onStart }) {
   root.innerHTML = `
     <div class="intro">
+      <a href="../index.html" class="lien-retour-portail">‹ Lib&CO2</a>
       <img src="assets/logo/logo-libco2.png" alt="Lib&CO2" class="logo-intro" />
       <div class="badge">🌿 Outil pour les professionnels libéraux</div>
       <p class="lead">Estimez, en quelques minutes, l'ordre de grandeur des émissions de gaz à effet de serre de votre activité indépendante — et identifiez les leviers de décarbonation les plus pertinents pour vous.</p>
@@ -91,7 +92,7 @@ export function renderWizard(root, ctx) {
   root.innerHTML = `
     <div class="conteneur-etroit">
       <div class="entete-app">
-        <img src="assets/logo/logo-libco2.png" alt="Lib&CO2" />
+        <a href="../index.html" title="Retour à Lib&CO2"><img src="assets/logo/logo-libco2.png" alt="Lib&CO2" /></a>
         <div class="total-en-cours">Total en cours : ${resultats.totalT.toFixed(2)} tCO2e/an</div>
       </div>
       <div class="barre-progression">
@@ -585,7 +586,7 @@ export function renderResultats(root, ctx) {
   root.innerHTML = `
     <div class="conteneur">
       <div class="entete-app">
-        <img src="assets/logo/logo-libco2.png" alt="Lib&CO2" />
+        <a href="../index.html" title="Retour à Lib&CO2"><img src="assets/logo/logo-libco2.png" alt="Lib&CO2" /></a>
         <button class="lien-retour" id="btn-retour">‹ Revenir au questionnaire</button>
       </div>
 
@@ -804,7 +805,7 @@ export function renderHistorique(root, { bilans, onSupprimer, onBack, onNouveauB
   root.innerHTML = `
     <div class="conteneur">
       <div class="entete-app">
-        <img src="assets/logo/logo-libco2.png" alt="Lib&CO2" />
+        <a href="../index.html" title="Retour à Lib&CO2"><img src="assets/logo/logo-libco2.png" alt="Lib&CO2" /></a>
         <button class="lien-retour" id="btn-retour-hist">‹ Retour aux résultats</button>
       </div>
       <h2 class="titre-serif" style="font-size:28px; margin: 4px 0 20px;">Évolution de mon cabinet dans le temps</h2>

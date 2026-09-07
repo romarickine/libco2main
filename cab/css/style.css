@@ -58,6 +58,8 @@ input, select, button { font-family: inherit; }
 
 /* === Écran d'introduction === */
 .intro { max-width: 780px; margin: 0 auto; padding: 56px 24px 72px; text-align: center; display: flex; flex-direction: column; align-items: center; }
+.lien-retour-portail { font-size: 13px; font-weight: 600; color: var(--couleur-discret); text-decoration: none; margin-bottom: 18px; }
+.lien-retour-portail:hover { color: var(--couleur-primaire); }
 .intro img.logo-intro { height: 64px; margin-bottom: 30px; }
 .intro .badge { display: inline-flex; align-items: center; gap: 8px; background: var(--couleur-primaire-fond); color: var(--couleur-primaire); padding: 7px 15px; border-radius: 999px; font-size: 13.5px; font-weight: 600; margin-bottom: 22px; }
 .intro p.lead { font-size: 19px; color: var(--couleur-texte); line-height: 1.6; max-width: 620px; margin: 0 auto 14px; }
