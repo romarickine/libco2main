@@ -199,6 +199,20 @@ function demanderRendu(etat) {
   renduEnAttente = setTimeout(tenter, 120);
 }
 
+// Utilisée par toutes les actions directes (ajouter/supprimer un praticien,
+// changer d'écran, calculer...) au lieu d'appeler rendreEcran directement.
+// Annule d'abord tout re-rendu différé encore en attente (voir
+// demanderRendu ci-dessus) : sans cela, un changement de champ resté en
+// attente de re-rendu (ex. focus encore actif ailleurs au moment du clic)
+// pouvait se déclencher APRÈS l'action directe et la re-rendre par-dessus,
+// avec un risque de perturber ce que l'utilisateur voit ou est en train de
+// faire juste après (ex. cliquer "Ajouter un praticien" puis commencer à
+// choisir sa profession, interrompu par ce re-rendu fantôme).
+function rendreImmediat(etat) {
+  if (renduEnAttente) { clearTimeout(renduEnAttente); renduEnAttente = null; }
+  rendreEcran(etat);
+}
+
 export function ajouterPraticien() {
   etat.praticiens.push({
     id: crypto.randomUUID(), profession: '', professionAPL: null,
@@ -213,13 +227,13 @@ export function ajouterPraticien() {
     materielDedie: [], mobilierDedie: []
   });
   sauvegarderBrouillon(etat);
-  rendreEcran(etat);
+  rendreImmediat(etat);
 }
 
 export function supprimerPraticien(id) {
   etat.praticiens = etat.praticiens.filter(p => p.id !== id);
   sauvegarderBrouillon(etat);
-  rendreEcran(etat);
+  rendreImmediat(etat);
 }
 
 /**
@@ -234,7 +248,7 @@ export function ajouterLigne(chemin, item) {
   for (const part of parts) cible = cible[part];
   cible.push(item);
   sauvegarderBrouillon(etat);
-  rendreEcran(etat);
+  rendreImmediat(etat);
 }
 
 export function supprimerLigne(chemin, index) {
@@ -243,7 +257,7 @@ export function supprimerLigne(chemin, index) {
   for (const part of parts) cible = cible[part];
   cible.splice(index, 1);
   sauvegarderBrouillon(etat);
-  rendreEcran(etat);
+  rendreImmediat(etat);
 }
 
 export function ajouterLignePraticien(praticienId, champTableau, item) {
@@ -251,7 +265,7 @@ export function ajouterLignePraticien(praticienId, champTableau, item) {
   if (!p) return;
   p[champTableau].push(item);
   sauvegarderBrouillon(etat);
-  rendreEcran(etat);
+  rendreImmediat(etat);
 }
 
 export function supprimerLignePraticien(praticienId, champTableau, index) {
@@ -259,12 +273,12 @@ export function supprimerLignePraticien(praticienId, champTableau, index) {
   if (!p) return;
   p[champTableau].splice(index, 1);
   sauvegarderBrouillon(etat);
-  rendreEcran(etat);
+  rendreImmediat(etat);
 }
 
 export function allerEcran(numero) {
   etat.ecranActuel = numero;
-  rendreEcran(etat);
+  rendreImmediat(etat);
 }
 
 export function calculerEtEnregistrer() {
@@ -278,7 +292,7 @@ export function calculerEtEnregistrer() {
   const resultat = calculBilanMSP(etat.structureMSP, etat.praticiens, etat.staffAdmin, etat.postesMutualises, immobilisationsParPraticien, immobilisationsAdmin, lignesMaterielPartage, new Date().getFullYear());
   etat.dernierResultat = resultat;
   enregistrerBilan({ structureMSP: etat.structureMSP, resultat });
-  rendreEcran(etat);
+  rendreImmediat(etat);
   return resultat;
 }
 
@@ -310,7 +324,7 @@ export function getHistoriqueBilans() {
 
 document.addEventListener('DOMContentLoaded', () => {
   try {
-    rendreEcran(etat);
+    rendreImmediat(etat);
   } catch (erreur) {
     console.error('Erreur au chargement de Lib&CO2 MSP :', erreur);
     const app = document.getElementById('app');

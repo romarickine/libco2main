@@ -73,9 +73,9 @@ export function renderPropositionBrouillon(root, { date, onReprendre, onIgnorer 
 // ============================================================================
 const TITRES_ETAPES = {
   profil: "Votre profil",
-  deplacements: "Vos déplacements professionnels",
+  deplacements: "Les déplacements professionnels",
   local: "Votre local professionnel",
-  numerique: "Vos usages numériques",
+  numerique: "Le numérique",
   materiel: "Matériel et consommables métier",
   alimentation: "Alimentation professionnelle",
   services: "Achats de services & livraisons",
@@ -323,12 +323,19 @@ function renderStepProfil(el, { data, famille, ctx }) {
 function renderStepDeplacements(el, { data, resultats, ctx }) {
   const d = data.deplacements;
   const det = resultats.detail;
+  const nbEquipe = (data.profil.nbPraticiens || 1) + (data.profil.nbSalaries || 0);
   const optionsMode = (excludeAvion) => Object.entries(FE_TRANSPORT)
     .filter(([k]) => !excludeAvion || !k.startsWith("avion"))
     .map(([k, v]) => `<option value="${k}">${v.label}</option>`).join("");
 
   el.innerHTML = `
-    <p class="texte-discret" style="margin-top:-8px; margin-bottom:20px;">Trajets domicile-travail, visites professionnelles (domicile client/patient, EHPAD, chantiers…) et déplacements pour congrès ou représentations.</p>
+    <p class="texte-discret" style="margin-top:-8px; margin-bottom:14px;">Trajets domicile-travail, visites professionnelles (domicile client/patient, EHPAD, chantiers…) et déplacements pour congrès ou représentations.</p>
+    ${nbEquipe > 1 ? `
+      <div class="encadre-info" style="margin-bottom:20px;">
+        <strong>⚠️ Vous avez indiqué ${nbEquipe} personnes dans la structure (praticiens + salariés).</strong>
+        <div style="font-size:12.5px; color:#5C8A7A; margin-top:4px; line-height:1.5;">Ce poste doit couvrir <strong>l'ensemble de l'équipe</strong>, pas seulement vos propres trajets : additionnez (ou estimez en moyenne × ${nbEquipe}) les distances domicile-travail, les visites et les déplacements pour congrès de tous les praticiens et salariés de la structure.</div>
+      </div>
+    ` : `<p class="texte-discret" style="margin-top:-10px; margin-bottom:20px;">Si la structure compte plusieurs praticiens ou salariés, ces champs doivent couvrir l'ensemble de l'équipe, pas seulement vos propres trajets.</p>`}
     <div style="display:flex; gap:18px; flex-wrap:wrap;">
       <div class="champ"><label class="libelle">Mode de transport principal domicile-travail</label><select class="champ-select" data-champ-select="modeDomTrav">${optionsMode(true)}</select></div>
       <div class="champ"><label class="libelle">Distance aller (km)</label>${champNombreHtml("kmAllerJour", d.kmAllerJour)}</div>
@@ -337,7 +344,7 @@ function renderStepDeplacements(el, { data, resultats, ctx }) {
     </div>
     <hr class="separateur" />
     <div style="display:flex; gap:18px; flex-wrap:wrap;">
-      <div class="champ"><label class="libelle">Km parcourus par an en visites professionnelles</label><div class="aide">Domicile de patients/clients, EHPAD, chantiers, rendez-vous extérieurs.</div>${champNombreHtml("kmVisitesAn", d.kmVisitesAn)}</div>
+      <div class="champ"><label class="libelle">Km parcourus par an en visites professionnelles</label><div class="aide">Domicile de patients/clients, EHPAD, chantiers, rendez-vous extérieurs — pour l'ensemble de la structure.</div>${champNombreHtml("kmVisitesAn", d.kmVisitesAn)}</div>
       <div class="champ"><label class="libelle">Mode de transport principal pour ces visites${badgeLive(det.visites, "visites")}</label><select class="champ-select" data-champ-select="modeVisites">${optionsMode(true)}</select></div>
     </div>
     <hr class="separateur" />
@@ -469,15 +476,15 @@ function renderStepMateriel(el, { data, famille, resultats, ctx }) {
         <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer;">
           <input type="checkbox" data-champ-case="prescriptionActive" ${presc.active ? "checked" : ""} style="margin-top:3px;" />
           <span>
-            <span style="font-weight:700; font-size:14px;">Je prescris des médicaments et/ou des actes médicaux (examens, dispositifs)</span>
-            <div style="font-size:12px; color:#5C8A7A; margin-top:4px; line-height:1.5;">En tant que prescripteur, vous avez un levier de décarbonation propre (éco-prescription, déprescription). Ce poste est affiché séparément du reste du bilan, pour rester comparable avec les praticiens qui ne prescrivent pas.</div>
+            <span style="font-weight:700; font-size:14px;">Des praticiens de la structure prescrivent des médicaments et/ou des actes médicaux (examens, dispositifs)</span>
+            <div style="font-size:12px; color:#5C8A7A; margin-top:4px; line-height:1.5;">En tant que prescripteurs, vous avez un levier de décarbonation propre (éco-prescription, déprescription). Ce poste est affiché séparément du reste du bilan, pour rester comparable avec les structures qui ne prescrivent pas.</div>
           </span>
         </label>
         ${presc.active ? `
           <div style="margin-top:18px;">
-            <div class="champ"><label class="libelle">Dépense totale de médicaments prescrits, pour l'ensemble de la patientèle (€ / an)${badgeLive(det.prescriptionsMedicaments, "prescriptionsMedicaments")}</label>${champNombreHtml("presc_medicaments", presc.depenseMedicaments || 0, { suffix: "€ / an" })}</div>
+            <div class="champ"><label class="libelle">Dépense totale de médicaments prescrits, pour l'ensemble de la patientèle de la structure (€ / an)${badgeLive(det.prescriptionsMedicaments, "prescriptionsMedicaments")}</label>${champNombreHtml("presc_medicaments", presc.depenseMedicaments || 0, { suffix: "€ / an" })}</div>
             <div class="champ"><label class="libelle">Dépense totale d'actes prescrits — examens complémentaires, dispositifs (€ / an)${badgeLive(det.prescriptionsActes, "prescriptionsActes")}</label>${champNombreHtml("presc_actes", presc.depenseActes || 0, { suffix: "€ / an" })}</div>
-            <p class="texte-discret" style="margin-top:-6px;">Une première approche à affiner : utilisez les montants que vous connaissez le mieux (ex. volume de prescriptions habituel), même approximatifs.</p>
+            <p class="texte-discret" style="margin-top:-6px;">Cumulez tous les praticiens prescripteurs de la structure, pas un seul. Une première approche à affiner : utilisez les montants que vous connaissez le mieux (ex. volume de prescriptions habituel), même approximatifs.</p>
           </div>` : ""}
       </div>
     ` : ""}
@@ -523,9 +530,16 @@ function renderStepMateriel(el, { data, famille, resultats, ctx }) {
 // --- Étape 6 : Alimentation --------------------------------------------------
 function renderStepAlimentation(el, { data, resultats, ctx }) {
   const a = data.alimentation;
+  const nbEquipe = (data.profil.nbPraticiens || 1) + (data.profil.nbSalaries || 0);
   el.innerHTML = `
+    ${nbEquipe > 1 ? `
+      <div class="encadre-info" style="margin-bottom:18px;">
+        <strong>⚠️ ${nbEquipe} personnes dans la structure.</strong>
+        <div style="font-size:12.5px; color:#5C8A7A; margin-top:4px; line-height:1.5;">Comptez le nombre de repas professionnels pour <strong>l'ensemble de l'équipe</strong> (tous les praticiens et salariés cumulés), pas seulement les vôtres.</div>
+      </div>
+    ` : `<p class="texte-discret" style="margin-top:-6px; margin-bottom:16px;">Si la structure compte plusieurs praticiens ou salariés, ce total doit couvrir toute l'équipe.</p>`}
     <div class="champ">
-      <label class="libelle">Repas professionnels (déjeuners sur site ou au restaurant) par semaine : <span id="valeur-repas">${a.repasParSemaine}</span>${badgeLive(resultats.detail.alimentation, "alimentation")}</label>
+      <label class="libelle">Repas professionnels (déjeuners sur site ou au restaurant) par semaine, pour l'ensemble de la structure : <span id="valeur-repas">${a.repasParSemaine}</span>${badgeLive(resultats.detail.alimentation, "alimentation")}</label>
       <input type="range" min="0" max="10" value="${a.repasParSemaine}" data-champ-range="repasParSemaine" id="range-repas" />
     </div>
     <div class="champ">
