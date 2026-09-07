@@ -43,7 +43,7 @@ export function renderIntro(root, { onStart }) {
         <div class="feature-card"><div>✅</div><div class="titre">Plan d'action</div><div class="desc">Des leviers priorisés, avec un ordre de coût.</div></div>
       </div>
       <p class="mentions">Version bêta-test. Les résultats sont des ordres de grandeur destinés à éclairer vos décisions, pas un bilan d'émissions de gaz à effet de serre réglementaire (BEGES).</p>
-      <p class="mentions">🔒 Vos données restent sur votre appareil (aucun serveur, aucun compte) · 📖 Code source ouvert sur <a href="https://github.com/romarickine/libco2cab" target="_blank" rel="noopener" style="color:inherit;">GitHub</a> · <a href="mentions-legales.html" style="color:inherit;">Mentions légales</a></p>
+      <p class="mentions">🔒 Vos données restent sur votre appareil (aucun serveur, aucun compte) · 📖 Code source ouvert sur <a href="https://github.com/romarickine/libco2cab" target="_blank" rel="noopener" style="color:inherit;">GitHub</a> · <a href="../mentions-legales.html" style="color:inherit;">Mentions légales</a></p>
     </div>
   `;
   document.getElementById("btn-demarrer").addEventListener("click", onStart);
@@ -663,7 +663,7 @@ export function renderResultats(root, ctx) {
       <div style="text-align:center; margin-top:16px;"><button class="bouton-lien" id="btn-recommencer">↺ Recommencer une estimation</button></div>
 
       <p class="mentions">Version bêta-test — Ordres de grandeur indicatifs, non contractuels. Facteurs d'émission : ADEME Base Empreinte (dernière version disponible), méthodologie inspirée du rapport kinéCO2 (Lib&CO2, Carbone 4). Déplacements de la patientèle/clientèle : Enquête Mobilité des Personnes 2019 (SDES), report modal par zone (zonage INSEE en aires urbaines 2010) ajusté selon le motif de déplacement propre à chaque famille de métier. Référentiels : GHG Protocol, BEGES v5.</p>
-      <p class="mentions"><a href="mentions-legales.html" style="color:inherit;">Mentions légales</a> · <a href="https://github.com/romarickine/libco2cab" target="_blank" rel="noopener" style="color:inherit;">Code source</a></p>
+      <p class="mentions"><a href="../mentions-legales.html" style="color:inherit;">Mentions légales</a> · <a href="https://github.com/romarickine/libco2cab" target="_blank" rel="noopener" style="color:inherit;">Code source</a></p>
     </div>
     <div id="zone-modale"></div>
   `;

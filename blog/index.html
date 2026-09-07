@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blog — Lib&CO2</title>
+  <meta name="description" content="Conseils, méthodologie et actualités pour décarboner votre activité libérale : mobilité, déchets, énergie, achats responsables." />
+  <link rel="canonical" href="https://libco2.fr/blog/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Blog — Lib&CO2" />
+  <meta property="og:description" content="Conseils, méthodologie et actualités pour décarboner votre activité libérale." />
+  <meta property="og:url" content="https://libco2.fr/blog/" />
+  <meta property="og:image" content="https://libco2.fr/assets/og-image.png" />
+  <meta property="og:locale" content="fr_FR" />
+  <meta property="og:site_name" content="Lib&CO2" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" href="../assets/logo/logo-libco2.png" />
+  <style>
+    :root {
+      --vert: #2E673E; --vert-fond: #2E673E14; --ambre: #C98A2C;
+      --fond: #F7F5F0; --carte: #FFFFFF; --bordure: #E4E0D6; --encre: #1B2B26;
+      --texte: #3E4A45; --discret: #5C665F;
+      --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
+      --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: var(--sans); background: var(--fond); color: var(--encre); line-height: 1.6; }
+    .conteneur { max-width: 780px; margin: 0 auto; padding: 40px 20px 90px; }
+    a { color: var(--vert); }
+    .retour { display: inline-block; margin-bottom: 24px; font-size: 14px; font-weight: 600; text-decoration: none; }
+    .entete { text-align: center; margin-bottom: 44px; }
+    .entete img { height: 40px; margin-bottom: 18px; }
+    .entete h1 { font-family: var(--serif); font-size: 32px; margin: 0 0 10px; }
+    .entete p { color: var(--discret); font-size: 15px; max-width: 520px; margin: 0 auto; }
+    .liste-articles { display: flex; flex-direction: column; gap: 18px; }
+    .carte-article { background: var(--carte); border: 1px solid var(--bordure); border-radius: 14px; padding: 24px; text-decoration: none; color: inherit; display: block; transition: box-shadow .15s, transform .15s; }
+    .carte-article:hover { box-shadow: 0 8px 22px rgba(27,43,38,.1); transform: translateY(-1px); }
+    .carte-article .date { font-size: 12px; font-weight: 700; color: var(--ambre); text-transform: uppercase; letter-spacing: .4px; }
+    .carte-article h2 { font-family: var(--serif); font-size: 21px; margin: 8px 0 8px; color: var(--encre); }
+    .carte-article p { font-size: 14.5px; color: var(--texte); margin: 0; }
+    .carte-article .lire { font-size: 13px; font-weight: 700; color: var(--vert); margin-top: 12px; display: inline-block; }
+    .bientot { text-align: center; color: var(--discret); font-size: 14px; margin-top: 36px; padding-top: 24px; border-top: 1px solid var(--bordure); }
+  </style>
+</head>
+<body>
+  <div class="conteneur">
+    <a href="../index.html" class="retour">‹ Retour à l'accueil</a>
+    <div class="entete">
+      <img src="../assets/logo/logo-libco2.png" alt="Lib&CO2" />
+      <h1>Le blog Lib&CO2</h1>
+      <p>Méthodologie, retours d'expérience et pistes concrètes pour décarboner une activité libérale — un nouvel article environ toutes les deux semaines.</p>
+    </div>
+
+    <div class="liste-articles" id="liste-articles">
+      <a class="carte-article" href="priorisation-dechets-mobilite.html">
+        <div class="date">Septembre 2026</div>
+        <h2>Déchets ou mobilité : par où commencer sa décarbonation ?</h2>
+        <p>Le tri sélectif est souvent le premier réflexe en cabinet — mais est-ce vraiment le levier le plus efficace ? Ce que disent les chiffres sur la priorisation des actions.</p>
+        <span class="lire">Lire l'article →</span>
+      </a>
+    </div>
+
+    <p class="bientot">De nouveaux articles sont publiés régulièrement. Une suggestion de sujet ? Écrivez-nous à <a href="mailto:libetco2@gmail.com">libetco2@gmail.com</a>.</p>
+  </div>
+</body>
+</html>
