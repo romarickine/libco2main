@@ -1,0 +1,43 @@
+/**
+ * variables.css — Charte graphique Lib&CO2 MSP
+ * Palette 2 validée : bleu du logo (#0071C1) en couleur dominante, vert du
+ * logo (#2E673E) en accent secondaire (badges "Sourcé", éléments dépliables).
+ * Couleurs mesurées directement dans le fichier logo fourni.
+ */
+:root {
+  /* Couleurs de marque */
+  --couleur-primaire: #0071C1;
+  --couleur-primaire-fond: #0071C114;
+  --couleur-accent-vert: #2E673E;
+  --couleur-accent-vert-fond: #2E673E14;
+  --couleur-accent-bleu: #0071C1;
+  --couleur-accent-ambre: #C98A2C;
+  --couleur-accent-ambre-fond: #C98A2C14;
+
+  /* Neutres */
+  --couleur-fond: #F7F5F0;
+  --couleur-carte: #FFFFFF;
+  --couleur-bordure: #E4E0D6;
+  --couleur-bordure-legere: #F0EDE4;
+  --couleur-encre: #1B2B26;
+  --couleur-texte: #3E4A45;
+  --couleur-discret: #8A9490;
+  --couleur-tres-discret: #B4AE9E;
+
+  /* Sémantique postes/actions */
+  --couleur-gratuit: #2E673E;
+  --couleur-faible-cout: #C98A2C;
+  --couleur-investissement: #B85C5C;
+  --couleur-erreur: #B85C5C;
+  --couleur-info: #0071C1;
+
+  /* Typographie */
+  --police-serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'URW Palladio L', serif;
+  --police-texte: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --police-mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'Segoe UI Mono', 'Roboto Mono', Consolas, 'Courier New', monospace;
+
+  /* Rayons et espacements */
+  --rayon-carte: 18px;
+  --rayon-bouton: 12px;
+  --ombre-carte: 0 8px 24px rgba(27, 43, 38, 0.07);
+}

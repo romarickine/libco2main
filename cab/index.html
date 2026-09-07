@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lib&CO2 — Calculateur carbone pour les professions libérales</title>
+  <meta name="description" content="Estimez l'ordre de grandeur des émissions de gaz à effet de serre de votre activité indépendante et identifiez vos leviers de décarbonation." />
+  <link rel="icon" href="assets/logo/logo-libco2.png" />
+
+  <!-- Aucune police externe : la charte utilise des polices système natives
+       (voir css/variables.css) — zéro requête tierce, conforme RGPD, et plus
+       rapide (rien à télécharger avant l'affichage du texte). -->
+
+  <!-- Les graphiques (répartition et évolution) sont dessinés en Canvas natif
+       par js/graphiques.js, sans dépendance externe. -->
+
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- Point d'entrée de l'application (module ES6) -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

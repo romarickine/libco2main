@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Les autres enjeux environnementaux — Lib&CO2</title>
+  <meta name="description" content="Le carbone n'est qu'une des catégories d'impact de l'analyse du cycle de vie (ACV). Panorama des autres enjeux environnementaux à connaître : eau, ressources, biodiversité, qualité de l'air..." />
+  <link rel="icon" href="assets/logo/logo-libco2.png" />
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .page-enjeux { max-width: 800px; margin: 0 auto; padding: 40px 20px 90px; }
+    .page-enjeux .retour { margin-bottom: 20px; display: inline-block; }
+    .pe-hero { text-align: center; margin-bottom: 36px; }
+    .pe-hero h1 { font-family: var(--police-serif); font-size: 30px; margin: 10px 0 12px; line-height: 1.25; }
+    .pe-hero p { font-size: 15.5px; color: var(--couleur-texte); line-height: 1.6; max-width: 620px; margin: 0 auto; }
+    .pe-carbone-rappel { background: var(--couleur-primaire-fond); border-radius: 12px; padding: 16px 20px; font-size: 14px; text-align: center; margin-bottom: 40px; color: var(--couleur-primaire); font-weight: 600; }
+    .pe-grille { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    @media (max-width: 640px) { .pe-grille { grid-template-columns: 1fr; } }
+    .pe-carte { background: #fff; border: 1px solid var(--couleur-bordure); border-radius: 12px; padding: 18px; cursor: pointer; transition: box-shadow .15s; }
+    .pe-carte:hover { box-shadow: var(--ombre-carte); }
+    .pe-carte .icone { font-size: 22px; margin-bottom: 8px; }
+    .pe-carte .titre { font-weight: 700; font-size: 14.5px; margin-bottom: 6px; }
+    .pe-carte .resume { font-size: 12.5px; color: var(--couleur-discret); line-height: 1.5; }
+    .pe-carte .detail { font-size: 12.5px; color: var(--couleur-texte); line-height: 1.55; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--couleur-bordure-legere); display: none; }
+    .pe-carte.ouverte .detail { display: block; }
+    .pe-carte .voir-plus { font-size: 11.5px; color: var(--couleur-info); font-weight: 600; margin-top: 8px; }
+    .pe-source { font-size: 12px; color: var(--couleur-discret); text-align: center; margin-top: 30px; }
+    .pe-bridge { background: var(--couleur-encre); color: #fff; border-radius: 14px; padding: 26px 24px; text-align: center; margin-top: 44px; }
+    .pe-bridge h2 { font-family: var(--police-serif); font-size: 21px; margin: 0 0 10px; }
+    .pe-bridge p { font-size: 14px; opacity: .85; margin: 0 0 18px; }
+  </style>
+</head>
+<body>
+  <div class="page-enjeux">
+    <a href="index.html" class="lien-retour retour">‹ Retour à l'outil</a>
+    <div class="pe-hero">
+      <img src="assets/logo/logo-libco2.png" alt="Lib&CO2" style="height:36px;" />
+      <h1>Le carbone n'est qu'un des enjeux</h1>
+      <p>Lib&CO2 mesure les émissions de gaz à effet de serre — c'est déjà un point de départ solide. Mais la méthode de référence pour évaluer l'impact environnemental d'une activité, l'analyse du cycle de vie (ACV, norme ISO 14044), distingue une douzaine de catégories d'impact. Le climat n'en est qu'une. En voici sept autres, à connaître pour élargir le regard au-delà du seul carbone.</p>
+    </div>
+
+    <div class="pe-carbone-rappel">✓ Déjà mesuré par Lib&CO2 : le changement climatique (émissions de GES)</div>
+
+    <div class="pe-grille" id="grille-enjeux"></div>
+
+    <p class="pe-source">Catégories issues de la méthode d'analyse du cycle de vie (ACV, ISO 14044) et du référentiel européen PEF (Product Environmental Footprint), tel qu'utilisé par l'ADEME (bases Agribalyse, affichage environnemental).</p>
+
+    <div class="pe-bridge">
+      <h2>Une prochaine étape possible</h2>
+      <p>Ces enjeux ne sont pas mesurés aujourd'hui par Lib&CO2 — les données et facteurs nécessaires sont moins standardisés que pour le carbone. C'est une piste d'évolution possible de l'outil, à mesure que des données fiables deviendront disponibles pour les professions libérales.</p>
+      <a href="index.html" class="bouton bouton-primaire">Retour à mon bilan</a>
+    </div>
+  </div>
+
+  <script>
+    const ENJEUX = [
+      { icone: "💧", titre: "Épuisement des ressources en eau", resume: "La consommation d'eau, pondérée par sa rareté locale.", detail: "Consommer un litre d'eau n'a pas le même impact selon qu'on se trouve dans une région où l'eau est abondante ou en situation de stress hydrique. Cette catégorie tient compte de cette rareté relative, propre à chaque territoire." },
+      { icone: "🛢️", titre: "Épuisement des ressources fossiles", resume: "Charbon, gaz, pétrole, uranium : des stocks non renouvelables.", detail: "Distinct du changement climatique : il ne s'agit pas ici des émissions liées à la combustion, mais de l'épuisement physique des stocks disponibles de ces ressources énergétiques non renouvelables." },
+      { icone: "⛏️", titre: "Épuisement des ressources minérales", resume: "Cuivre, terres rares, sable : des matériaux de plus en plus rares.", detail: "De nombreuses technologies (numérique, électrification) dépendent de métaux et minéraux dont les gisements accessibles s'amenuisent. Cette catégorie mesure la contribution d'une activité à cet épuisement." },
+      { icone: "🌳", titre: "Usage des sols et biodiversité", resume: "L'artificialisation et l'usage des terres, moteurs de l'érosion de la biodiversité.", detail: "Les terres sont une ressource finie, partagée entre milieux naturels, agricoles et urbains. La façon dont une activité occupe ou transforme ces sols influence directement les habitats et la biodiversité qui en dépend." },
+      { icone: "🧪", titre: "Écotoxicité et toxicité humaine", resume: "L'impact des substances chimiques sur les écosystèmes et la santé.", detail: "Certains produits ou procédés relâchent des substances toxiques pour les organismes vivants (écotoxicité) ou pour la santé humaine. Ces indicateurs restent aujourd'hui parmi les moins consolidés scientifiquement, mais leur suivi progresse." },
+      { icone: "🌫️", titre: "Qualité de l'air (particules, ozone)", resume: "Les émissions qui dégradent l'air que l'on respire au quotidien.", detail: "Au-delà du CO2, certaines activités émettent des particules fines ou des précurseurs d'ozone troposphérique (smog), avec des conséquences directes sur les maladies respiratoires — un enjeu de santé publique à part entière." },
+      { icone: "🌧️", titre: "Acidification et eutrophisation", resume: "Des déséquilibres chimiques des sols, cours d'eau et océans.", detail: "Certains rejets (azote, soufre, phosphore) perturbent l'équilibre chimique des milieux naturels : acidification des sols et des eaux, ou eutrophisation (prolifération d'algues liée à un excès de nutriments dans l'eau)." },
+    ];
+
+    const grille = document.getElementById("grille-enjeux");
+    grille.innerHTML = ENJEUX.map((e, i) => `
+      <div class="pe-carte" data-i="${i}">
+        <div class="icone">${e.icone}</div>
+        <div class="titre">${e.titre}</div>
+        <div class="resume">${e.resume}</div>
+        <div class="detail">${e.detail}</div>
+        <div class="voir-plus">En savoir plus ▾</div>
+      </div>
+    `).join("");
+
+    grille.querySelectorAll(".pe-carte").forEach((carte) => {
+      carte.addEventListener("click", () => {
+        const estOuverte = carte.classList.contains("ouverte");
+        carte.classList.toggle("ouverte");
+        carte.querySelector(".voir-plus").textContent = estOuverte ? "En savoir plus ▾" : "Réduire ▴";
+      });
+    });
+  </script>
+</body>
+</html>
