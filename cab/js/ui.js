@@ -571,12 +571,21 @@ function renderStepServices(el, { data, resultats, ctx }) {
 // ÉCRAN RÉSULTATS
 // ============================================================================
 export function renderResultats(root, ctx) {
-  const { famille, data, resultats, typeGraphique, actionsCalculees, afficherPlusActions, totalReductionPlan: reducPlan, typeCertificat, nomCabinet } = ctx;
+  const { famille, data, resultats, typeGraphique, inclurePrescriptions, onToggleInclurePrescriptions, actionsCalculees, afficherPlusActions, totalReductionPlan: reducPlan, typeCertificat, nomCabinet } = ctx;
   const topActions = actionsCalculees.slice(0, 5);
   const autresActions = actionsCalculees.slice(5);
   const objectif3ansKg = resultats.totalKg * 0.85;
   const pctReducPlan = resultats.totalKg > 0 ? (reducPlan / resultats.totalKg) * 100 : 0;
   const aDesPrescriptions = data.prescriptions.active && resultats.parPoste.prescriptions > 0;
+  // "kgCO2e / acte" affiché en tête : hors prescriptions par défaut, pour
+  // rester comparable à un praticien qui ne prescrit pas — c'était tout le
+  // sens de la séparation de ce poste. L'utilisateur peut choisir d'inclure
+  // les prescriptions via la case à cocher ci-dessous ; ce choix est aussi
+  // répercuté sur le simulateur d'objectif et le certificat exportable,
+  // pour rester cohérent partout où ce chiffre apparaît.
+  const parActeAffiche = (!aDesPrescriptions || inclurePrescriptions) ? resultats.parActe
+    : (data.profil.nbActesAn > 0 ? resultats.totalKgHorsPrescriptions / data.profil.nbActesAn : 0);
+  const totalKgAffiche = (!aDesPrescriptions || inclurePrescriptions) ? resultats.totalKg : resultats.totalKgHorsPrescriptions;
 
   const donneesGraphique = Object.entries(resultats.parPoste)
     .filter(([, v]) => v > 0)
@@ -594,12 +603,16 @@ export function renderResultats(root, ctx) {
         <div class="eyebrow">${famille.label}</div>
         <div class="ligne-hero">
           <div><div class="chiffre-hero titre-serif">${resultats.totalT.toFixed(2)} <small>tCO2e / an</small></div><div class="sous-legende">Empreinte annuelle de l'ensemble de ${famille.lieuArticleLe}</div></div>
-          <div><div class="chiffre-hero titre-serif" style="color:var(--couleur-accent-ambre);">${resultats.parActe.toFixed(1)} <small>kgCO2e</small></div><div class="sous-legende">par ${famille.uniteActe}</div></div>
+          <div><div class="chiffre-hero titre-serif" style="color:var(--couleur-accent-ambre);">${parActeAffiche.toFixed(1)} <small>kgCO2e</small></div><div class="sous-legende">par ${famille.uniteActe}${aDesPrescriptions ? (inclurePrescriptions ? " (avec prescriptions)" : " (hors prescriptions)") : ""}</div></div>
         </div>
         ${aDesPrescriptions ? `
           <div style="margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.15); font-size:12.5px; line-height:1.5; opacity:0.9;">
             Dont <strong>${resultats.totalT - resultats.totalTHorsPrescriptions > 0 ? (resultats.parPoste.prescriptions/1000).toFixed(2) : "0.00"} tCO2e/an</strong> lié·es aux prescriptions (médicaments, examens, dispositifs).
             Empreinte <strong>hors prescriptions : ${resultats.totalTHorsPrescriptions.toFixed(2)} tCO2e/an</strong> — c'est ce chiffre qui reste comparable à un praticien qui ne prescrit pas.
+            <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer; font-size:12.5px;">
+              <input type="checkbox" id="chk-inclure-prescriptions" ${inclurePrescriptions ? "checked" : ""} />
+              Inclure les prescriptions dans le "kgCO2e par ${famille.uniteActe}" affiché ci-dessus
+            </label>
           </div>` : ""}
       </div>
 
@@ -687,6 +700,8 @@ export function renderResultats(root, ctx) {
 
   // Écouteurs généraux
   document.getElementById("btn-retour").addEventListener("click", ctx.onBack);
+  const chkPrescriptions = document.getElementById("chk-inclure-prescriptions");
+  if (chkPrescriptions) chkPrescriptions.addEventListener("change", ctx.onToggleInclurePrescriptions);
   document.getElementById("btn-recommencer").addEventListener("click", ctx.onRestart);
   document.getElementById("btn-reperes").addEventListener("click", () => afficherModaleReperes(document.getElementById("zone-modale")));
   document.querySelectorAll("[data-type-graph]").forEach((b) => b.addEventListener("click", () => ctx.onChangeTypeGraphique(b.dataset.typeGraph)));
@@ -702,10 +717,10 @@ export function renderResultats(root, ctx) {
   const majSimulateur = () => {
     const objectif = inputObjectif.value === "" ? 0 : Number(inputObjectif.value);
     if (objectif <= 0) { zoneResultatSim.innerHTML = ""; return; }
-    const deltaKgParActe = resultats.parActe - objectif;
+    const deltaKgParActe = parActeAffiche - objectif;
     if (deltaKgParActe <= 0) { zoneResultatSim.innerHTML = "Bonne nouvelle : votre empreinte actuelle est déjà inférieure ou égale à cet objectif."; return; }
-    const reductionKg = deltaKgParActe * (resultats.totalKg / resultats.parActe);
-    const reductionPct = (reductionKg / resultats.totalKg) * 100;
+    const reductionKg = deltaKgParActe * (totalKgAffiche / parActeAffiche);
+    const reductionPct = (reductionKg / totalKgAffiche) * 100;
     let texte = `Pour atteindre <strong>${objectif} kgCO2e/${famille.uniteActe}</strong>, réduire d'environ <span class="texte-mono" style="color:var(--couleur-primaire); font-weight:700;">${fmt(reductionKg)} kgCO2e/an</span> (-${reductionPct.toFixed(0)}%).`;
     if (reducPlan > 0) texte += ` Le plan coché couvre ${Math.min(100, (reducPlan / reductionKg) * 100).toFixed(0)}% de cet objectif.`;
     zoneResultatSim.innerHTML = texte;

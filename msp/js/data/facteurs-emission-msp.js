@@ -113,10 +113,22 @@ export function emissionsImmobilisationAnnuelles(quantite, facteurUnitaireBrut, 
 // 4. RÉVENTILATION — clés de répartition (absent du socle individuel, qui ne
 // gère qu'une seule structure/un seul praticien)
 export function clefReventilationSurface(surfaceDedieeM2, surfaceTotaleM2) {
+  // Garde contre la division par zéro : si la surface totale de la
+  // structure n'est pas (encore) renseignée, il est impossible de calculer
+  // une clé de répartition proportionnelle. Retourner 0 plutôt que NaN
+  // évite de propager une valeur cassée dans toutes les fiches
+  // individuelles — un signal visible est affiché ailleurs (voir
+  // structureIncomplete dans calculBilanMSP) pour que l'utilisateur sache
+  // pourquoi la répartition est à 0 et retourne compléter l'étape Profil.
+  if (!surfaceTotaleM2) return 0;
   return surfaceDedieeM2 / surfaceTotaleM2;
 }
 
 export function clefReventilationActes(nbActesPraticien, totalActesStructure) {
+  // Même garde que ci-dessus : aucun praticien n'a encore d'actes annuels
+  // renseignés (état transitoire très courant juste après l'ajout d'un
+  // praticien) → 0 plutôt que NaN.
+  if (!totalActesStructure) return 0;
   return nbActesPraticien / totalActesStructure;
 }
 

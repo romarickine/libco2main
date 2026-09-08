@@ -51,6 +51,11 @@ const etat = {
   etapeIndex: 0,
   data: etatInitial(),
   typeGraphique: "pie",
+  // Le "kgCO2e/acte" affiché en résultats exclut les prescriptions par
+  // défaut (comparabilité entre praticiens prescripteurs et non-
+  // prescripteurs) — l'utilisateur peut choisir de les inclure via une case
+  // à cocher sur l'écran résultats.
+  inclurePrescriptions: false,
   actionsSelectionnees: {}, // { [id]: { checked, pct, degres } }
   afficherPlusActions: false,
   typeCertificat: "idle",
@@ -139,6 +144,8 @@ export function render() {
     ui.renderResultats(racine, {
       famille: familleActuelle(), data: etat.data, resultats,
       typeGraphique: etat.typeGraphique,
+      inclurePrescriptions: etat.inclurePrescriptions,
+      onToggleInclurePrescriptions: () => { etat.inclurePrescriptions = !etat.inclurePrescriptions; render(); },
       actionsCalculees: calculerActions(resultats, etat.actionsSelectionnees),
       afficherPlusActions: etat.afficherPlusActions,
       totalReductionPlan: totalReductionPlan(calculerActions(resultats, etat.actionsSelectionnees)),
@@ -164,8 +171,18 @@ export function render() {
         etat.typeCertificat = "loading"; render();
         try {
           const { exporterCertificat } = await import("./certificat.js");
+          // Le certificat doit refléter le même "kgCO2e/acte" que celui
+          // affiché à l'écran (hors prescriptions par défaut, ou avec si
+          // l'utilisateur a coché la case) — on ne réexpose que ce champ
+          // recalculé, le reste du résultat (empreinte totale, etc.) suit
+          // sa propre logique déjà existante côté certificat.
+          const aDesPrescriptions = etat.data.prescriptions.active && resultats.parPoste.prescriptions > 0;
+          const parActePourCertificat = (!aDesPrescriptions || etat.inclurePrescriptions) ? resultats.parActe
+            : (etat.data.profil.nbActesAn > 0 ? resultats.totalKgHorsPrescriptions / etat.data.profil.nbActesAn : 0);
           await exporterCertificat(document.getElementById("canvas-certificat"), {
-            famille: familleActuelle(), profil: etat.data.profil, results: resultats, nomCabinet: etat.nomCabinet,
+            famille: familleActuelle(), profil: etat.data.profil,
+            results: { ...resultats, parActe: parActePourCertificat },
+            nomCabinet: etat.nomCabinet,
           });
           etat.typeCertificat = "ok";
         } catch (e) {

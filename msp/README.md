@@ -46,3 +46,21 @@ Contrairement à une ancienne version en fichier unique, `index.html` charge les
 ## À chaque mise à jour de l'outil
 
 Remplace uniquement les fichiers qui ont changé (souvent `js/ui-msp.js` ou `js/calcul-msp.js`), en conservant les mêmes noms et emplacements — aucune autre manipulation nécessaire.
+
+## Historique des corrections notables
+
+- **Septembre 2026 — harmonisation des facteurs "services" avec Lib&CO2 Cab.**
+  MSP utilisait une clé unique `FE_MONETAIRE.services_intellectuels` (0,077,
+  sourcée sur la catégorie Base Carbone "Assurance") pour l'ensemble
+  compta/banque/assurance/sous-traitance, alors que Cab avait été mis à jour
+  vers deux clés distinctes et mieux sourcées : `services_administratifs`
+  (0,072 — moyenne juridique-comptable/assurance/finance) et
+  `prestations_specialisees` (0,110 — sous-traitance et prestations
+  externes). Les deux outils calculaient donc ce poste différemment malgré
+  une méthodologie commune revendiquée. Corrigé : MSP utilise désormais les
+  deux mêmes clés que Cab, avec la même répartition (comptabilité/banque/
+  assurance → `services_administratifs` ; sous-traitance, documentation,
+  licences logicielles → `prestations_specialisees`). Voir
+  `js/data/facteurs-emission.js` et `calculPostesMutualises` dans
+  `js/calcul-msp.js`.
+

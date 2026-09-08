@@ -783,6 +783,10 @@ function rendreResultats(r, etat) {
 
   return `
   <div class="resultats">
+    ${r.structureIncomplete?.surfaceManquante || r.structureIncomplete?.actesManquants ? `
+      <div class="alerte" style="margin-bottom:1rem;">
+        ⚠️ ${r.structureIncomplete.surfaceManquante ? `La <strong>surface totale de la structure</strong> n'est pas renseignée (étape "Profil") — ` : ''}${r.structureIncomplete.actesManquants ? `<strong>aucun praticien n'a de nombre d'actes annuel renseigné</strong> — ` : ''}les fiches individuelles ci-dessous ne peuvent pas être réparties tant que ${r.structureIncomplete.surfaceManquante && r.structureIncomplete.actesManquants ? 'ces champs ne sont pas complétés' : 'ce champ n\u2019est pas complété'}. L'empreinte totale de la structure, elle, reste correcte.
+      </div>` : ''}
     <div class="chiffres-cles">
       <div class="chiffre-cle">
         <span class="chiffre-cle-valeur">${fmt(r.empreinteTotale / 1000)}</span>
@@ -1401,7 +1405,8 @@ function exporterExcel(etat) {
 
   // --- Feuille 8 : Facteurs — Monétaires et fret ---
   const lignesMonetaire = [ligneExcel([celluleTexte('Élément'), celluleTexte('Valeur'), celluleTexte('Unité')])];
-  lignesMonetaire.push(ligneExcel([celluleTexte('Services intellectuels (compta/banque/assurance/sous-traitance)'), celluleNombre(FE_MONETAIRE.services_intellectuels), celluleTexte('kgCO2e/€')]));
+  lignesMonetaire.push(ligneExcel([celluleTexte('Services administratifs (compta/banque/assurance)'), celluleNombre(FE_MONETAIRE.services_administratifs), celluleTexte('kgCO2e/€')]));
+  lignesMonetaire.push(ligneExcel([celluleTexte('Prestations spécialisées (sous-traitance, documentation, licences)'), celluleNombre(FE_MONETAIRE.prestations_specialisees), celluleTexte('kgCO2e/€')]));
   lignesMonetaire.push(ligneExcel([celluleTexte('Biens et consommables (matériel secrétariat)'), celluleNombre(FE_MONETAIRE.biens_consommables), celluleTexte('kgCO2e/€')]));
   lignesMonetaire.push(ligneExcel([celluleTexte('Fret / colis'), celluleNombre(FE_FRET_COLIS), celluleTexte('kgCO2e/colis')]));
   lignesMonetaire.push(ligneExcel([celluleTexte('Repas standard'), celluleNombre(FE_REPAS.standard), celluleTexte('kgCO2e/repas')]));

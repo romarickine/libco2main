@@ -210,7 +210,14 @@ export function calculerBilan(data, famille, zone) {
 export function calculerActions(results, selectedActions) {
   return ACTIONS.map((act) => {
     const isDegres = act.unit === "degres";
-    const kgPoste = isDegres ? (results.detail.localChauffage || 0) : (results.parPoste[act.poste] || 0);
+    // Certaines actions ne concernent qu'une sous-partie d'un poste (ex. une
+    // pompe à chaleur ne réduit que la part chauffage du local, pas
+    // l'électricité) : detailKey pointe alors vers la bonne valeur dans
+    // results.detail plutôt que vers le poste complet, pour ne pas
+    // surestimer le gain. À défaut, on retombe sur le poste entier.
+    const kgPoste = isDegres ? (results.detail.localChauffage || 0)
+      : act.detailKey ? (results.detail[act.detailKey] || 0)
+      : (results.parPoste[act.poste] || 0);
     const sel = selectedActions[act.id] || { checked: false, pct: act.defaultPct, degres: act.defaultDegres };
     let potentielKg;
     if (isDegres) {

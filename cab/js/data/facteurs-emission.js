@@ -102,8 +102,16 @@ export const FE_MONETAIRE = {
   juridique_conseil_gestion: 0.067,
   // "Programmation, conseil IT / Services d'information", 2023 : 75 kgCO2e/k€.
   informatique_conseil: 0.075,
-  // "Autres produits manufacturés", 2023 : 231 kgCO2e/k€.
-  biens_consommables: 0.231,
+  // "Papier et carton", 2023 : 357 kgCO2e/k€ (Base Carbone V23.10 — version
+  // plus récente que la précédente source utilisée ici, "Autres produits
+  // manufacturés", Base Carbone V23.6 : 231 kgCO2e/k€). Harmonisé avec
+  // Lib&CO2 MSP en septembre 2026, en retenant le facteur le plus récent
+  // disponible entre les deux outils. Catégorie plus précise pour une
+  // bonne partie des postes concernés (fournitures administratives,
+  // impression, fournitures de bureau) ; moins précise pour d'autres
+  // (consommables de soin, matières premières d'artisanat d'art) — limite
+  // assumée, faute d'un facteur par nature de consommable.
+  biens_consommables: 0.357,
   // "Produits pharmaceutiques de base et préparations pharmaceutiques", 2023 :
   // 194 kgCO2e/k€ → 0,194 kgCO2e/€. Utilisé pour le chiffre d'affaires
   // médicaments (pharmaciens) et les dépenses de médicaments prescrits.
@@ -298,9 +306,9 @@ export const ACTIONS = [
 
   // --- Local professionnel ---
   { id: "lo1", poste: "local", titre: "Ajuster la température de consigne (chauffage l'hiver, climatisation l'été)", source: "SOURCÉ — rapport kinéCO2, citant l'ADEME : chaque degré de consigne modifié réduit les émissions correspondantes d'environ 7% (calcul exact, multiplié par le nombre de degrés choisi).", unit: "degres", defaultDegres: 1, maxReductionParDegre: 0.07, cost: "gratuit", coutKg: "0 € — réglage" },
-  { id: "lo2", poste: "local", titre: "Remplacer une chaudière gaz/fioul par une pompe à chaleur", source: "SOURCÉ — rapport kinéCO2, citant l'ADEME : une pompe à chaleur émet environ -82% vs une chaudière gaz. Appliqué à la seule part chauffage du poste local.", hasPct: false, defaultPct: 100, maxReduction: 0.4, cost: "investissement", coutKg: "≈ 0,3 à 0,6 €/kgCO2e évité selon aides disponibles" },
-  { id: "lo3", poste: "local", titre: "Améliorer l'isolation du local (combles, fenêtres)", source: "ESTIMÉ — ordre de grandeur usuel pour une rénovation d'isolation partielle, non re-vérifié cette session.", hasPct: true, defaultPct: 30, maxReduction: 0.25, cost: "investissement", coutKg: "≈ 0,4 à 0,8 €/kgCO2e évité, aides MaPrimeRénov' possibles" },
-  { id: "lo4", poste: "local", titre: "Souscrire un contrat d'électricité verte / renouvelable", source: "ESTIMÉ — effet surtout comptable (garanties d'origine) vu le mix français déjà décarboné ; valeur volontairement basse.", hasPct: true, defaultPct: 100, maxReduction: 0.08, cost: "faible", coutKg: "souvent sans surcoût significatif" },
+  { id: "lo2", poste: "local", detailKey: "localChauffage", titre: "Remplacer une chaudière gaz/fioul par une pompe à chaleur", source: "SOURCÉ — rapport kinéCO2, citant l'ADEME : une pompe à chaleur émet environ -82% vs une chaudière gaz. Appliqué à la seule part chauffage du poste local.", hasPct: false, defaultPct: 100, maxReduction: 0.4, cost: "investissement", coutKg: "≈ 0,3 à 0,6 €/kgCO2e évité selon aides disponibles" },
+  { id: "lo3", poste: "local", detailKey: "localChauffage", titre: "Améliorer l'isolation du local (combles, fenêtres)", source: "ESTIMÉ — ordre de grandeur usuel pour une rénovation d'isolation partielle, non re-vérifié cette session. Appliqué à la seule part chauffage du poste local (l'isolation réduit les pertes thermiques, pas la consommation électrique).", hasPct: true, defaultPct: 30, maxReduction: 0.25, cost: "investissement", coutKg: "≈ 0,4 à 0,8 €/kgCO2e évité, aides MaPrimeRénov' possibles" },
+  { id: "lo4", poste: "local", detailKey: "localElec", titre: "Souscrire un contrat d'électricité verte / renouvelable", source: "ESTIMÉ — effet surtout comptable (garanties d'origine) vu le mix français déjà décarboné ; valeur volontairement basse. Appliqué à la seule part électrique du poste local (un contrat d'électricité verte n'affecte pas un chauffage au gaz ou au fioul).", hasPct: true, defaultPct: 100, maxReduction: 0.08, cost: "faible", coutKg: "souvent sans surcoût significatif" },
 
   // --- Numérique ---
   { id: "nu1", poste: "numerique", titre: "Allonger la durée de vie du matériel informatique (viser 5-6 ans plutôt que 3-4 ans)", source: "ESTIMÉ, calcul explicite — passer de 4 à 6 ans d'amortissement réduit l'empreinte annuelle de fabrication de (1 - 4/6) ≈ 33%.", hasPct: true, defaultPct: 50, maxReduction: 0.3, cost: "gratuit", coutKg: "économie directe" },

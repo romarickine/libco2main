@@ -75,12 +75,19 @@ export const FE_REPAS = { standard: 2.04, vegetarien: 1.40 }; // SOURCÉ — ext
 
 // --- Ratios monétaires (kgCO2e / €) ---
 export const FE_MONETAIRE = {
-  // ESTIMÉ — pas de source directe ; valeur basse (~1/3 de biens_consommables)
-  // reflétant une activité de services peu matérielle. À noter : la
-  // méthodologie Bilan Carbone® déconseille les ratios monétaires génériques
-  // pour ce type d'activité (incertitude ~80%). Confirmé : l'ADEME a bien
-  // révisé ses ratios monétaires à la baisse en 2025, cf. Base Carbone ci-dessous.
-  services_intellectuels: 0.077, // SOURCÉ — Base Carbone V23.10, "Assurance, réassurance, retraites (hors sécurité sociale) - 2023", kgCO2e/keuro HT, Valide générique (id 43475). Valeur la plus élevée parmi les catégories de services intellectuels disponibles (juridique/comptable 2023 : 0,067 ; services financiers hors assurance 2019 : 0,069) retenue par choix éditorial de majoration prudente.
+  // SOURCÉ — ADEME Base Carbone V23.6, ratios monétaires 2023. Aligné sur la
+  // même méthodologie que Lib&CO2 Cab (auparavant, MSP utilisait une clé
+  // unique "services_intellectuels" = 0,077, dérivée d'une autre catégorie
+  // Base Carbone — les deux outils calculaient ce poste différemment malgré
+  // une méthodologie commune revendiquée ; corrigé pour repartager les
+  // mêmes valeurs).
+  // Moyenne de trois catégories proches (kgCO2e/k€ HT, 2023) : "Services
+  // juridiques et comptables / conseil de gestion" (67) + "Assurance,
+  // réassurance, retraites" (77) + "Services financiers hors assurance" (70)
+  // = 71,3 kgCO2e/k€ → 0,072 kgCO2e/€.
+  services_administratifs: 0.072,
+  // "Autres services spécialisés, scientifiques et techniques", 2023 : 110 kgCO2e/k€.
+  prestations_specialisees: 0.110,
   biens_consommables: 0.357, // SOURCÉ — Base Carbone V23.10, "Papier et carton - 2023", kgCO2e/keuro HT, Valide générique (id 43370). Confirme l'estimation précédente (0,35 ; un bilan d'émissions publié, Memo Bank, citait aussi 367 kgCO2e/k€ pour ses fournitures).
 };
 
@@ -168,7 +175,7 @@ export const FAMILLES = [
     publicLabel: "clientèle", publicSingulier: "client", acteLabel: "rendez-vous",
     consommables: [
       { id: "impression", label: "Impression, reliure et archivage de dossiers", factor: FE_MONETAIRE.biens_consommables },
-      { id: "documentation", label: "Abonnements documentaires et bases juridiques", factor: FE_MONETAIRE.services_intellectuels },
+      { id: "documentation", label: "Abonnements documentaires et bases juridiques", factor: FE_MONETAIRE.prestations_specialisees },
     ],
     grosMateriel: [
       { id: "bureautique_lourde", label: "Photocopieurs professionnels, scanners, serveurs d'archivage", factor: FE_GROS_MATERIEL_STANDARD },
@@ -182,7 +189,7 @@ export const FAMILLES = [
     lieuLabel: "bureau", lieuArticleMon: "mon bureau", lieuArticleLe: "le bureau",
     publicLabel: "clientèle", publicSingulier: "client", acteLabel: "missions",
     consommables: [
-      { id: "licences", label: "Licences logicielles et abonnements SaaS", factor: FE_MONETAIRE.services_intellectuels },
+      { id: "licences", label: "Licences logicielles et abonnements SaaS", factor: FE_MONETAIRE.prestations_specialisees },
       { id: "fournitures_bureau", label: "Fournitures de bureau", factor: FE_MONETAIRE.biens_consommables },
     ],
     grosMateriel: [
@@ -198,7 +205,7 @@ export const FAMILLES = [
     publicLabel: "clientèle", publicSingulier: "client", acteLabel: "rendez-vous",
     consommables: [
       { id: "impression_plans", label: "Impression de plans et maquettes", factor: FE_MONETAIRE.biens_consommables },
-      { id: "logiciels_metier", label: "Logiciels métier (CAO/BIM) et licences", factor: FE_MONETAIRE.services_intellectuels },
+      { id: "logiciels_metier", label: "Logiciels métier (CAO/BIM) et licences", factor: FE_MONETAIRE.prestations_specialisees },
     ],
     grosMateriel: [
       { id: "topo_impression", label: "Scanners 3D, traceurs grand format, stations topographiques", factor: FE_GROS_MATERIEL_STANDARD },

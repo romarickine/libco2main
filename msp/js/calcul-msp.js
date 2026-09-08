@@ -265,7 +265,13 @@ export function calculImmobilisations(lignesImmobilisation) {
 // 5. POSTES MUTUALISÉS
 export function calculPostesMutualises(postesMutualises) {
   const materielSecretariat = postesMutualises.materielSecretariat.montantAnnuelConsommables * FE_MONETAIRE.biens_consommables;
-  const services = (postesMutualises.services.comptaBanqueAssurance + postesMutualises.services.sousTraitance) * FE_MONETAIRE.services_intellectuels;
+  // Alignement avec Lib&CO2 Cab : comptabilité/banque/assurance relève des
+  // "services_administratifs" (0,072) ; sous-traitance relève des
+  // "prestations_specialisees" (0,110) — deux facteurs distincts plutôt
+  // qu'un seul facteur "services_intellectuels" blendé, comme c'était le
+  // cas avant harmonisation avec la méthodologie de Cab.
+  const services = postesMutualises.services.comptaBanqueAssurance * FE_MONETAIRE.services_administratifs
+                  + postesMutualises.services.sousTraitance * FE_MONETAIRE.prestations_specialisees;
   const fret = postesMutualises.fret.nbColisAn * FE_FRET_COLIS;
   return { materielSecretariat, services, fret, total: materielSecretariat + services + fret };
 }
@@ -400,6 +406,16 @@ export function calculBilanMSP(structureMSP, praticiens, staffAdmin, postesMutua
 
   const ratioParActeFinal = totalActes > 0 ? empreinteTotaleAvecPrescriptions / totalActes : null;
 
+  // Signalé à l'UI : si la surface totale ou le total d'actes vaut 0, la
+  // réventilation par praticien (surface, actes) ne peut rien répartir
+  // (clefs à 0 plutôt que NaN, voir facteurs-emission-msp.js) — l'utilisateur
+  // doit être prévenu explicitement plutôt que de voir des fiches
+  // individuelles à 0 sans explication.
+  const structureIncomplete = {
+    surfaceManquante: !structureMSP.surfaceTotale,
+    actesManquants: totalActes === 0,
+  };
+
   return {
     parPoste: { local, patientele, domicileTravail, alimentation, prescriptions, support, immobilisations: totalImmobilisations },
     empreinteTotale: empreinteTotaleAvecPrescriptions,
@@ -408,6 +424,7 @@ export function calculBilanMSP(structureMSP, praticiens, staffAdmin, postesMutua
     reventilationLocal: reventilationLocalArr,
     reventilationSupport: reventilationSupportArr,
     empreintesPraticiens,
-    empreinteStaffAdmin
+    empreinteStaffAdmin,
+    structureIncomplete
   };
 }
