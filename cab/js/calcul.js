@@ -10,7 +10,7 @@
 import {
   FE_TRANSPORT, FE_ENERGIE, RATIOS_ENERGIE_PAR_ACTIVITE,
   FE_NUMERIQUE, FE_REPAS, FE_MONETAIRE, FE_FRET_COLIS, FE_MOBILIER, DUREE_AMORTISSEMENT_ANS,
-  ACTIONS, COST_WEIGHT,
+  ACTIONS, COST_WEIGHT, FE_DECHETS, FE_DASRI,
 } from "./data/facteurs-emission.js";
 import { emissionsPatienteleParActe } from "./data/zonage-insee.js";
 
@@ -113,6 +113,32 @@ export function calculAlimentation({ repasParSemaine, partVegetarienne, semaines
   return repasVege * FE_REPAS.vegetarien + repasStd * FE_REPAS.standard;
 }
 
+// Calcule l'empreinte des déchets courants (traitement en fin de vie),
+// poste par poste. Saisie en kg/semaine, convertie en kg/an via le nombre
+// de semaines travaillées (même donnée que celle utilisée pour les
+// déplacements domicile-travail, cohérence du référentiel temporel de
+// l'outil). Le DASRI n'est ajouté que pour la famille Santé & paramédical.
+// Entrée : data.dechets, semainesAn (déplacements pro), estSante (bool)
+// Sortie : { total, detail: { plastique, metal, ..., dasri }, totalKg }
+export function calculDechets(dechets, semainesAn, estSante) {
+  const detail = {};
+  let total = 0;
+  for (const cle of Object.keys(FE_DECHETS)) {
+    const kgSemaine = dechets[cle] || 0;
+    const kgAn = kgSemaine * semainesAn;
+    const emissions = kgAn * FE_DECHETS[cle].value;
+    detail[cle] = emissions;
+    total += emissions;
+  }
+  if (estSante) {
+    const kgSemaineDasri = dechets.dasri || 0;
+    const kgAnDasri = kgSemaineDasri * semainesAn;
+    detail.dasri = kgAnDasri * FE_DASRI.value;
+    total += detail.dasri;
+  }
+  return { total, detail };
+}
+
 // Calcule l'empreinte des achats de services et du fret/livraisons.
 // Entrée : data.services
 // Sortie : { compta, sousTraitance, fret, total } en kgCO2e/an
@@ -162,6 +188,7 @@ export function calculerBilan(data, famille, zone) {
   const nu = calculNumerique(data.numerique);
   const ma = calculMateriel(famille, data.materiel, data.investissements);
   const al = calculAlimentation({ ...data.alimentation, semainesAn: data.deplacements.semainesAn });
+  const de = calculDechets(data.dechets, data.deplacements.semainesAn, famille.id === "sante");
   const se = calculServicesEtFret(data.services);
   const med = calculMedicaments(data.pharmacien);
   const presc = calculPrescriptions(data.prescriptions);
@@ -172,6 +199,7 @@ export function calculerBilan(data, famille, zone) {
     local: lo.total,
     numerique: nu.total,
     materiel: ma.total,
+    dechets: de.total,
     alimentation: al,
     services: se.compta + se.sousTraitance,
     fret: se.fret,
@@ -187,6 +215,7 @@ export function calculerBilan(data, famille, zone) {
     localElec: lo.elec, localChauffage: lo.chauffage, localDeporte: lo.deporte,
     numOrdisFixes: nu.ordisFixes, numOrdisPortables: nu.ordisPortables, numEcrans: nu.ecrans, numUsage: nu.usage,
     materiel: ma.detailConsommables, grosMateriel: ma.detailGros, mobilier: ma.mobilier,
+    dechets: de.detail, dechetsTotal: de.total,
     alimentation: al,
     servicesCompta: se.compta, servicesSousTraitance: se.sousTraitance, fret: se.fret,
     medicamentsVendus: med.medicaments, parapharmacie: med.parapharmacie,

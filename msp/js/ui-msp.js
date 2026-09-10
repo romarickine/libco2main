@@ -5,7 +5,8 @@ import { getEtat, majEtat, allerEcran, ajouterPraticien, supprimerPraticien,
 import { chercherCommunes } from './data/zonage-insee.js';
 import {
   FE_TRANSPORT, FE_ENERGIE, RATIOS_ENERGIE_PAR_ACTIVITE, FE_MONETAIRE, FE_FRET_COLIS,
-  FE_GROS_MATERIEL_STANDARD, FE_GROS_MATERIEL_MASSIF, FE_REPAS, ACTIONS, CATEGORIES_META, COST_WEIGHT
+  FE_GROS_MATERIEL_STANDARD, FE_GROS_MATERIEL_MASSIF, FE_REPAS, ACTIONS, CATEGORIES_META, COST_WEIGHT,
+  FE_DECHETS, FE_DASRI
 } from './data/facteurs-emission.js';
 import {
   FACTEURS_MOBILIER_UNITE, FACTEURS_VEHICULES_USAGE_FABRICATION,
@@ -22,12 +23,14 @@ const PROFESSIONS_APL = [
   { valeur: 'sage_femme', label: 'Sage-femme' },
   { valeur: 'kinesitherapeute', label: 'Kinésithérapeute' },
   { valeur: 'chirurgien_dentiste', label: 'Chirurgien(ne)-dentiste' },
+  { valeur: 'pharmacien', label: "Pharmacien(ne) titulaire d'officine" },
   { valeur: null, label: 'Autre profession de santé (ostéopathe, psychologue, diététicien...)' }
 ];
 
 const MODES_DEPLACEMENT = [
   'voiture_thermique', 'voiture_hybride', 'voiture_electrique', 'deux_roues',
-  'velo_meca', 'velo_elec', 'bus', 'metro_tram', 'rer_ter', 'tgv', 'marche'
+  'velo_meca', 'velo_elec', 'bus', 'metro_tram', 'rer_ter', 'tgv', 'marche',
+  'avion_court', 'avion_moyen', 'avion_long'
 ];
 
 const LABELS_MODES = {
@@ -41,7 +44,10 @@ const LABELS_MODES = {
   metro_tram: 'Métro / Tramway',
   rer_ter: 'RER / TER',
   tgv: 'TGV / grande ligne',
-  marche: 'Marche à pied'
+  marche: 'Marche à pied',
+  avion_court: 'Avion court-courrier (< 1 000 km)',
+  avion_moyen: 'Avion moyen-courrier (1 000 - 3 500 km)',
+  avion_long: 'Avion long-courrier (> 3 500 km)'
 };
 
 const ENERGIES = ['electricite', 'gaz', 'fioul', 'bois', 'reseau_chaleur', 'pac'];
@@ -331,6 +337,24 @@ function rendreSectionPrescriptions(p, i) {
     <button data-action="ajouter-prescription-externe" data-id="${p.id}" data-champ="prescriptions.actesParamedicauxExternes" class="bouton-secondaire-petit">+ Ajouter une profession prescrite</button>`;
 }
 
+function rendreSectionPharmacien(p, i) {
+  const ph = p.pharmacien || { caMedicaments: 0, caParapharmacie: 0, coeffAchatPrescriptions: 100 };
+  return `
+    <h4 class="section-titre">Officine (chiffre d'affaires)</h4>
+    <div class="ligne-double">
+      <label>Chiffre d'affaires médicaments (€/an)
+        <input type="number" min="0" data-path="praticiens.${i}.pharmacien.caMedicaments" value="${ph.caMedicaments}">
+      </label>
+      <label>Chiffre d'affaires parapharmacie (€/an)
+        <input type="number" min="0" data-path="praticiens.${i}.pharmacien.caParapharmacie" value="${ph.caParapharmacie}">
+      </label>
+    </div>
+    <label>Part des prescriptions de la structure honorées dans cette officine (%)
+      <input type="number" min="0" max="100" data-path="praticiens.${i}.pharmacien.coeffAchatPrescriptions" value="${ph.coeffAchatPrescriptions}">
+    </label>
+    <p class="aide">Pour éviter de compter deux fois les mêmes médicaments (prescrits par un praticien de la structure, puis achetés ici), cette part est déduite du chiffre d'affaires médicaments avant conversion en émissions. 100% suppose que toutes les prescriptions de la structure sont honorées dans cette officine ; ajustez à la baisse si une partie de la patientèle achète ses médicaments ailleurs. La parapharmacie n'est pas concernée par cette déduction.</p>`;
+}
+
 function rendreCartePraticien(p, i) {
   return `
   <div class="carte carte-praticien" data-praticien-id="${p.id}">
@@ -394,6 +418,8 @@ function rendreCartePraticien(p, i) {
     <p class="aide">Repas pris dans le cadre de l'activité professionnelle (sur place, restauration liée au travail). Calcul : repas/semaine × semaines travaillées/an, réparti entre repas standard et végétarien selon le pourcentage indiqué.</p>
 
     ${PROFESSIONS_PRESCRIPTRICES.includes(p.professionAPL) ? rendreSectionPrescriptions(p, i) : ''}
+
+    ${p.professionAPL === 'pharmacien' ? rendreSectionPharmacien(p, i) : ''}
 
     <details data-details-key="praticien-${p.id}-numerique">
       <summary><span>Numérique</span></summary>
@@ -542,6 +568,32 @@ function rendrePostesMutualises(etat) {
     <label>Nombre de colis reçus/an
       <input type="number" min="0" data-path="postesMutualises.fret.nbColisAn" value="${pm.fret.nbColisAn}">
     </label>
+
+    <div class="carte">
+      <h3 class="carte-titre">Déchets courants de la structure</h3>
+      <p class="aide">Traitement en fin de vie uniquement (la fabrication est déjà comptée dans le matériel) — saisi en kg/semaine pour l'ensemble de la structure, converti automatiquement en kg/an (base 52 semaines).</p>
+      <div class="ligne-double">
+        <label>Plastique (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.plastique" value="${pm.dechets.plastique}"></label>
+        <label>Métal, hors aluminium (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.metal" value="${pm.dechets.metal}"></label>
+      </div>
+      <div class="ligne-double">
+        <label>Papier (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.papier" value="${pm.dechets.papier}"></label>
+        <label>Carton (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.carton" value="${pm.dechets.carton}"></label>
+      </div>
+      <div class="ligne-double">
+        <label>Aluminium (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.aluminium" value="${pm.dechets.aluminium}"></label>
+        <label>Verre (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.verre" value="${pm.dechets.verre}"></label>
+      </div>
+      <div class="ligne-double">
+        <label>Déchets ménagers non triés (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.menagers" value="${pm.dechets.menagers}"></label>
+        <label>Déchets électroniques — DEEE (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.electronique" value="${pm.dechets.electronique}"></label>
+      </div>
+      <hr class="separateur" />
+      <label>DASRI — déchets d'activité de soins à risques infectieux (kg/semaine)
+        <input type="number" min="0" step="0.1" data-path="postesMutualises.dechets.dasri" value="${pm.dechets.dasri}">
+      </label>
+      <p class="aide">Matériel piquant/coupant, produits biologiques — incinération à haute température obligatoire, bien plus émissive que les déchets courants ci-dessus.</p>
+    </div>
 
     <div class="carte">
       <h3 class="carte-titre">Matériel lourd partagé entre plusieurs praticiens</h3>
@@ -744,8 +796,16 @@ function rendreResultats(r, etat) {
     { label: 'Congrès / formations (usage)', valeur: r.parPoste.domicileTravail.deplacementsProAnnuels.usage },
     { label: 'Immobilisation véhicules', valeur: r.parPoste.domicileTravail.fabricationVehiculeTotal },
     { label: 'Alimentation professionnelle', valeur: r.parPoste.alimentation.total },
-    { label: 'Prescriptions (médicaments + actes externes)', valeur: r.parPoste.prescriptions.total },
+    // Prescriptions et médicaments/parapharmacie : inclus dans ce graphique
+    // uniquement si la case "Inclure prescriptions et médicaments" est
+    // cochée, pour ne jamais contredire visuellement le total affiché
+    // juste au-dessus (voir empreinteAffichee plus bas).
+    ...(etat.inclureMedicaments ? [
+      { label: 'Prescriptions (médicaments + actes externes)', valeur: r.parPoste.prescriptions.total },
+      { label: 'Médicaments et parapharmacie vendus (officine)', valeur: r.parPoste.medicamentsPharmacie.total },
+    ] : []),
     { label: 'Postes mutualisés', valeur: r.parPoste.support.total },
+    { label: 'Déchets de la structure', valeur: r.parPoste.dechets.total },
     { label: 'Immobilisations diverses', valeur: r.parPoste.immobilisations }
   ].filter(d => d.valeur > 0).sort((a, b) => b.valeur - a.valeur);
 
@@ -755,8 +815,10 @@ function rendreResultats(r, etat) {
     { cle: 'partDeplacementsPro', label: 'Déplacements pro.', couleur: COULEURS_POSTES[2] },
     { cle: 'partAlimentation', label: 'Alimentation', couleur: '#4E8FA3' },
     { cle: 'partPrescriptions', label: 'Prescriptions', couleur: '#8A6FB0' },
+    { cle: 'partMedicamentsPharmacie', label: 'Médicaments vendus', couleur: '#B0708A' },
     { cle: 'partImmobilisations', label: 'Immobilisations', couleur: COULEURS_POSTES[3] },
-    { cle: 'partSupport', label: 'Postes mutualisés', couleur: COULEURS_POSTES[4] }
+    { cle: 'partSupport', label: 'Postes mutualisés', couleur: COULEURS_POSTES[4] },
+    { cle: 'partDechets', label: 'Déchets', couleur: '#6B7F5C' }
   ];
   const parActe = !!etat.affichageParActe;
   const totalActesMSP = etat.praticiens.reduce((s, p) => s + p.nbActesAnnuel, 0) || 1;
@@ -768,8 +830,9 @@ function rendreResultats(r, etat) {
       label: nomsPraticiens[p.id],
       partLocal: e.partLocal / diviseur, partPatientele: e.partPatientele / diviseur,
       partDeplacementsPro: e.partDeplacementsPro / diviseur, partAlimentation: e.partAlimentation / diviseur,
-      partPrescriptions: e.partPrescriptions / diviseur,
-      partImmobilisations: e.partImmobilisations / diviseur, partSupport: e.partSupport / diviseur
+      partPrescriptions: e.partPrescriptions / diviseur, partMedicamentsPharmacie: e.partMedicamentsPharmacie / diviseur,
+      partImmobilisations: e.partImmobilisations / diviseur, partSupport: e.partSupport / diviseur,
+      partDechets: e.partDechets / diviseur
     };
   });
   const diviseurAdmin = parActe ? totalActesMSP : 1;
@@ -777,9 +840,19 @@ function rendreResultats(r, etat) {
     label: 'Fonctions support (MSP)',
     partLocal: r.empreinteStaffAdmin.partLocal / diviseurAdmin, partPatientele: 0,
     partDeplacementsPro: r.empreinteStaffAdmin.partDeplacements / diviseurAdmin, partAlimentation: 0,
-    partPrescriptions: 0,
-    partImmobilisations: r.empreinteStaffAdmin.partImmobilisations / diviseurAdmin, partSupport: 0
+    partPrescriptions: 0, partMedicamentsPharmacie: 0,
+    partImmobilisations: r.empreinteStaffAdmin.partImmobilisations / diviseurAdmin, partSupport: 0, partDechets: 0
   });
+
+  // "kgCO2e total/acte" affichés : hors prescriptions ET hors médicaments/
+  // parapharmacie d'officine par défaut (comparabilité entre MSP avec et
+  // sans pharmacie/prescripteurs intégrés) — case à cocher pour inclure les
+  // deux ensemble (voir calculMedicamentsPharmacie dans calcul-msp.js pour
+  // la logique de soustraction anti-double-comptage).
+  const aDesMedicaments = r.parPoste.prescriptions.total > 0 || r.parPoste.medicamentsPharmacie.total > 0;
+  const inclureMedicaments = !!etat.inclureMedicaments;
+  const empreinteAffichee = inclureMedicaments ? r.empreinteTotaleAvecMedicaments : r.empreinteTotaleSansMedicaments;
+  const ratioAffiche = inclureMedicaments ? r.ratioParActeAvecMedicaments : r.ratioParActeSansMedicaments;
 
   return `
   <div class="resultats">
@@ -789,16 +862,37 @@ function rendreResultats(r, etat) {
       </div>` : ''}
     <div class="chiffres-cles">
       <div class="chiffre-cle">
-        <span class="chiffre-cle-valeur">${fmt(r.empreinteTotale / 1000)}</span>
+        <span class="chiffre-cle-valeur">${fmt(empreinteAffichee / 1000)}</span>
         <span class="chiffre-cle-unite">tCO2e / an</span>
         <span class="chiffre-cle-label">Empreinte totale de la MSP</span>
       </div>
       <div class="chiffre-cle">
-        <span class="chiffre-cle-valeur">${r.ratioParActe != null ? r.ratioParActe.toFixed(1) : '—'}</span>
+        <span class="chiffre-cle-valeur">${ratioAffiche != null ? ratioAffiche.toFixed(1) : '—'}</span>
         <span class="chiffre-cle-unite">kgCO2e / acte</span>
         <span class="chiffre-cle-label">Ratio moyen par acte</span>
       </div>
     </div>
+    ${aDesMedicaments ? `
+      <div class="carte" style="margin-top:1rem;">
+        <h3 class="carte-titre">Prescriptions et médicaments — hors comparaison</h3>
+        <p class="aide">Ce bloc regroupe deux postes volontairement exclus du total ci-dessus par défaut, pour que l'empreinte de la MSP reste comparable à une structure sans prescripteurs ni pharmacie intégrée.</p>
+        <div class="ligne-double">
+          <div>
+            <p class="sous-carte-titre">Prescriptions des praticiens</p>
+            <p class="chiffre-secondaire">${fmt(r.parPoste.prescriptions.total)} kgCO2e/an</p>
+            <p class="aide">Médicaments et actes prescrits par les praticiens de la structure (médecins, sages-femmes, chirurgiens-dentistes).</p>
+          </div>
+          <div>
+            <p class="sous-carte-titre">Médicaments et parapharmacie vendus en officine</p>
+            <p class="chiffre-secondaire">${fmt(r.parPoste.medicamentsPharmacie.total)} kgCO2e/an</p>
+            <p class="aide">Chiffre d'affaires du pharmacien de la structure, net de la part déjà comptée dans les prescriptions ci-dessus (pour éviter un double comptage — voir le coefficient d'achat renseigné sur sa fiche praticien).</p>
+          </div>
+        </div>
+        <label style="display:flex; align-items:center; gap:8px; margin-top:1rem; cursor:pointer;">
+          <input type="checkbox" data-action="toggle-inclure-medicaments" ${inclureMedicaments ? "checked" : ""} />
+          Inclure prescriptions et médicaments dans l'empreinte totale affichée ci-dessus
+        </label>
+      </div>` : ''}
 
     <div class="carte">
       <h3 class="carte-titre">
@@ -1021,7 +1115,7 @@ function rendreActionCard(etat, action, valeurPoste) {
 // Affiche un petit message flottant temporaire (3,5 s), pour prévenir d'une
 // saisie visiblement erronée sans interrompre la saisie avec un alert()
 // bloquant. Réutilisable pour d'autres validations similaires à l'avenir.
-function afficherBulle(texte) {
+export function afficherBulle(texte) {
   const ancienne = document.getElementById('bulle-avertissement');
   if (ancienne) ancienne.remove();
   const bulle = document.createElement('div');
@@ -1128,6 +1222,7 @@ function attacherEcouteurs(app) {
       if (action === 'exporter-dashboard') exporterDashboard();
       if (action === 'affichage-total') { const e = getEtat(); e.affichageParActe = false; forcerRafraichissement(e); }
       if (action === 'affichage-par-acte') { const e = getEtat(); e.affichageParActe = true; forcerRafraichissement(e); }
+      if (action === 'toggle-inclure-medicaments') { const e = getEtat(); e.inclureMedicaments = !e.inclureMedicaments; forcerRafraichissement(e); }
       if (action === 'ajouter-materiel-dedie') ajouterLignePraticien(el.dataset.id, 'materielDedie', { type: '', valeurAchat: 0, dureeDetention: 5 });
       if (action === 'ajouter-mode') ajouterLigneChampPraticien(el.dataset.id, el.dataset.champ, { mode: 'velo_meca', part: 0 });
       if (action === 'ajouter-prescription-externe') ajouterLigneChampPraticien(el.dataset.id, el.dataset.champ, { profession: 'kinesitherapeute', nbActesAnnuel: 0 });
@@ -1306,27 +1401,33 @@ function exporterExcel(etat) {
   lignesPostes.push(ligneExcel([celluleTexte('Alimentation professionnelle'), celluleTexte(''), celluleNombre(r.parPoste.alimentation.total)]));
   lignesPostes.push(ligneExcel([celluleTexte('Prescriptions'), celluleTexte('Médicaments'), celluleNombre(r.parPoste.prescriptions.detailParPraticien.reduce((s, d) => s + d.emissionsMedicaments, 0))]));
   lignesPostes.push(ligneExcel([celluleTexte('Prescriptions'), celluleTexte('Actes paramédicaux externes (estimation par ratio local)'), celluleNombre(r.parPoste.prescriptions.detailParPraticien.reduce((s, d) => s + d.emissionsActesExternes, 0))]));
+  lignesPostes.push(ligneExcel([celluleTexte('Médicaments et parapharmacie (officine)'), celluleTexte('Médicaments vendus, net des prescriptions déjà comptées'), celluleNombre(r.parPoste.medicamentsPharmacie.detailParPraticien.reduce((s, d) => s + d.emissionsMedicamentsNet, 0))]));
+  lignesPostes.push(ligneExcel([celluleTexte('Médicaments et parapharmacie (officine)'), celluleTexte('Parapharmacie'), celluleNombre(r.parPoste.medicamentsPharmacie.detailParPraticien.reduce((s, d) => s + d.emissionsParapharmacie, 0))]));
   lignesPostes.push(ligneExcel([celluleTexte('Postes mutualisés'), celluleTexte('Matériel de secrétariat'), celluleNombre(r.parPoste.support.materielSecretariat)]));
   lignesPostes.push(ligneExcel([celluleTexte('Postes mutualisés'), celluleTexte('Services (compta/banque/assurance/sous-traitance)'), celluleNombre(r.parPoste.support.services)]));
   lignesPostes.push(ligneExcel([celluleTexte('Postes mutualisés'), celluleTexte('Fret'), celluleNombre(r.parPoste.support.fret)]));
+  for (const cle of Object.keys(FE_DECHETS)) {
+    lignesPostes.push(ligneExcel([celluleTexte('Déchets de la structure'), celluleTexte(FE_DECHETS[cle].label), celluleNombre(r.parPoste.dechets.detail[cle] || 0)]));
+  }
+  lignesPostes.push(ligneExcel([celluleTexte('Déchets de la structure'), celluleTexte(FE_DASRI.label), celluleNombre(r.parPoste.dechets.detail.dasri || 0)]));
   lignesPostes.push(ligneExcel([celluleTexte('Immobilisations'), celluleTexte('Numérique + matériel + mobilier (tous praticiens et staff admin)'), celluleNombre(r.parPoste.immobilisations)]));
   feuilles.push(feuilleExcel('Postes MSP', lignesPostes));
 
   // --- Feuille 3 : Empreinte par praticien ---
   const lignesEmpreinte = [ligneExcel([
     celluleTexte('Praticien'), celluleTexte('Local'), celluleTexte('Patientèle'),
-    celluleTexte('Déplacements pro.'), celluleTexte('Alimentation'), celluleTexte('Prescriptions'), celluleTexte('Immobilisations'), celluleTexte('Postes mutualisés'), celluleTexte('Total kgCO2e/an')
+    celluleTexte('Déplacements pro.'), celluleTexte('Alimentation'), celluleTexte('Prescriptions'), celluleTexte('Médicaments (officine)'), celluleTexte('Immobilisations'), celluleTexte('Postes mutualisés'), celluleTexte('Total kgCO2e/an')
   ])];
   for (const p of etat.praticiens) {
     const e = r.empreintesPraticiens.find(x => x.id === p.id);
     lignesEmpreinte.push(ligneExcel([
       celluleTexte(nomsPraticiens[p.id]), celluleNombre(e.partLocal), celluleNombre(e.partPatientele),
-      celluleNombre(e.partDeplacementsPro), celluleNombre(e.partAlimentation), celluleNombre(e.partPrescriptions), celluleNombre(e.partImmobilisations), celluleNombre(e.partSupport), celluleNombre(e.total)
+      celluleNombre(e.partDeplacementsPro), celluleNombre(e.partAlimentation), celluleNombre(e.partPrescriptions), celluleNombre(e.partMedicamentsPharmacie), celluleNombre(e.partImmobilisations), celluleNombre(e.partSupport), celluleNombre(e.total)
     ]));
   }
   lignesEmpreinte.push(ligneExcel([
     celluleTexte('Fonctions support (MSP)'), celluleNombre(r.empreinteStaffAdmin.partLocal), celluleNombre(0),
-    celluleNombre(r.empreinteStaffAdmin.partDeplacements), celluleNombre(0), celluleNombre(0), celluleNombre(r.empreinteStaffAdmin.partImmobilisations), celluleNombre(0), celluleNombre(r.empreinteStaffAdmin.total)
+    celluleNombre(r.empreinteStaffAdmin.partDeplacements), celluleNombre(0), celluleNombre(0), celluleNombre(0), celluleNombre(r.empreinteStaffAdmin.partImmobilisations), celluleNombre(0), celluleNombre(r.empreinteStaffAdmin.total)
   ]));
   feuilles.push(feuilleExcel('Empreinte par praticien', lignesEmpreinte));
 
@@ -1345,6 +1446,26 @@ function exporterExcel(etat) {
   lignesPrescriptions.push(ligneExcel([celluleTexte(''), celluleTexte(''), celluleTexte(''), celluleTexte(''), celluleTexte('')]));
   lignesPrescriptions.push(ligneExcel([celluleTexte('Méthode'), celluleTexte('Médicaments : facteur SOURCÉ 0,5 kgCO2e/€ (Shift Project/ADEME Base Empreinte). Actes externes : ratio kgCO2e/acte ESTIMÉ, dérivé de la même profession au sein de cette MSP. Option A retenue : les actes prescrits réalisés par un collègue de la même MSP sont exclus (déjà comptés dans son propre bilan).'), celluleTexte(''), celluleTexte(''), celluleTexte('')]));
   feuilles.push(feuilleExcel('Prescriptions', lignesPrescriptions));
+
+  // --- Feuille 3ter : Détail médicaments et parapharmacie (officine) ---
+  const lignesMedicamentsOfficine = [ligneExcel([
+    celluleTexte('Praticien'), celluleTexte('CA médicaments déclaré (€)'), celluleTexte('CA parapharmacie (€)'),
+    celluleTexte('Coefficient d\u2019achat prescriptions (%)'), celluleTexte('Prescriptions médicaments de la MSP (€, toutes professions)'),
+    celluleTexte('CA médicaments net (€)'), celluleTexte('Émissions médicaments net (kgCO2e)'), celluleTexte('Émissions parapharmacie (kgCO2e)'), celluleTexte('Total (kgCO2e)')
+  ])];
+  const totalPrescriptionsEurosExport = etat.praticiens.reduce((s, p) => s + (PROFESSIONS_PRESCRIPTRICES.includes(p.professionAPL) ? (p.prescriptions?.montantAnnuelMedicaments || 0) : 0), 0);
+  for (const p of etat.praticiens) {
+    if (p.professionAPL !== 'pharmacien') continue;
+    const d = r.parPoste.medicamentsPharmacie.detailParPraticien.find(x => x.id === p.id);
+    lignesMedicamentsOfficine.push(ligneExcel([
+      celluleTexte(nomsPraticiens[p.id]), celluleNombre(p.pharmacien?.caMedicaments || 0), celluleNombre(p.pharmacien?.caParapharmacie || 0),
+      celluleNombre(p.pharmacien?.coeffAchatPrescriptions ?? 100), celluleNombre(totalPrescriptionsEurosExport),
+      celluleNombre(d?.caMedicamentsNet ?? 0), celluleNombre(d?.emissionsMedicamentsNet ?? 0), celluleNombre(d?.emissionsParapharmacie ?? 0), celluleNombre(d?.total ?? 0)
+    ]));
+  }
+  lignesMedicamentsOfficine.push(ligneExcel([celluleTexte(''), celluleTexte(''), celluleTexte(''), celluleTexte(''), celluleTexte(''), celluleTexte(''), celluleTexte(''), celluleTexte(''), celluleTexte('')]));
+  lignesMedicamentsOfficine.push(ligneExcel([celluleTexte('Méthode'), celluleTexte('CA médicaments net = CA médicaments déclaré − (coefficient d\u2019achat × total des prescriptions médicaments de la structure), plafonné à 0 — évite de compter deux fois les médicaments prescrits par un praticien de la MSP puis achetés dans sa propre officine. Facteur SOURCÉ 0,5 kgCO2e/€ (Shift Project/ADEME Base Empreinte) pour les médicaments ; facteur biens_consommables pour la parapharmacie. Poste exclu du total par défaut, comme les prescriptions (case à cocher en résultats).'), celluleTexte(''), celluleTexte(''), celluleTexte(''), celluleTexte(''), celluleTexte(''), celluleTexte(''), celluleTexte('')]));
+  if (lignesMedicamentsOfficine.length > 2) feuilles.push(feuilleExcel('Médicaments (officine)', lignesMedicamentsOfficine));
 
   // --- Feuille 4 : Clés de réventilation ---
   const lignesClefs = [ligneExcel([

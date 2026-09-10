@@ -14,7 +14,9 @@ import {
   FE_FRET_COLIS,
   FE_GROS_MATERIEL_STANDARD,
   FE_GROS_MATERIEL_MASSIF,
-  FE_REPAS
+  FE_REPAS,
+  FE_DECHETS,
+  FE_DASRI
 } from './data/facteurs-emission.js';
 import { coefficientRarete } from './data/apl-msp.js';
 import {
@@ -159,6 +161,49 @@ export function calculPrescriptions(praticiens, ratiosParActeParProfession) {
   return { total: emissionsTotales, detailParPraticien };
 }
 
+// Médicaments et parapharmacie vendus par un pharmacien titulaire d'officine
+// intégré à la MSP. Point méthodologique important : une partie du chiffre
+// d'affaires médicaments de la pharmacie correspond à des ordonnances déjà
+// comptabilisées dans le poste "Prescriptions" des praticiens de la même
+// structure (ex. le médecin de la MSP prescrit, le patient va à la
+// pharmacie DE LA MSP) — sans correction, ces euros seraient comptés deux
+// fois. On soustrait donc du CA médicaments déclaré par le pharmacien une
+// part (coefficient d'achat ajustable, l'utilisateur peut estimer quelle
+// proportion des prescriptions de la structure est effectivement honorée
+// dans sa propre officine plutôt qu'ailleurs) du total des prescriptions
+// médicamenteuses de la structure. Si le résultat serait négatif (CA
+// médicaments inférieur à la part de prescriptions estimée — ex. la
+// pharmacie sert surtout des patients extérieurs), on plafonne à 0 et on le
+// signale (alerteNegatif) plutôt que d'afficher un poste impossible.
+// La parapharmacie n'est jamais concernée par cette soustraction : rien
+// d'autre dans l'outil ne compte de "prescription de parapharmacie".
+export function calculMedicamentsPharmacie(praticiens, totalPrescriptionsMedicamentsEuros) {
+  let emissionsTotales = 0;
+  let alerteNegatif = false;
+  const detailParPraticien = [];
+
+  for (const p of praticiens) {
+    if (p.professionAPL !== 'pharmacien') continue;
+    const caMedicaments = p.pharmacien?.caMedicaments || 0;
+    const caParapharmacie = p.pharmacien?.caParapharmacie || 0;
+    const coeff = (p.pharmacien?.coeffAchatPrescriptions ?? 100) / 100;
+
+    const soustractionEuros = coeff * totalPrescriptionsMedicamentsEuros;
+    const caMedicamentsNetBrut = caMedicaments - soustractionEuros;
+    if (caMedicamentsNetBrut < 0) alerteNegatif = true;
+    const caMedicamentsNet = Math.max(0, caMedicamentsNetBrut);
+
+    const emissionsMedicamentsNet = caMedicamentsNet * FE_MEDICAMENTS_EUR;
+    const emissionsParapharmacie = caParapharmacie * FE_MONETAIRE.biens_consommables;
+    const total = emissionsMedicamentsNet + emissionsParapharmacie;
+
+    emissionsTotales += total;
+    detailParPraticien.push({ id: p.id, caMedicamentsNet, emissionsMedicamentsNet, emissionsParapharmacie, total });
+  }
+
+  return { total: emissionsTotales, alerteNegatif, detailParPraticien };
+}
+
 /**
  * Fonction générique : répartit un kilométrage annuel entre plusieurs modes
  * (ex. 70% voiture / 30% vélo), chaque mode appliquant son propre facteur
@@ -276,6 +321,31 @@ export function calculPostesMutualises(postesMutualises) {
   return { materielSecretariat, services, fret, total: materielSecretariat + services + fret };
 }
 
+// Déchets courants de la structure (traitement en fin de vie), saisis en
+// kg/semaine et convertis en kg/an. Poste mutualisé au niveau de la
+// structure (les bacs de déchets sont partagés, pas individuels) : converti
+// sur la base de 52 semaines calendaires — et non les semaines travaillées
+// d'un praticien en particulier — car la collecte des déchets d'un bâtiment
+// se poursuit toute l'année, indépendamment du planning de tel ou tel
+// professionnel. Le DASRI est toujours pertinent pour une MSP (structure de
+// santé par définition), contrairement à Cab où il dépend de la famille de
+// métier choisie.
+const SEMAINES_CALENDAIRES = 52;
+export function calculDechetsMSP(dechetsMutualises) {
+  const d = dechetsMutualises || {};
+  const detail = {};
+  let total = 0;
+  for (const cle of Object.keys(FE_DECHETS)) {
+    const kgAn = (d[cle] || 0) * SEMAINES_CALENDAIRES;
+    detail[cle] = kgAn * FE_DECHETS[cle].value;
+    total += detail[cle];
+  }
+  const kgAnDasri = (d.dasri || 0) * SEMAINES_CALENDAIRES;
+  detail.dasri = kgAnDasri * FE_DASRI.value;
+  total += detail.dasri;
+  return { total, detail };
+}
+
 // ---------------------------------------------------------------------------
 // 6. RÉVENTILATION
 /**
@@ -337,6 +407,11 @@ export function calculBilanMSP(structureMSP, praticiens, staffAdmin, postesMutua
   support.materielPartage = calculImmobilisations(lignesMaterielPartage);
   support.total += support.materielPartage;
 
+  // Déchets de la structure — poste distinct, pas fondu dans "support",
+  // pour rester visible séparément dans les résultats (même logique que
+  // Lib&CO2 Cab).
+  const dechets = calculDechetsMSP(postesMutualises.dechets);
+
   const immobilisationsParPraticienTotal = {};
   let immobilisationsPraticiensTotal = 0;
   for (const p of praticiens) {
@@ -355,16 +430,20 @@ export function calculBilanMSP(structureMSP, praticiens, staffAdmin, postesMutua
     + domicileTravail.fabricationVehiculeTotal
     + alimentation.total
     + support.total
+    + dechets.total
     + totalImmobilisations;
 
   const reventilationLocalArr = reventilerLocal(local.total, praticiens, staffAdmin, structureMSP.surfaceTotale);
   const reventilationSupportArr = reventilerPostesSupport(support.total, praticiens);
+  const reventilationDechetsArr = reventilerPostesSupport(dechets.total, praticiens);
 
   // Empreinte complète de chaque praticien (base, avant prescriptions) : sa
   // part de local (clé surface) + ses émissions patientèle propres + ses
   // déplacements pro propres (domicile-travail + tournées + congrès) + son
   // alimentation propre + ses immobilisations dédiées + sa part des postes
-  // mutualisés (clé actes cabinet).
+  // mutualisés (clé actes cabinet) + sa part des déchets de la structure
+  // (même clé de réventilation que les postes mutualisés : au prorata des
+  // actes, faute d'une donnée plus fine sur qui produit quels déchets).
   const empreintesPraticiensBase = praticiens.map(p => {
     const partLocal = reventilationLocalArr.find(x => x.id === p.id)?.part ?? 0;
     const partPatientele = patientele.detailParPraticien.find(x => x.id === p.id)?.emissions ?? 0;
@@ -373,8 +452,9 @@ export function calculBilanMSP(structureMSP, praticiens, staffAdmin, postesMutua
     const partAlimentation = alimentation.detailParPraticien.find(x => x.id === p.id)?.emissions ?? 0;
     const partImmobilisations = immobilisationsParPraticienTotal[p.id] || 0;
     const partSupport = reventilationSupportArr.find(x => x.id === p.id)?.part ?? 0;
-    const total = partLocal + partPatientele + partDeplacementsPro + partAlimentation + partImmobilisations + partSupport;
-    return { id: p.id, partLocal, partPatientele, partDeplacementsPro, partAlimentation, partImmobilisations, partSupport, total };
+    const partDechets = reventilationDechetsArr.find(x => x.id === p.id)?.part ?? 0;
+    const total = partLocal + partPatientele + partDeplacementsPro + partAlimentation + partImmobilisations + partSupport + partDechets;
+    return { id: p.id, partLocal, partPatientele, partDeplacementsPro, partAlimentation, partImmobilisations, partSupport, partDechets, total };
   });
 
   // Deuxième passe : prescriptions. Le ratio kgCO2e/acte "de référence" par
@@ -384,12 +464,22 @@ export function calculBilanMSP(structureMSP, praticiens, staffAdmin, postesMutua
   const ratiosParActeParProfession = calculerRatiosParActeParProfession(praticiens, empreintesPraticiensBase);
   const prescriptions = calculPrescriptions(praticiens, ratiosParActeParProfession);
 
-  const empreintesPraticiens = empreintesPraticiensBase.map(e => {
-    const partPrescriptions = prescriptions.detailParPraticien.find(x => x.id === e.id)?.total ?? 0;
-    return { ...e, partPrescriptions, total: e.total + partPrescriptions };
-  });
-
   const empreinteTotaleAvecPrescriptions = empreinteTotale + prescriptions.total;
+
+  // Médicaments et parapharmacie vendus par un éventuel pharmacien de la
+  // structure (voir calculMedicamentsPharmacie pour la logique de
+  // soustraction anti-double-comptage avec les prescriptions ci-dessus).
+  const totalPrescriptionsMedicamentsEuros = praticiens.reduce(
+    (s, p) => s + (PROFESSIONS_PRESCRIPTRICES.includes(p.professionAPL) ? (p.prescriptions?.montantAnnuelMedicaments || 0) : 0), 0
+  );
+  const medicamentsPharmacie = calculMedicamentsPharmacie(praticiens, totalPrescriptionsMedicamentsEuros);
+
+  const empreintesPraticiensAvecPrescriptions = empreintesPraticiensBase.map(e => {
+    const partPrescriptions = prescriptions.detailParPraticien.find(x => x.id === e.id)?.total ?? 0;
+    const partMedicamentsPharmacie = medicamentsPharmacie.detailParPraticien.find(x => x.id === e.id)?.total ?? 0;
+    return { ...e, partPrescriptions, partMedicamentsPharmacie, total: e.total + partPrescriptions + partMedicamentsPharmacie };
+  });
+  const empreintesPraticiens = empreintesPraticiensAvecPrescriptions;
 
   // Empreinte propre du staff admin (fonctions support) : sa part de local +
   // son trajet domicile-travail + ses immobilisations propres. Ne reçoit pas
@@ -406,6 +496,14 @@ export function calculBilanMSP(structureMSP, praticiens, staffAdmin, postesMutua
 
   const ratioParActeFinal = totalActes > 0 ? empreinteTotaleAvecPrescriptions / totalActes : null;
 
+  // Base "sans médicaments" (ni prescriptions, ni médicaments/parapharmacie
+  // vendus en officine) : c'est ce total qui reste comparable entre une MSP
+  // avec et sans pharmacie/prescripteurs intégrés. La case à cocher côté UI
+  // choisit laquelle des deux valeurs afficher comme total principal.
+  const empreinteTotaleAvecMedicaments = empreinteTotaleAvecPrescriptions + medicamentsPharmacie.total;
+  const ratioParActeSansMedicaments = totalActes > 0 ? empreinteTotale / totalActes : null;
+  const ratioParActeAvecMedicaments = totalActes > 0 ? empreinteTotaleAvecMedicaments / totalActes : null;
+
   // Signalé à l'UI : si la surface totale ou le total d'actes vaut 0, la
   // réventilation par praticien (surface, actes) ne peut rien répartir
   // (clefs à 0 plutôt que NaN, voir facteurs-emission-msp.js) — l'utilisateur
@@ -417,12 +515,18 @@ export function calculBilanMSP(structureMSP, praticiens, staffAdmin, postesMutua
   };
 
   return {
-    parPoste: { local, patientele, domicileTravail, alimentation, prescriptions, support, immobilisations: totalImmobilisations },
-    empreinteTotale: empreinteTotaleAvecPrescriptions,
-    ratioParActe: ratioParActeFinal,
-    tauxDependanceFossile: calculerTauxDependanceFossile(ratioParActeFinal),
+    parPoste: { local, patientele, domicileTravail, alimentation, prescriptions, medicamentsPharmacie, dechets, support, immobilisations: totalImmobilisations },
+    empreinteTotale: empreinteTotale,
+    empreinteTotaleSansMedicaments: empreinteTotale,
+    empreinteTotaleAvecMedicaments,
+    ratioParActe: ratioParActeSansMedicaments,
+    ratioParActeSansMedicaments,
+    ratioParActeAvecMedicaments,
+    alerteMedicamentsNegatif: medicamentsPharmacie.alerteNegatif,
+    tauxDependanceFossile: calculerTauxDependanceFossile(ratioParActeSansMedicaments),
     reventilationLocal: reventilationLocalArr,
     reventilationSupport: reventilationSupportArr,
+    reventilationDechets: reventilationDechetsArr,
     empreintesPraticiens,
     empreinteStaffAdmin,
     structureIncomplete

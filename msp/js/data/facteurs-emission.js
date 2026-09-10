@@ -97,6 +97,26 @@ export const FE_MONETAIRE = {
 // kilomètre).
 export const FE_FRET_COLIS = 1.0;
 
+// Facteurs de TRAITEMENT EN FIN DE VIE des déchets courants (kgCO2e/kg) —
+// identiques à ceux de Lib&CO2 Cab, pour garder la même méthodologie entre
+// les deux outils. Traitement fin de vie uniquement, distinct de la
+// fabrication (déjà comptée dans "Postes mutualisés" / matériel dédié).
+// Le DASRI est ici toujours pertinent : une MSP est par définition composée
+// de professionnels de santé, contrairement à Cab où seule la famille
+// "Santé & paramédical" y est exposée.
+export const FE_DECHETS = {
+  plastique: { label: "Plastique", value: 0.041, source: "SOURCÉ — Base Carbone V23.9 (ADEME), \"Emballages plastique, traitement en mélange\", kgCO2e/kg." },
+  metal: { label: "Métal (hors aluminium)", value: 0.110, source: "ESTIMÉ — pas de facteur \"métal ménager en mélange\" isolé ; valeur alignée sur l'aluminium." },
+  papier: { label: "Papier", value: 0.028, source: "ESTIMÉ — ordre de grandeur usuel pour le papier en France (taux de recyclage élevé, ~60-70%)." },
+  carton: { label: "Carton", value: 0.028, source: "ESTIMÉ — même traitement que le papier (filières de recyclage proches)." },
+  aluminium: { label: "Aluminium", value: 0.110, source: "SOURCÉ — Base Carbone V23.9 (ADEME), \"Emballages aluminium, incinération\", kgCO2e/kg." },
+  verre: { label: "Verre", value: 0.020, source: "ESTIMÉ — recyclage à boucle fermée très efficace en France ; valeur volontairement basse." },
+  menagers: { label: "Déchets ménagers non triés (résiduels)", value: 0.374, source: "SOURCÉ — Base Carbone V23.9 (ADEME), \"Ordures Ménagères Résiduelles, incinération, France continentale\", kgCO2e/kg." },
+  electronique: { label: "Déchets électroniques (DEEE)", value: 0.802, source: "SOURCÉ — Base Carbone V23.9 (ADEME), \"DEEE, petits appareils en mélange, fin de vie moyenne filière\", kgCO2e/kg." },
+};
+
+export const FE_DASRI = { label: "DASRI (déchets d'activité de soins à risques infectieux)", value: 0.934, source: "SOURCÉ — Base Empreinte ADEME 2025, incinération à haute température obligatoire (convergent avec l'AFU : 934 kgCO2e/tonne pour les DASRI, contre 362 kgCO2e/tonne pour les DASND)." };
+
 // --- Gros matériel & mobilier (immobilisations, amorties sur 5 ans) ---
 // SOURCÉ — repris du rapport kinéCO2, Tableau des immobilisations (sources
 // ADEME Base Carbone V23.7). Équipements médicaux lourds :

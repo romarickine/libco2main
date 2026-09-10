@@ -36,6 +36,7 @@ export function etatInitial() {
     numerique: { nbOrdisFixes: 0, nbOrdisPortables: 1, nbEcransSuppl: 1, usage: "moyen" },
     materiel: {},
     investissements: { actif: false, mobilier: 0, gros: {} },
+    dechets: { plastique: 0, metal: 0, papier: 0, carton: 0, aluminium: 0, verre: 0, menagers: 0, electronique: 0, dasri: 0 },
     alimentation: { repasParSemaine: 2, partVegetarienne: 30 },
     services: { servicesAn: 3000, sousTraitanceAn: 1000, nbColisAn: 20 },
     pharmacien: { caMedicaments: 0, caParapharmacie: 0 },
@@ -43,7 +44,7 @@ export function etatInitial() {
   };
 }
 
-const ETAPES = ["profil", "deplacements", "local", "numerique", "materiel", "alimentation", "services"];
+const ETAPES = ["profil", "deplacements", "local", "numerique", "materiel", "dechets", "alimentation", "services"];
 
 // --- État global de l'application ---
 const etat = {
@@ -110,6 +111,7 @@ export function render() {
     const investissements = creerCallbacksChamp(() => etat.data.investissements);
     const grosMateriel = creerCallbacksChamp(() => etat.data.investissements.gros);
     const alimentation = creerCallbacksChamp(() => etat.data.alimentation);
+    const dechets = creerCallbacksChamp(() => etat.data.dechets);
     const services = creerCallbacksChamp(() => etat.data.services);
     const pharmacien = creerCallbacksChamp(() => etat.data.pharmacien);
     const prescriptions = creerCallbacksChamp(() => etat.data.prescriptions);
@@ -130,6 +132,7 @@ export function render() {
       onChangeInvestissements: investissements.complet, onChangeInvestissementsLive: investissements.live,
       onChangeGrosMateriel: grosMateriel.complet, onChangeGrosMaterielLive: grosMateriel.live,
       onChangeAlimentation: alimentation.complet, onChangeAlimentationLive: alimentation.live,
+      onChangeDechets: dechets.complet, onChangeDechetsLive: dechets.live,
       onChangeServices: services.complet, onChangeServicesLive: services.live,
       onChangePharmacienLive: pharmacien.live,
       onChangePrescriptions: prescriptions.complet, onChangePrescriptionsLive: prescriptions.live,

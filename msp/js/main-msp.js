@@ -1,6 +1,6 @@
 import { chargerBrouillon, sauvegarderBrouillon, enregistrerBilan, enregistrerBilanBrut, listerBilans } from './stockage-msp.js';
 import { calculBilanMSP } from './calcul-msp.js';
-import { rendreEcran } from './ui-msp.js';
+import { rendreEcran, afficherBulle } from './ui-msp.js';
 import { FE_GROS_MATERIEL_STANDARD } from './data/facteurs-emission.js';
 import { FACTEURS_NUMERIQUE_BRUT, FACTEURS_MOBILIER_UNITE } from './data/facteurs-emission-msp.js';
 
@@ -60,11 +60,17 @@ export function etatInitial() {
       materielSecretariat: { montantAnnuelConsommables: 0 },
       services: { comptaBanqueAssurance: 0, sousTraitance: 0 },
       fret: { nbColisAn: 0 },
-      materielPartage: [] // équipement lourd utilisé par plusieurs praticiens : { type, valeurAchat, dureeDetention }
+      materielPartage: [], // équipement lourd utilisé par plusieurs praticiens : { type, valeurAchat, dureeDetention }
+      dechets: { plastique: 0, metal: 0, papier: 0, carton: 0, aluminium: 0, verre: 0, menagers: 0, electronique: 0, dasri: 0 } // kg/semaine, structure entière
     },
     emailExport: '',
     actionsChoix: {},
     affichageParActe: false,
+    // Le total et le ratio/acte affichés excluent prescriptions et
+    // médicaments/parapharmacie vendus en officine par défaut, pour rester
+    // comparables entre une MSP avec et sans pharmacie/prescripteurs
+    // intégrés — bascule cochable en résultats (voir rendreResultats).
+    inclureMedicaments: false,
     dernierResultat: null
   };
 }
@@ -102,6 +108,8 @@ function migrerPraticien(p) {
   if (!Array.isArray(p.mobilierDedie)) p.mobilierDedie = [];
   if (p.surfaceDediee == null) p.surfaceDediee = 0;
   if (p.professionAPL === undefined) p.professionAPL = null;
+  if (!p.pharmacien) p.pharmacien = { caMedicaments: 0, caParapharmacie: 0, coeffAchatPrescriptions: 100 };
+  if (p.pharmacien.coeffAchatPrescriptions == null) p.pharmacien.coeffAchatPrescriptions = 100;
   return p;
 }
 
@@ -124,6 +132,7 @@ function migrerEtat(donnees) {
   if (donnees.emailExport == null) donnees.emailExport = '';
   if (!donnees.actionsChoix) donnees.actionsChoix = {};
   if (donnees.affichageParActe == null) donnees.affichageParActe = false;
+  if (donnees.inclureMedicaments == null) donnees.inclureMedicaments = false;
   // 0 = écran d'accueil (valeur légitime, pas une absence de valeur) : on ne
   // remet à 1 que si le champ est réellement absent (ancien format).
   if (donnees.ecranActuel == null) donnees.ecranActuel = 1;
@@ -232,6 +241,7 @@ export function ajouterPraticien() {
     deplacementsProAnnuels: { kmAnnuel: 0, modes: [{ mode: 'voiture_thermique', part: 100 }] },
     alimentation: { repasParSemaine: 0, pctVegetarien: 0 },
     prescriptions: { montantAnnuelMedicaments: 0, actesParamedicauxExternes: [] },
+    pharmacien: { caMedicaments: 0, caParapharmacie: 0, coeffAchatPrescriptions: 100 },
     numerique: { nbOrdisFixes: 0, nbOrdisPortables: 0, nbEcransSuppl: 0, dureeDetentionOrdis: 5, autreMaterielInfo: [] },
     materielDedie: [], mobilierDedie: []
   });
@@ -300,6 +310,9 @@ export function calculerEtEnregistrer() {
 
   const resultat = calculBilanMSP(etat.structureMSP, etat.praticiens, etat.staffAdmin, etat.postesMutualises, immobilisationsParPraticien, immobilisationsAdmin, lignesMaterielPartage, new Date().getFullYear());
   etat.dernierResultat = resultat;
+  if (resultat.alerteMedicamentsNegatif) {
+    afficherBulle("💊 Le chiffre d'affaires médicaments déclaré par le pharmacien est inférieur à la part des prescriptions de la structure estimée honorée dans son officine — ramené à 0 plutôt qu'à une valeur négative. Vérifiez le coefficient d'achat renseigné sur sa fiche, ou le montant du CA.");
+  }
   enregistrerBilan({ structureMSP: etat.structureMSP, resultat });
   rendreImmediat(etat);
   return resultat;

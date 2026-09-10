@@ -129,6 +129,31 @@ export const FE_MONETAIRE = {
 // kilomètre).
 export const FE_FRET_COLIS = 1.0;
 
+// Facteurs de TRAITEMENT EN FIN DE VIE des déchets courants (kgCO2e/kg),
+// à ne pas confondre avec la fabrication des produits (déjà captée par le
+// poste "Matériel et consommables") — même niveau de détail que l'étude
+// déchets du projet kinéCO2 : plastique, métal, papier, carton, aluminium,
+// verre, déchets ménagers, déchets électroniques. Le DASRI (déchets
+// d'activité de soins à risques infectieux) est distinct, réservé à la
+// famille Santé & paramédical, et bien plus émissif car son incinération à
+// haute température est une obligation réglementaire (pas de mise en
+// décharge ni de recyclage possible).
+export const FE_DECHETS = {
+  plastique: { label: "Plastique", value: 0.041, source: "SOURCÉ — Base Carbone V23.9 (ADEME), \"Emballages plastique, traitement en mélange\", kgCO2e/kg. Traitement fin de vie uniquement (la fabrication du plastique est déjà comptée dans le poste Matériel et consommables)." },
+  metal: { label: "Métal (hors aluminium)", value: 0.110, source: "ESTIMÉ — pas de facteur \"métal ménager en mélange\" isolé dans la Base Carbone ; valeur alignée sur l'aluminium (même ordre de grandeur pour un traitement par incinération/tri des métaux)." },
+  papier: { label: "Papier", value: 0.028, source: "ESTIMÉ — ordre de grandeur usuel pour le papier en France (taux de recyclage élevé, ~60-70%), non re-vérifié précisément dans la Base Carbone cette session." },
+  carton: { label: "Carton", value: 0.028, source: "ESTIMÉ — même traitement que le papier (filières de recyclage proches), non re-vérifié précisément dans la Base Carbone cette session." },
+  aluminium: { label: "Aluminium", value: 0.110, source: "SOURCÉ — Base Carbone V23.9 (ADEME), \"Emballages aluminium, incinération\", kgCO2e/kg." },
+  verre: { label: "Verre", value: 0.020, source: "ESTIMÉ — le verre bénéficie d'un recyclage à boucle fermée très efficace en France ; valeur volontairement basse, non re-vérifiée précisément dans la Base Carbone cette session." },
+  menagers: { label: "Déchets ménagers non triés (résiduels)", value: 0.374, source: "SOURCÉ — Base Carbone V23.9 (ADEME), \"Ordures Ménagères Résiduelles, incinération, France continentale\", kgCO2e/kg." },
+  electronique: { label: "Déchets électroniques (DEEE)", value: 0.802, source: "SOURCÉ — Base Carbone V23.9 (ADEME), \"DEEE, petits appareils en mélange, fin de vie moyenne filière\", kgCO2e/kg." },
+};
+
+// DASRI — réservé à la famille Santé & paramédical (matériel piquant/
+// coupant, produits biologiques). Incinération à haute température
+// obligatoire (code de la santé publique), aucune autre filière autorisée.
+export const FE_DASRI = { label: "DASRI (déchets d'activité de soins à risques infectieux)", value: 0.934, source: "SOURCÉ — Base Empreinte ADEME 2025, incinération à haute température (convergent avec la Commission développement durable de l'AFU : 934 kgCO2e/tonne pour les DASRI, contre 362 kgCO2e/tonne pour les déchets assimilés aux ordures ménagères en établissement de santé)." };
+
 // --- Gros matériel & mobilier (immobilisations, amorties sur 5 ans) ---
 // SOURCÉ — repris du rapport kinéCO2, Tableau des immobilisations (sources
 // Decathlon/ADEME Base Carbone V23.7) pour le matériel médical :
@@ -340,6 +365,7 @@ export const CATEGORIES_META = {
   local: { label: "Local professionnel", icon: "local", color: "#C98A2C" },
   numerique: { label: "Numérique", icon: "numerique", color: "#7A6FA8" },
   materiel: { label: "Matériel & consommables métier", icon: "materiel", color: "#B85C5C" },
+  dechets: { label: "Déchets (traitement fin de vie)", icon: "materiel", color: "#6B7F5C" },
   alimentation: { label: "Alimentation professionnelle", icon: "alimentation", color: "#4E8FA3" },
   services: { label: "Achats de services", icon: "services", color: "#8A9490" },
   fret: { label: "Fret & livraisons", icon: "fret", color: "#0071C1" },

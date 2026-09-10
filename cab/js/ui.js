@@ -38,7 +38,7 @@ export function renderIntro(root, { onStart }) {
         <a href="pourquoi-compter-le-carbone.html" class="icone-info-tooltip" data-tooltip="Pourquoi compter le carbone ?" aria-label="Pourquoi compter le carbone ?">?</a>
       </div>
       <div class="grille-features">
-        <div class="feature-card"><div>✨</div><div class="titre">5 minutes</div><div class="desc">Un parcours court, pensé pour ne pas vous perdre.</div></div>
+        <div class="feature-card"><div>✨</div><div class="titre">8 minutes</div><div class="desc">Un parcours court, pensé pour ne pas vous perdre.</div></div>
         <div class="feature-card"><div>📊</div><div class="titre">8 postes clés</div><div class="desc">Déplacements, local, numérique, matériel, achats…</div></div>
         <div class="feature-card"><div>🏆</div><div class="titre">Jauge d'engagement</div><div class="desc">Visualisez votre trajectoire vers l'Accord de Paris.</div></div>
         <div class="feature-card"><div>✅</div><div class="titre">Plan d'action</div><div class="desc">Des leviers priorisés, avec un ordre de coût.</div></div>
@@ -78,6 +78,7 @@ const TITRES_ETAPES = {
   local: "Votre local professionnel",
   numerique: "Le numérique",
   materiel: "Matériel et consommables métier",
+  dechets: "Déchets",
   alimentation: "Alimentation professionnelle",
   services: "Achats de services & livraisons",
 };
@@ -111,7 +112,7 @@ export function renderWizard(root, ctx) {
   const conteneurEtape = document.getElementById("contenu-etape");
   const rendus = {
     profil: renderStepProfil, deplacements: renderStepDeplacements, local: renderStepLocal,
-    numerique: renderStepNumerique, materiel: renderStepMateriel, alimentation: renderStepAlimentation,
+    numerique: renderStepNumerique, materiel: renderStepMateriel, dechets: renderStepDechets, alimentation: renderStepAlimentation,
     services: renderStepServices,
   };
   rendus[etapeId](conteneurEtape, { data, famille, zone, resultats, ctx });
@@ -161,6 +162,10 @@ export function majBadgesEtTotal(resultats) {
   });
   const totalEl = document.querySelector(".total-en-cours");
   if (totalEl) totalEl.textContent = `Total en cours : ${resultats.totalT.toFixed(2)} tCO2e/an`;
+  Object.entries(det.dechets || {}).forEach(([cle, v]) => {
+    const elmt = document.querySelector(`[data-badge="${cle}"]`);
+    if (elmt) elmt.textContent = `≈ ${fmt(v)} kgCO2e/an`;
+  });
 }
 // Attache les gestionnaires pour tous les champs numériques du conteneur.
 // onChangeLive(field, value, resultatsRecalcules) est appelé à chaque frappe
@@ -528,10 +533,63 @@ function renderStepMateriel(el, { data, famille, resultats, ctx }) {
   ]);
 }
 
+// --- Étape : Déchets ----------------------------------------------------
+function renderStepDechets(el, { data, famille, resultats, ctx }) {
+  const d = data.dechets;
+  const estSante = famille.id === "sante";
+  const nbEquipe = (data.profil.nbPraticiens || 1) + (data.profil.nbSalaries || 0);
+  const semainesAn = data.deplacements.semainesAn;
+  const detailDechets = resultats.detail.dechets || {};
+
+  const champDechet = (cle, label) => `
+    <div class="champ">
+      <label class="libelle">${label} (kg/semaine)${badgeLive(detailDechets[cle], cle)}</label>
+      ${champNombreHtml(cle, d[cle] || 0, { step: 0.5 })}
+    </div>`;
+
+  el.innerHTML = `
+    <p class="texte-discret" style="margin-top:-8px; margin-bottom:6px;">Déchets courants générés par l'activité (emballages, consommables usagés, papier...) — le <strong>traitement en fin de vie</strong> uniquement. La fabrication de ces produits est déjà comptée dans le poste "Matériel et consommables" : ne recomptez pas la même chose ici.</p>
+    ${nbEquipe > 1 ? `
+      <div class="encadre-info" style="margin-bottom:18px;">
+        <strong>⚠️ ${nbEquipe} personnes dans la structure.</strong>
+        <div style="font-size:12.5px; color:#5C8A7A; margin-top:4px; line-height:1.5;">Estimez le volume de déchets pour <strong>l'ensemble de la structure</strong>, pas seulement le vôtre.</div>
+      </div>
+    ` : ""}
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 18px;">
+      ${champDechet("plastique", "Plastique")}
+      ${champDechet("metal", "Métal (hors aluminium)")}
+      ${champDechet("papier", "Papier")}
+      ${champDechet("carton", "Carton")}
+      ${champDechet("aluminium", "Aluminium")}
+      ${champDechet("verre", "Verre")}
+      ${champDechet("menagers", "Déchets ménagers non triés")}
+      ${champDechet("electronique", "Déchets électroniques (DEEE)")}
+    </div>
+    ${estSante ? `
+      <hr class="separateur" />
+      <div class="encadre-info">
+        <div class="champ" style="margin-bottom:0;">
+          <label class="libelle">DASRI — déchets d'activité de soins à risques infectieux (kg/semaine)${badgeLive(detailDechets.dasri, "dasri")}</label>
+          ${champNombreHtml("dasri", d.dasri || 0, { step: 0.1 })}
+        </div>
+        <p class="aide" style="margin-top:8px; margin-bottom:0;">Matériel piquant/coupant, produits biologiques — incinération à haute température obligatoire (code de la santé publique), bien plus émissive que les déchets courants ci-dessus. Ne comptez ici que le DASRI, pas les déchets ménagers déjà saisis plus haut.</p>
+      </div>
+    ` : ""}
+  `;
+  attacherChampsNombre(el, ctx.onChangeDechetsLive);
+}
+
 // --- Étape 6 : Alimentation --------------------------------------------------
 function renderStepAlimentation(el, { data, resultats, ctx }) {
   const a = data.alimentation;
   const nbEquipe = (data.profil.nbPraticiens || 1) + (data.profil.nbSalaries || 0);
+  // Le plafond du curseur doit suivre la taille de l'équipe : ce champ
+  // compte les repas de TOUTE la structure (voir l'encart ci-dessous), donc
+  // un cabinet de 10 ETP a mécaniquement besoin d'un maximum bien supérieur
+  // à celui d'un praticien seul. Base : jusqu'à 5 repas/semaine/personne (un
+  // déjeuner par jour travaillé), avec un plancher à 10 pour ne jamais être
+  // plus restrictif qu'avant pour un praticien seul.
+  const maxRepas = Math.max(10, nbEquipe * 5);
   el.innerHTML = `
     ${nbEquipe > 1 ? `
       <div class="encadre-info" style="margin-bottom:18px;">
@@ -540,8 +598,8 @@ function renderStepAlimentation(el, { data, resultats, ctx }) {
       </div>
     ` : `<p class="texte-discret" style="margin-top:-6px; margin-bottom:16px;">Si la structure compte plusieurs praticiens ou salariés, ce total doit couvrir toute l'équipe.</p>`}
     <div class="champ">
-      <label class="libelle">Repas professionnels (déjeuners sur site ou au restaurant) par semaine, pour l'ensemble de la structure : <span id="valeur-repas">${a.repasParSemaine}</span>${badgeLive(resultats.detail.alimentation, "alimentation")}</label>
-      <input type="range" min="0" max="10" value="${a.repasParSemaine}" data-champ-range="repasParSemaine" id="range-repas" />
+      <label class="libelle">Repas professionnels (déjeuners sur site ou au restaurant) par semaine, pour l'ensemble de la structure : <span id="valeur-repas">${a.repasParSemaine}</span> <span class="texte-discret" style="font-weight:400;">/ ${maxRepas} max</span>${badgeLive(resultats.detail.alimentation, "alimentation")}</label>
+      <input type="range" min="0" max="${maxRepas}" value="${Math.min(a.repasParSemaine, maxRepas)}" data-champ-range="repasParSemaine" id="range-repas" />
     </div>
     <div class="champ">
       <label class="libelle">Part de repas végétariens : <span id="valeur-vege">${a.partVegetarienne}</span>%</label>
