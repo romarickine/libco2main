@@ -211,7 +211,7 @@ function emissionsPatienteleParActe(zone) {
 export const FAMILLES = [
   {
     id: "sante", label: "Santé & paramédical", icon: "sante",
-    metiers: ["Kinésithérapeute", "Infirmier(ère) libéral(e)", "Médecin généraliste ou spécialiste", "Chirurgien-dentiste", "Sage-femme", "Orthophoniste", "Orthoptiste", "Ostéopathe / chiropracteur", "Psychologue / psychothérapeute", "Pédicure-podologue", "Diététicien(ne)", "Pharmacien(ne) titulaire d'officine", "Autre profession de santé"],
+    metiers: ["Kinésithérapeute", "Infirmier(ère) libéral(e)", "Médecin généraliste ou spécialiste", "Chirurgien-dentiste", "Sage-femme", "Orthophoniste", "Orthoptiste", "Ostéopathe / chiropracteur", "Psychologue / psychothérapeute", "Pédicure-podologue", "Diététicien(ne)", "Pharmacien(ne) titulaire d'officine", "Audioprothésiste", "Biologiste médical", "Ergothérapeute", "Vétérinaire", "Hypnothérapeute", "Psychanalyste", "Psychopraticien(ne)", "Sophrologue", "Autre profession de santé"],
     lieuLabel: "cabinet", lieuArticleMon: "mon cabinet", lieuArticleLe: "le cabinet",
     publicLabel: "patientèle", publicSingulier: "patient", acteLabel: "séances",
     consommables: [
@@ -230,7 +230,7 @@ export const FAMILLES = [
   },
   {
     id: "juridique", label: "Juridique", icon: "juridique",
-    metiers: ["Avocat(e)", "Notaire", "Huissier / commissaire de justice", "Mandataire judiciaire", "Autre profession juridique"],
+    metiers: ["Avocat(e)", "Notaire", "Huissier / commissaire de justice", "Administrateur judiciaire", "Commissaire-priseur judiciaire", "Conseil en propriété industrielle", "Greffier des tribunaux de commerce", "Mandataire judiciaire à la protection des majeurs", "Autre profession juridique"],
     lieuLabel: "cabinet", lieuArticleMon: "mon cabinet", lieuArticleLe: "le cabinet",
     publicLabel: "clientèle", publicSingulier: "client", acteLabel: "rendez-vous",
     consommables: [
@@ -244,8 +244,8 @@ export const FAMILLES = [
     motifDeplacement: "autres_motifs_personnels", // EMP2019 : démarches administratives/juridiques, même proxy que la santé faute de mieux
   },
   {
-    id: "conseil", label: "Conseil, formation & indépendants du numérique", icon: "conseil",
-    metiers: ["Consultant(e)", "Formateur / formatrice", "Coach professionnel", "Développeur / développeuse indépendant(e)", "Traducteur / traductrice", "Autre activité de conseil"],
+    id: "conseil", label: "Conseil, gestion, expertise & numérique", icon: "conseil",
+    metiers: ["Consultant(e)", "Formateur / formatrice", "Enseignant(e) indépendant(e)", "Coach professionnel", "Développeur / développeuse indépendant(e)", "Traducteur / traductrice", "Expert-comptable", "Conseil-expert financier", "Agent général d'assurance", "Expert immobilier", "Expert en automobile", "Autre activité de conseil"],
     lieuLabel: "bureau", lieuArticleMon: "mon bureau", lieuArticleLe: "le bureau",
     publicLabel: "clientèle", publicSingulier: "client", acteLabel: "missions",
     consommables: [
@@ -260,7 +260,7 @@ export const FAMILLES = [
   },
   {
     id: "archi", label: "Architecture & ingénierie", icon: "archi",
-    metiers: ["Architecte", "Ingénieur bureau d'études", "Géomètre-expert", "Autre activité d'ingénierie"],
+    metiers: ["Architecte", "Architecte d'intérieur", "Ingénieur bureau d'études", "Géomètre-expert", "Économiste de la construction", "Autre activité d'ingénierie"],
     lieuLabel: "agence", lieuArticleMon: "mon agence", lieuArticleLe: "l'agence",
     publicLabel: "clientèle", publicSingulier: "client", acteLabel: "rendez-vous",
     consommables: [
@@ -275,7 +275,7 @@ export const FAMILLES = [
   },
   {
     id: "artisanat_art", label: "Artisanat d'art & création", icon: "artisanat",
-    metiers: ["Artisan d'art", "Designer / créateur(trice)", "Restaurateur(trice) d'œuvres d'art", "Autre activité de création"],
+    metiers: ["Artisan d'art", "Designer / créateur(trice)", "Conservateur-restaurateur d'œuvres d'art", "Autre activité de création"],
     lieuLabel: "atelier", lieuArticleMon: "mon atelier", lieuArticleLe: "l'atelier",
     publicLabel: "clientèle", publicSingulier: "client", acteLabel: "commandes",
     consommables: [
@@ -290,7 +290,7 @@ export const FAMILLES = [
   },
   {
     id: "autre", label: "Autre profession libérale", icon: "autre",
-    metiers: ["Autre profession libérale"],
+    metiers: ["Agent commercial", "Détective", "Graphologue", "Guide-conférencier", "Guide de haute montagne", "Moniteur de ski", "Sténotypiste", "Autre profession libérale"],
     lieuLabel: "lieu d'exercice", lieuArticleMon: "mon lieu d'exercice", lieuArticleLe: "le lieu d'exercice",
     publicLabel: "clientèle", publicSingulier: "client", acteLabel: "rendez-vous",
     consommables: [
