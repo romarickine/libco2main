@@ -1,0 +1,29 @@
+/* ==========================================================================
+   Variables — charte Lib&CO2 : mêmes valeurs exactes que Cab et MSP
+   (palette verte/bleue extraite du logo), police système native (pas de
+   Google Fonts, cohérent avec le reste du site).
+   ========================================================================== */
+:root {
+  --ink: #1B2B26;
+  --paper: #F7F5F0;
+  --panel: #ffffff;
+  --line: #E4E0D6;
+
+  --moss: #2E673E;
+  --moss-dark: #1f4a2c;
+  --brand-blue: #0071C1;
+  --brand-blue-dark: #005490;
+
+  /* Couleurs des zones isochrones (marche / vélo / vélo électrique) —
+     conservées telles quelles : convention cartographique fonctionnelle
+     (distinguer 3 zones à l'œil), indépendante de la charte de marque. */
+  --walk: #2e9e44;
+  --bike: #f4c40f;
+  --ebike: #1a73e8;
+
+  --muted: #5C665F;
+  --danger: #B04D4D;
+
+  --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'URW Palladio L', serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}

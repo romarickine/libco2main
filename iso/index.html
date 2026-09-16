@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La carte du sans-voiture — Lib&CO2</title>
+<meta name="description" content="Où marcher, pédaler ou rouler en vélo électrique est plus rapide que la voiture — un outil Lib&CO2, gratuit et open source.">
+<link rel="canonical" href="https://libco2.fr/iso/" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="La carte du sans-voiture — Lib&CO2" />
+<meta property="og:description" content="Où marcher, pédaler ou rouler en vélo électrique est plus rapide que la voiture, calculé sur le vrai réseau de rues et le relief réel." />
+<meta property="og:url" content="https://libco2.fr/iso/" />
+<meta property="og:image" content="https://libco2.fr/assets/og-image.png" />
+<meta property="og:locale" content="fr_FR" />
+<meta property="og:site_name" content="Lib&CO2" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" href="../assets/logo/logo-libco2.png" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "La carte du sans-voiture",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "url": "https://libco2.fr/iso/",
+  "description": "Calcule les zones où marcher, pédaler ou rouler en vélo électrique est plus rapide que la voiture, sur le vrai réseau de rues et le relief réel.",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+  "publisher": { "@type": "Organization", "name": "Lib&CO2", "url": "https://libco2.fr/" }
+}
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<link rel="stylesheet" href="css/variables.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-title">
+    <a href="../index.html" class="brand-badge" title="Retour à Lib&CO2">🌿 Un outil Lib&amp;CO2</a>
+    <h1>La carte du sans-voiture</h1>
+    <p>Où marcher, pédaler ou rouler en vélo électrique est plus rapide que la voiture — calculé sur le vrai réseau de rues et le relief réel, pas à vol d'oiseau.</p>
+  </div>
+  <nav class="header-nav">
+    <a href="../cab/">Lib&amp;CO2 Cab</a>
+    <a href="../msp/">Lib&amp;CO2 MSP</a>
+  </nav>
+  <button id="openMethodology" class="methodology-btn">ℹ️ Méthodologie &amp; hypothèses</button>
+</header>
+
+<div class="modal-overlay" id="methodologyOverlay">
+  <div class="modal-box">
+    <button class="modal-close" id="closeMethodology" aria-label="Fermer">×</button>
+    <h2>Méthodologie</h2>
+    <p style="color: var(--muted);">Comment cet outil calcule les zones où marche, vélo et vélo électrique sont plus rapides que la voiture, et sur quelles hypothèses il repose.</p>
+
+    <h3>Principe général</h3>
+    <p>La méthode est un <strong>calcul de plus court chemin sur un graphe</strong> (algorithme de Dijkstra), la référence académique et pratique pour ce type de calcul — pas un service isochrone tiers. Le réseau routier autour du point de départ est téléchargé une fois (BD TOPO® IGN), transformé en graphe (carrefours = nœuds, tronçons = arêtes pondérées par un temps de trajet), puis quatre temps de trajet sont calculés depuis l'origine : marche, vélo, vélo électrique (VAE), et voiture — chacun avec son propre modèle de vitesse. Une zone (marche, vélo ou VAE) est la partie du réseau, connectée au point de départ par un chemin continûment gagnant, où ce mode bat la voiture.</p>
+
+    <h3>Sources de données</h3>
+    <ul>
+      <li><strong>Réseau routier</strong> — BD TOPO® IGN (tronçons de route), avec nature de voie, sens de circulation, vitesse moyenne réelle par tronçon quand elle est disponible.</li>
+      <li><strong>Altimétrie</strong> — IGN Géoplateforme, échantillonnée sur une grille régulière (150 m) puis interpolée à chaque nœud, plutôt qu'un point par nœud du réseau (bien plus rapide, l'altitude variant progressivement à cette échelle).</li>
+      <li><strong>Géocodage</strong> — IGN Géoplateforme (recherche et autocomplétion), basé sur la Base Adresse Nationale.</li>
+    </ul>
+
+    <h3>Vitesse de marche</h3>
+    <p>Fonction de randonnée de <strong>Tobler (1993)</strong> : <code>W = 6 × exp(−3.5 × |pente + 0.05|)</code> km/h — référence quasi universelle (ArcGIS, GRASS GIS), qui donne la vitesse maximale (6 km/h) en légère descente plutôt qu'à plat, et ralentit fortement au-delà d'une pente soutenue.</p>
+
+    <h3>Vitesse de vélo et VAE</h3>
+    <p>À plat, vitesse calibrée sur la littérature : <strong>21,6 km/h</strong> (vélo classique, régression Parkin &amp; Rotheram 2010 sur suivi GPS réel) et <strong>25 km/h</strong> (VAE — c'est la limite légale de coupure de l'assistance électrique en UE, pas un choix arbitraire).</p>
+    <p>En montée, un modèle <strong>physique</strong> (résistance au roulement + traînée aérodynamique + gravité, résolu numériquement) remplace une simple régression linéaire, avec une puissance qui augmente progressivement avec la pente jusqu'à un plafond. Ce modèle a été <strong>calibré sur une donnée de terrain réelle</strong> fournie par l'utilisateur (montée à Saint-Étienne : ~3,5 km, 150 m de dénivelé positif, ~10,5 km/h à effort soutenu sur ~4,3% de pente moyenne) :</p>
+    <table>
+      <tr><th>Pente</th><th>Vélo classique</th><th>VAE</th></tr>
+      <tr><td>0%</td><td>21,6 km/h</td><td>25,0 km/h</td></tr>
+      <tr><td>2%</td><td>14,2 km/h</td><td>22,7 km/h</td></tr>
+      <tr><td>4,3%</td><td><strong>10,5 km/h</strong> (donnée réelle)</td><td>21,3 km/h</td></tr>
+      <tr><td>6%</td><td>8,0 km/h</td><td>17,2 km/h</td></tr>
+      <tr><td>10%</td><td>5,0 km/h</td><td>11,4 km/h</td></tr>
+    </table>
+    <p>Le VAE est nettement moins pénalisé (puissance du système complet, vélo + moteur, plafonnée à ~300 W contre ~130 W pour un vélo classique) — c'est pour ça que la zone VAE peut s'étendre loin au-delà de la zone vélo sur terrain vallonné, parfois sans zone vélo adjacente (le vélo classique a déjà perdu face à la voiture à cet endroit, le VAE continue de gagner).</p>
+    <p>La puissance du vélo classique est <strong>plafonnée à 250 W</strong> (maximum physiologique soutenable par un cycliste moyen) — au-delà, sur les pentes les plus extrêmes, le modèle bascule automatiquement sur une vitesse <strong>"vélo poussé à pied"</strong> (marche avec une pénalité modérée pour l'encombrement du vélo) plutôt que de continuer à ramper artificiellement vers un plancher de vitesse arbitraire.</p>
+    <p>En descente : régression linéaire de Parkin &amp; Rotheram (+1,44 km/h par point de % pour le vélo classique, +0,48 pour le VAE), non remise en cause par la donnée de calibration.</p>
+
+    <h3>Vitesse de voiture</h3>
+    <p>Vitesse moyenne réelle du tronçon (<code>vitesse_moyenne_vl</code>, BD TOPO®) quand elle est disponible, sinon une table de repli par type de voie (voie autoroutière 110 km/h, route à 2 chaussées 90, route à 1 chaussée 70, voie empierrée 30, chemin 10, bretelle 50, rond-point 30, défaut 50 km/h).</p>
+
+    <h3>Pénalités et frictions</h3>
+    <ul>
+      <li><strong>Délai d'accès</strong> (fixe) — 3 min vélo/VAE (détacher/rattacher), 6 min voiture (accéder au véhicule, se garer), par rapport à la marche.</li>
+      <li><strong>Carrefours</strong> — quelques secondes ajoutées à chaque nœud où 3 rues ou plus se croisent (6 s voiture, 4 s vélo/VAE, 2 s marche), valeur moyenne forfaitaire faute de données sur le type de régulation (feu, stop, cédez-le-passage) de chaque carrefour. Ce mécanisme pénalise proportionnellement plus la voiture que le vélo dans un maillage dense (un délai fixe pèse plus sur un trajet rapide que sur un trajet déjà lent), reproduisant le fait bien documenté que les zones denses ralentissent la voiture plus que le vélo.</li>
+      <li><strong>Surface de la voie</strong> — pénalité de vitesse pour marche/vélo/VAE selon la nature du revêtement (route empierrée ×0,75-0,95, chemin ×0,55-0,90, sentier ×0,35-1,0 selon le mode) ; estimation raisonnée, pas une régression publiée trouvée spécifiquement sur ce sujet.</li>
+      <li><strong>Voies exclues</strong> — au-delà de 110 km/h pour marche/vélo/VAE (voies à caractère autoroutier) ; chemins/sentiers/pistes cyclables exclus pour la voiture.</li>
+      <li><strong>Voies privées</strong> — exclues pour tous les modes quand la BD TOPO® le signale explicitement. Couverture <strong>incomplète</strong> : cette information n'est renseignée par l'IGN que lorsqu'un partenaire l'a fournie — son absence ne garantit donc pas qu'une voie est publique.</li>
+    </ul>
+
+    <h3>Pente et altitude</h3>
+    <p>Pente calculée entre les deux extrémités de chaque tronçon à partir de l'altitude interpolée, puis <strong>plafonnée à ±35%</strong> : au-delà, c'est presque toujours une anomalie de données plutôt qu'une vraie pente de rue, et sans ce garde-fou une seule valeur d'altitude aberrante peut faire s'effondrer tout le calcul.</p>
+
+    <h3>Fusion des nœuds</h3>
+    <p>Deux tronçons censés se toucher au même carrefour peuvent avoir des coordonnées légèrement différentes dans les données (écarts de plusieurs mètres observés en pratique, pas de simple imprécision flottante) — une tolérance de fusion spatiale (12 m) les regroupe en un seul nœud du graphe, pour éviter un réseau artificiellement fragmenté.</p>
+
+    <h3>Affichage</h3>
+    <p>Chaque mode est affiché comme un <strong>anneau</strong> (ce qu'il ajoute au-delà du mode précédent), pas sa zone complète — les trois zones ne se chevauchent donc jamais visuellement. Le nombre d'hexagones dans la légende reste la taille <em>totale</em> de la zone de ce mode, pas seulement l'anneau visible.</p>
+
+    <div class="limits-box">
+      <strong>Limites connues, assumées :</strong>
+      <ul>
+        <li>Modèle de pente vélo/VAE calibré sur un seul point de terrain réel (fiable pour corriger l'erreur qu'il corrige, mais pas une courbe validée sur plusieurs profils).</li>
+        <li>Pas de données sur le type de régulation des carrefours (feu/stop/cédez-le-passage) : valeur moyenne forfaitaire.</li>
+        <li>Détection des voies privées incomplète (dépend de ce que les partenaires de l'IGN ont renseigné).</li>
+        <li>Coefficients de pénalité de surface estimés, pas mesurés.</li>
+        <li>L'altitude est lissée sur une grille (150 m), pas un relevé exact à chaque mètre.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-tabs" id="mobileTabs">
+  <button id="tabFormButton" class="active">📋 Paramètres</button>
+  <button id="tabMapButton">🗺️ Carte</button>
+</div>
+
+<div id="layout" class="show-sidebar">
+  <div id="sidebar">
+
+    <div class="method-note">
+      Méthode : graphe du réseau routier (BD TOPO® IGN) parcouru par un algorithme de plus court chemin
+      (Dijkstra), avec vitesse ajustée à la pente réelle selon la fonction de randonnée de
+      <a href="https://en.wikipedia.org/wiki/Tobler%27s_hiking_function" target="_blank">Tobler (1993)</a> pour la marche
+      et le modèle empirique de Parkin &amp; Rotheram (2010) pour le vélo/VAE. Aucun service isochrone tiers n'est utilisé.
+    </div>
+
+    <div class="section-title">Point de départ</div>
+    <div class="field" style="position: relative;">
+      <label for="address">Adresse</label>
+      <div style="display:flex; gap:6px;">
+        <input type="text" id="address" placeholder="votre adresse" autocomplete="off" />
+        <button class="geo-btn" id="geocode">Chercher</button>
+      </div>
+      <div id="addressSuggestions" class="address-suggestions"></div>
+    </div>
+    <input type="hidden" id="lat" />
+    <input type="hidden" id="lon" />
+    <p class="hint">Autocomplétion en direct sur l'ensemble des adresses françaises (Base Adresse Nationale, via l'IGN) — tapez au moins 3 caractères.</p>
+
+    <button id="compute">Calculer les isochrones</button>
+    <div class="progress-wrapper" id="progressWrapper">
+      <div class="progress-outer"><div class="progress-inner" id="progressInner"></div></div>
+      <div class="progress-percent" id="progressPercent">0%</div>
+    </div>
+    <div id="status"></div>
+
+    <div class="section-title">Légende</div>
+    <div class="legend">
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--walk)"></span> Marche <span class="legend-count" id="countWalk"></span></div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--bike)"></span> Vélo <span class="legend-count" id="countBike"></span></div>
+      <div class="legend-item"><span class="legend-swatch" style="background:var(--ebike)"></span> Vélo électrique <span class="legend-count" id="countEbike"></span></div>
+    </div>
+    <p class="hint">Zones où le mode actif est plus rapide que la voiture. Comme le VAE inclut généralement le vélo, qui inclut généralement la marche, l'affichage se fait par anneaux (chaque couleur montre ce que ce mode ajoute au-delà du précédent) ; le nombre d'hexagones dans la légende reste la taille totale de chaque zone. Réseau : <span id="networkInfo">—</span>.</p>
+
+    <div id="exportSection" class="export-section">
+      <div class="section-title">Exporter la carte</div>
+      <div class="field">
+        <label for="exportBasemap">Fond de carte</label>
+        <select id="exportBasemap">
+          <option value="ign">Plan IGN</option>
+          <option value="satellite">Satellite (orthophotos IGN)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="exportResolution">Résolution d'export</label>
+        <select id="exportResolution">
+          <option value="web">Web / aperçu rapide (~100 DPI sur A1)</option>
+          <option value="print300" selected>Impression A1 — 300 DPI (recommandé)</option>
+        </select>
+      </div>
+      <button id="exportButton" class="geo-btn" style="width:100%; margin-top:6px;">📥 Télécharger l'image (JPG)</button>
+      <p class="hint" id="exportStatus"></p>
+    </div>
+
+    <p class="hint" style="margin-top:20px;">Données : réseau routier <a href="https://geoservices.ign.fr/bdtopo" target="_blank">BD TOPO® IGN</a> (API WFS Géoplateforme), altimétrie <a href="https://geoservices.ign.fr/" target="_blank">IGN Géoplateforme</a>, géocodage IGN. Tous les calculs se font directement dans votre navigateur.</p>
+
+    <div class="sidebar-footer">
+      Un outil <a href="../index.html">Lib&amp;CO2</a> — gratuit, open source, aucune donnée transmise à un serveur.<br>
+      Découvrez aussi <a href="../cab/">Lib&amp;CO2 Cab</a> et <a href="../msp/">Lib&amp;CO2 MSP</a>, nos calculateurs d'empreinte carbone.
+    </div>
+  </div>
+
+  <div id="map"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
