@@ -2,19 +2,29 @@
 // Orchestration : réseau + élévations + 4 Dijkstra + comparaison + polygone
 // ==========================================================================
 import { dijkstra } from './dijkstra.js';
-import { parseIGNRoadsToGraph, buildAdjacency, isEdgeUsable, findNearestNode, computeNodeDegrees, checkRawConnectivity, connectedWinningNodes, analyzeFrontier, haversineMeters } from './graph.js';
+import {
+  parseIGNRoadsToGraph, buildAdjacency, isEdgeUsable, findNearestNode, computeNodeDegrees,
+  checkRawConnectivity, connectedWinningNodes, analyzeFrontier, haversineMeters,
+  classifyUrbanContext, buildCarReachabilityIndex,
+} from './graph.js';
 import { HexGrid, traceOuterBoundaries, buildPolygonsWithHoles, smoothPolygonsWithHoles } from './hexgrid.js';
 import { fetchIGNRoads, buildElevationGrid, bilinearElevation, fetchElevations } from './ign-api.js';
+import { DELAY_BIKE_MIN, DELAY_CAR_MIN_URBAN, DELAY_CAR_MIN_RURAL } from './config.js';
+
+// Rend la main au navigateur le temps d'une image, pour qu'il ait l'occasion
+// de repeindre l'écran (barre de progression, pourcentage) avant de reprendre
+// un bloc de calcul synchrone. Sans ça, plusieurs mises à jour de style
+// enchaînées sans la moindre pause ne sont JAMAIS affichées à l'écran : le
+// navigateur ne peint qu'entre deux tâches JS, pas au milieu d'un script en
+// cours d'exécution — seule la dernière valeur posée juste avant une vraie
+// pause asynchrone est visible.
+function yieldToBrowser() {
+  return new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+}
 
 export async function computeIsochronesNetwork(opts) {
-  const { lon, lat, delayBike, delayCar, networkRadiusMeters, elevationGridSpacingMeters = 200, nodeSnapToleranceMeters = 8, wfsPageSize = 1000, onProgress } = opts;
+  const { lon, lat, networkRadiusMeters, elevationGridSpacingMeters = 200, nodeSnapToleranceMeters = 8, wfsPageSize = 1000, onProgress } = opts;
   const bufferRadiusMeters = 40;
-
-  const modeDefs = [
-    { key: 'Walk', mode: 'walk', maxTime: 20 * 60, carPenalty: delayCar * 60 },
-    { key: 'Bike', mode: 'bike', maxTime: 40 * 60, carPenalty: (delayCar - delayBike) * 60 },
-    { key: 'Ebike', mode: 'ebike', maxTime: 60 * 60, carPenalty: (delayCar - delayBike) * 60 },
-  ];
 
   onProgress('Téléchargement du réseau routier (BD TOPO® IGN)…', 0.05);
   const roadsGeoJson = await fetchIGNRoads(lon, lat, networkRadiusMeters, wfsPageSize, (fraction) => {
@@ -23,6 +33,20 @@ export async function computeIsochronesNetwork(opts) {
   const graph = parseIGNRoadsToGraph(roadsGeoJson, nodeSnapToleranceMeters);
   const nodeDegrees = computeNodeDegrees(graph);
 
+  // Le délai d'accès voiture dépend du contexte (ville/campagne) : chercher
+  // une place et marcher jusqu'à destination prend nettement plus longtemps
+  // en centre dense qu'en zone rurale où l'on se gare devant sa destination.
+  // Le délai vélo, lui, ne varie pas avec le contexte.
+  const urbanContext = classifyUrbanContext(graph, nodeDegrees, lon, lat);
+  const delayBike = DELAY_BIKE_MIN;
+  const delayCar = urbanContext.isUrban ? DELAY_CAR_MIN_URBAN : DELAY_CAR_MIN_RURAL;
+
+  const modeDefs = [
+    { key: 'Walk', mode: 'walk', maxTime: 20 * 60, carPenalty: delayCar * 60 },
+    { key: 'Bike', mode: 'bike', maxTime: 40 * 60, carPenalty: (delayCar - delayBike) * 60 },
+    { key: 'Ebike', mode: 'ebike', maxTime: 60 * 60, carPenalty: (delayCar - delayBike) * 60 },
+  ];
+
   onProgress('Récupération de l\u2019altimétrie…', 0.22);
   const elevGrid = buildElevationGrid(graph.nodeCoords, elevationGridSpacingMeters);
   const gridElevations = await fetchElevations(elevGrid.points, (fraction) => {
@@ -30,15 +54,21 @@ export async function computeIsochronesNetwork(opts) {
   });
   const elevations = new Map();
   for (const [id, [nlon, nlat]] of graph.nodeCoords) { elevations.set(id, bilinearElevation(elevGrid, gridElevations, nlon, nlat)); }
+  await yieldToBrowser();
 
   const originNode = findNearestNode(graph, lon, lat);
   if (originNode == null) { throw new Error('Aucune rue trouvée près de ce point dans le rayon interrogé — vérifiez l\u2019adresse ou le point choisi.'); }
   const rawConnectivity = checkRawConnectivity(graph, originNode);
 
   onProgress('Calcul des temps de trajet voiture (référence)…', 0.55);
+  await yieldToBrowser();
   const maxCarCutoff = Math.max(...modeDefs.map((m) => m.maxTime + m.carPenalty));
   const carAdjacency = buildAdjacency(graph, elevations, 'car', nodeDegrees);
   const carTimes = dijkstra(carAdjacency, originNode, maxCarCutoff);
+  // Cellules de 200m : assez fines pour bien localiser le nœud voiture le
+  // plus proche d'un chemin/sentier isolé, sans exploser le nombre de
+  // compartiments sur un réseau de 15km de rayon.
+  const carIndex = buildCarReachabilityIndex(carTimes, graph.nodeCoords, 200);
 
   const results = {};
   const hexagonsByMode = {};
@@ -47,9 +77,10 @@ export async function computeIsochronesNetwork(opts) {
 
   for (const mode of modeDefs) {
     onProgress('Calcul — ' + mode.key + '…', progressPerMode[mode.key]);
+    await yieldToBrowser();
     const adjacency = buildAdjacency(graph, elevations, mode.mode, nodeDegrees);
     const modeTimes = dijkstra(adjacency, originNode, mode.maxTime);
-    const winningNodes = connectedWinningNodes(adjacency, modeTimes, carTimes, originNode, mode.carPenalty);
+    const winningNodes = connectedWinningNodes(adjacency, modeTimes, carTimes, carIndex, graph.nodeCoords, originNode, mode.carPenalty);
 
     // Détecte si la zone touche le bord du rayon réseau interrogé : signe
     // probable que la vraie frontière (là où la voiture rattraperait le mode)
@@ -61,7 +92,7 @@ export async function computeIsochronesNetwork(opts) {
       if (d > maxDistanceFromOrigin) { maxDistanceFromOrigin = d; }
     }
     const possiblyTruncated = maxDistanceFromOrigin > networkRadiusMeters * 0.9;
-    const frontierDiagnosis = analyzeFrontier(graph, mode.mode, winningNodes, modeTimes, carTimes, mode.carPenalty);
+    const frontierDiagnosis = analyzeFrontier(graph, mode.mode, winningNodes, modeTimes, carTimes, carIndex, graph.nodeCoords, mode.carPenalty);
 
     const hexagons = {};
     for (const edge of graph.edges) {
@@ -84,7 +115,10 @@ export async function computeIsochronesNetwork(opts) {
   // qu'il est assez grand pour être une vraie zone exclue plutôt qu'un simple
   // artefact de pavage (petit îlot urbain isolé entouré de rues).
   const alreadyShown = {};
+  const vectorizeProgress = { Walk: 0.93, Bike: 0.96, Ebike: 0.99 };
   for (const mode of modeDefs) {
+    onProgress('Vectorisation et lissage — ' + mode.key + '…', vectorizeProgress[mode.key]);
+    await yieldToBrowser();
     const hexagons = hexagonsByMode[mode.key];
     const ring = {};
     for (const key in hexagons) { if (!alreadyShown[key]) { ring[key] = hexagons[key]; } }
@@ -100,5 +134,10 @@ export async function computeIsochronesNetwork(opts) {
   }
 
   onProgress('Terminé.', 1);
-  return { results, nodeCount: graph.nodeCoords.size, edgeCount: graph.edges.length, rawConnectivity, roadsTruncated: roadsGeoJson.truncated, rawFeatureCount: roadsGeoJson.rawFeatureCount };
+  await yieldToBrowser();
+  return {
+    results, nodeCount: graph.nodeCoords.size, edgeCount: graph.edges.length, rawConnectivity,
+    roadsTruncated: roadsGeoJson.truncated, rawFeatureCount: roadsGeoJson.rawFeatureCount,
+    urbanContext, delayCarApplied: delayCar,
+  };
 }

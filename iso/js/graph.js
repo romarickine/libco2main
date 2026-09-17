@@ -94,6 +94,13 @@ export function isEdgeUsable(edge, mode) {
   // comme privée. Couverture incomplète (voir plus haut) : ça écarte les cas
   // connus, mais ne garantit pas l'absence de chemins privés non signalés.
   if (edge.prive) { return false; }
+  // Bac et liaisons maritimes : exclus pour tous les modes. Ni la marche ni
+  // le vélo ne peuvent traverser l'eau, et même en voiture une traversée en
+  // bac implique une attente d'horaire non modélisée — la BD TOPO® les code
+  // comme un tronçon de route ordinaire (nature = "Bac ou liaison
+  // maritime"), ce qui laissait le tracé vélo/VAE longer la côte via ces
+  // liaisons comme s'il s'agissait d'une route classique.
+  if (edge.nature === 'Bac ou liaison maritime') { return false; }
   if (mode === 'car') {
     if (BDTOPO_CAR_EXCLUDED_NATURES.has(edge.nature)) { return false; }
     if (edge.accesVL === 'Physiquement impossible') { return false; }
@@ -135,6 +142,23 @@ export function computeNodeDegrees(graph) {
     degrees.set(edge.to, (degrees.get(edge.to) || 0) + 1);
   }
   return degrees;
+}
+
+// Classification ville/campagne par densité de carrefours autour du point de
+// départ — sans appel réseau supplémentaire (le graphe est déjà téléchargé à
+// ce stade), donc sans coût de temps ni d'incertitude. Seuil empirique (pas
+// une donnée officielle de zonage) : un centre-ville dense compte typiquement
+// plusieurs dizaines de carrefours (nœuds à 3 rues ou plus) dans un rayon de
+// 600 m, contre une poignée en zone rurale ou pavillonnaire lâche.
+export const URBAN_CLASSIFICATION_RADIUS_M = 600;
+const URBAN_CLASSIFICATION_JUNCTION_THRESHOLD = 20;
+export function classifyUrbanContext(graph, nodeDegrees, originLon, originLat) {
+  let junctionCount = 0;
+  for (const [id, [lon, lat]] of graph.nodeCoords) {
+    if ((nodeDegrees.get(id) || 0) < 3) { continue; } // pas un carrefour, juste un sommet de forme
+    if (haversineMeters(originLon, originLat, lon, lat) <= URBAN_CLASSIFICATION_RADIUS_M) { junctionCount++; }
+  }
+  return { isUrban: junctionCount >= URBAN_CLASSIFICATION_JUNCTION_THRESHOLD, junctionCount };
 }
 
 // Pénalité de vitesse selon la nature de la surface — jusqu'ici absente du
@@ -235,6 +259,84 @@ export function checkRawConnectivity(graph, originNode) {
 }
 
 /**
+ * Index spatial (grille de compartiments) sur les nœuds accessibles en
+ * voiture, pour retrouver rapidement le plus proche depuis un nœud qui ne
+ * l'est pas — sert de base à l'estimation d'un temps voiture "de repli"
+ * (voir estimateCarTime) plutôt que de traiter tout nœud hors du graphe
+ * voiture comme infiniment loin.
+ */
+export function buildCarReachabilityIndex(carTimes, nodeCoords, cellSizeMeters) {
+  const mPerDegLat = 111320;
+  const cellOf = (lon, lat) => {
+    const mPerDegLon = 111320 * Math.cos((lat * Math.PI) / 180);
+    return [Math.floor(lon / (cellSizeMeters / mPerDegLon)), Math.floor(lat / (cellSizeMeters / mPerDegLat))];
+  };
+  const buckets = new Map();
+  for (const [id, time] of carTimes) {
+    const [lon, lat] = nodeCoords.get(id);
+    const [cx, cy] = cellOf(lon, lat);
+    const key = cx + '_' + cy;
+    if (!buckets.has(key)) { buckets.set(key, []); }
+    buckets.get(key).push({ lon, lat, time });
+  }
+  return { buckets, cellOf };
+}
+
+function findNearestCarTime(index, lon, lat, maxRing) {
+  const [cx, cy] = index.cellOf(lon, lat);
+  let best = null, bestDist = Infinity;
+  for (let ring = 0; ring <= maxRing; ring++) {
+    for (let dx = -ring; dx <= ring; dx++) {
+      for (let dy = -ring; dy <= ring; dy++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) { continue; } // seulement le bord de l'anneau (déjà vu sinon)
+        const bucket = index.buckets.get((cx + dx) + '_' + (cy + dy));
+        if (!bucket) { continue; }
+        for (const cand of bucket) {
+          const d = haversineMeters(lon, lat, cand.lon, cand.lat);
+          if (d < bestDist) { bestDist = d; best = cand; }
+        }
+      }
+    }
+    // Un anneau de sécurité supplémentaire une fois un candidat trouvé : le
+    // point réellement le plus proche peut être dans une cellule adjacente à
+    // celle où le premier candidat est tombé.
+    if (best && ring > 0) { break; }
+  }
+  return best ? { time: best.time, distanceMeters: bestDist } : null;
+}
+
+// Vitesse de repli prudente (plus lente que la marche de Tobler à plat) : ce
+// tronçon n'est pas un vrai itinéraire connu, juste une estimation à vol
+// d'oiseau pour combler l'écart jusqu'au réseau voiture le plus proche — mieux
+// vaut sous-estimer la vitesse que sur-crédibiliser une distance à vol d'oiseau.
+const CAR_GAP_FALLBACK_SPEED_MS = (4.5 * 1000) / 3600;
+const CAR_GAP_MAX_SEARCH_RING = 25; // ~5 km avec des cellules de 200 m
+
+/**
+ * Temps voiture "effectif" pour un nœud donné : le vrai temps Dijkstra s'il
+ * existe, sinon celui du nœud accessible en voiture le plus proche + le temps
+ * de marche pour combler la distance qui les sépare (plutôt que l'infini).
+ * Modélise une voiture qui se gare au bout de la route utilisable la plus
+ * proche et termine à pied — le cas typique d'un chemin/sentier qui longe une
+ * route bien plus rapide sans que les deux graphes soient topologiquement
+ * reliés (nœuds distincts, jamais fusionnés car pas au même endroit exact).
+ * Sans ce repli, un mode actif "gagnait" à tort sur ces chemins simplement
+ * parce que la voiture ne peut pas y rouler à la lettre près — alors qu'en
+ * pratique elle les a déjà largement dépassés via la route adjacente.
+ * Au-delà de ~5 km de tout accès voiture connu (zone vraiment isolée), on
+ * revient à l'infini : au-delà de cette distance, l'hypothèse "garé tout
+ * près" cesse d'être raisonnable.
+ */
+export function estimateCarTime(carTimes, carIndex, nodeId, nodeCoords) {
+  const direct = carTimes.get(nodeId);
+  if (direct !== undefined) { return direct; }
+  const [lon, lat] = nodeCoords.get(nodeId);
+  const nearest = findNearestCarTime(carIndex, lon, lat, CAR_GAP_MAX_SEARCH_RING);
+  if (!nearest) { return Infinity; }
+  return nearest.time + nearest.distanceMeters / CAR_GAP_FALLBACK_SPEED_MS;
+}
+
+/**
  * Parcours en largeur depuis l'origine, restreint aux nœuds où le mode actif
  * bat la voiture (mode_time(n) < car_time(n) + pénalité). Essentiel pour
  * obtenir une zone cohérente avec le point de départ plutôt que d'inclure des
@@ -242,12 +344,11 @@ export function checkRawConnectivity(graph, originNode) {
  * un chemin continûment gagnant — c'est l'esprit même de "faire grandir la
  * zone depuis le point de départ" de l'algorithme original.
  */
-export function connectedWinningNodes(adjacencyMode, modeTimes, carTimes, originNode, carPenalty) {
+export function connectedWinningNodes(adjacencyMode, modeTimes, carTimes, carIndex, nodeCoords, originNode, carPenalty) {
   const nodeWins = (n) => {
     const mt = modeTimes.get(n);
     if (mt === undefined) { return false; }
-    const ct = carTimes.get(n);
-    const carTime = ct === undefined ? Infinity : ct + carPenalty;
+    const carTime = estimateCarTime(carTimes, carIndex, n, nodeCoords) + carPenalty;
     return mt < carTime;
   };
   const visited = new Set([originNode]);
@@ -273,7 +374,7 @@ export function connectedWinningNodes(adjacencyMode, modeTimes, carTimes, origin
  * partir de là. Permet de distinguer une vraie limite face à la voiture d'une
  * simple coupure du réseau disponible.
  */
-export function analyzeFrontier(graph, mode, winningNodes, modeTimes, carTimes, carPenalty) {
+export function analyzeFrontier(graph, mode, winningNodes, modeTimes, carTimes, carIndex, nodeCoords, carPenalty) {
   const counts = { excludedByFilter: 0, beyondTimeBudget: 0, carWins: 0, other: 0 };
   const seenPairs = new Set();
   for (const edge of graph.edges) {
@@ -288,9 +389,9 @@ export function analyzeFrontier(graph, mode, winningNodes, modeTimes, carTimes, 
     if (!isEdgeUsable(edge, mode)) { counts.excludedByFilter++; continue; }
     const mt = modeTimes.get(outsideNode);
     if (mt === undefined) { counts.beyondTimeBudget++; continue; }
-    const ct = carTimes.get(outsideNode);
-    const carTime = ct === undefined ? Infinity : ct + carPenalty;
+    const carTime = estimateCarTime(carTimes, carIndex, outsideNode, nodeCoords) + carPenalty;
     if (mt >= carTime) { counts.carWins++; } else { counts.other++; }
   }
   return counts;
 }
+

@@ -7,9 +7,9 @@ import { computeIsochronesNetwork } from './isochrones.js';
 import { geocodeAddress, fetchAddressSuggestions, setWfsMaxRequestsPerSecond } from './ign-api.js';
 import { exportMapImage } from './export-image.js';
 import { getModeColors } from './colors.js';
+import { URBAN_CLASSIFICATION_RADIUS_M } from './graph.js';
 import {
-  DELAY_BIKE_MIN, DELAY_CAR_MIN, NETWORK_RADIUS_M,
-  ELEVATION_GRID_SPACING_M, NODE_SNAP_TOLERANCE_M, WFS_PAGE_SIZE, WFS_MAX_REQUESTS_PER_SECOND,
+  NETWORK_RADIUS_M, ELEVATION_GRID_SPACING_M, NODE_SNAP_TOLERANCE_M, WFS_PAGE_SIZE, WFS_MAX_REQUESTS_PER_SECOND,
 } from './config.js';
 
 export function initUI() {
@@ -165,8 +165,6 @@ export function initUI() {
 
     const opts = {
       lon, lat,
-      delayBike: DELAY_BIKE_MIN,
-      delayCar: DELAY_CAR_MIN,
       networkRadiusMeters: NETWORK_RADIUS_M,
       elevationGridSpacingMeters: ELEVATION_GRID_SPACING_M,
       nodeSnapToleranceMeters: NODE_SNAP_TOLERANCE_M,
@@ -182,7 +180,7 @@ export function initUI() {
     ['countWalk', 'countBike', 'countEbike'].forEach((id) => { document.getElementById(id).textContent = ''; });
 
     try {
-      const { results, nodeCount, edgeCount, rawConnectivity, roadsTruncated, rawFeatureCount } = await computeIsochronesNetwork({
+      const { results, nodeCount, edgeCount, rawConnectivity, roadsTruncated, rawFeatureCount, urbanContext, delayCarApplied } = await computeIsochronesNetwork({
         ...opts,
         onProgress: (label, fraction) => {
           statusEl.textContent = label;
@@ -192,7 +190,8 @@ export function initUI() {
         },
       });
 
-      document.getElementById('networkInfo').textContent = nodeCount + ' nœuds, ' + edgeCount + ' rues';
+      document.getElementById('networkInfo').textContent = nodeCount + ' nœuds, ' + edgeCount + ' rues — contexte détecté : '
+        + (urbanContext.isUrban ? 'urbain' : 'rural') + ' (' + urbanContext.junctionCount + ' carrefours à moins de ' + URBAN_CLASSIFICATION_RADIUS_M + ' m, délai voiture appliqué : ' + delayCarApplied + ' min)';
       lastComputation = { results, lat, lon, address: document.getElementById('address').value.trim() };
       document.getElementById('exportSection').classList.add('active');
 

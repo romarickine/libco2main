@@ -207,11 +207,19 @@ export function bilinearElevation(grid, gridElevations, lon, lat) {
 
 export async function fetchElevations(points, onChunkDone) {
   const elevations = new Map();
-  // Lots volontairement petits (voir plus bas), mais surtout lancés en
-  // PARALLÈLE : les attendre un par un en série annulerait tout l'intérêt du
-  // limiteur de débit (5 en vol max) et rendrait le téléchargement très lent
-  // sur un gros réseau (des centaines de lots).
-  const chunkSize = 150;
+  // Lots proches de la limite documentée de l'API IGN (5000 points/requête,
+  // https://geoservices.ign.fr/node/1439) plutôt que les petits lots de 150
+  // utilisés jusqu'ici : la contrainte réelle du service est le DÉBIT (5
+  // req/s, vérifié dans la documentation officielle — ni négociable ni
+  // relevable côté client), pas le volume de points par requête. Empaqueter
+  // largement divise donc le nombre de requêtes nécessaires par ~27 (270 -> 10
+  // sur un réseau de taille courante), sans rien perdre en fiabilité.
+  // POST (pris en charge par ce service, avec le même format de paramètres
+  // qu'en GET, envoyés en JSON) plutôt que GET : une requête de 4000 points
+  // en paramètres d'URL dépasserait largement les limites de longueur d'URL
+  // (souvent 2 à 8 Ko selon les navigateurs/serveurs/proxies) — le corps
+  // d'une requête POST n'a pas cette contrainte.
+  const chunkSize = 4000;
   const chunks = [];
   for (let i = 0; i < points.length; i += chunkSize) { chunks.push(points.slice(i, i + chunkSize)); }
   let completedChunks = 0;
@@ -219,10 +227,10 @@ export async function fetchElevations(points, onChunkDone) {
   const fetchChunk = async (chunk, chunkIndex) => {
     const lons = chunk.map((p) => p.lon.toFixed(5)).join('|');
     const lats = chunk.map((p) => p.lat.toFixed(5)).join('|');
-    const url = 'https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json?lon=' + lons + '&lat=' + lats
-      + '&resource=ign_rge_alti_wld&delimiter=|&indent=false&measures=false';
+    const url = 'https://data.geopf.fr/altimetrie/1.0/calcul/alti/rest/elevation.json';
+    const body = JSON.stringify({ lon: lons, lat: lats, resource: 'ign_rge_alti_wld', delimiter: '|', indent: 'false', measures: 'false', zonly: 'false' });
     try {
-      const json = await fetchWithRetry(url);
+      const json = await fetchWithRetry(url, { method: 'POST', headers: { 'Content-Type': 'application/json', accept: 'application/json' }, body });
       const elevs = json.elevations || [];
       elevs.forEach((e, idx) => {
         if (!chunk[idx]) { return; }
@@ -235,7 +243,7 @@ export async function fetchElevations(points, onChunkDone) {
         elevations.set(chunk[idx].id, plausible ? z : 0);
       });
     } catch (e) {
-      throw new Error('Échec de récupération de l\u2019altimétrie (lot ' + (chunkIndex + 1) + '/' + chunks.length + ', ' + chunk.length + ' points, URL de ' + url.length + ' caractères) : ' + e.message);
+      throw new Error('Échec de récupération de l\u2019altimétrie (lot ' + (chunkIndex + 1) + '/' + chunks.length + ', ' + chunk.length + ' points) : ' + e.message);
     }
     completedChunks++;
     if (onChunkDone) { onChunkDone(completedChunks / chunks.length); }
