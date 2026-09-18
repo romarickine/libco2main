@@ -7,7 +7,7 @@ import { computeIsochronesNetwork } from './isochrones.js';
 import { geocodeAddress, fetchAddressSuggestions, setWfsMaxRequestsPerSecond } from './ign-api.js';
 import { exportMapImage } from './export-image.js';
 import { getModeColors } from './colors.js';
-import { URBAN_CLASSIFICATION_RADIUS_M } from './graph.js';
+import { URBAN_CLASSIFICATION_RADIUS_M, findNearestNode, haversineMeters, estimateCarTime } from './graph.js';
 import {
   NETWORK_RADIUS_M, ELEVATION_GRID_SPACING_M, NODE_SNAP_TOLERANCE_M, WFS_PAGE_SIZE, WFS_MAX_REQUESTS_PER_SECOND,
 } from './config.js';
@@ -180,7 +180,7 @@ export function initUI() {
     ['countWalk', 'countBike', 'countEbike'].forEach((id) => { document.getElementById(id).textContent = ''; });
 
     try {
-      const { results, nodeCount, edgeCount, rawConnectivity, roadsTruncated, rawFeatureCount, urbanContext, delayCarApplied } = await computeIsochronesNetwork({
+      const { results, nodeCount, edgeCount, rawConnectivity, roadsTruncated, rawFeatureCount, urbanContext, delayCarApplied, diagnostics } = await computeIsochronesNetwork({
         ...opts,
         onProgress: (label, fraction) => {
           statusEl.textContent = label;
@@ -192,8 +192,9 @@ export function initUI() {
 
       document.getElementById('networkInfo').textContent = nodeCount + ' nœuds, ' + edgeCount + ' rues — contexte détecté : '
         + (urbanContext.isUrban ? 'urbain' : 'rural') + ' (' + urbanContext.junctionCount + ' carrefours à moins de ' + URBAN_CLASSIFICATION_RADIUS_M + ' m, délai voiture appliqué : ' + delayCarApplied + ' min)';
-      lastComputation = { results, lat, lon, address: document.getElementById('address').value.trim() };
+      lastComputation = { results, lat, lon, address: document.getElementById('address').value.trim(), diagnostics };
       document.getElementById('exportSection').classList.add('active');
+      document.getElementById('diagnosticSection').classList.add('active');
 
       // Anneaux non chevauchants : l'ordre d'empilement n'a plus d'incidence
       // visuelle (aucune zone ne recouvre une autre), on garde Ebike -> Bike ->
@@ -268,5 +269,91 @@ export function initUI() {
     } finally {
       exportButton.disabled = false;
     }
+  });
+
+  // --- Diagnostic : inspection d'un point ---
+  let diagnosticMarker = null;
+  map.on('click', (e) => {
+    const toggle = document.getElementById('diagnosticToggle');
+    if (!toggle.checked) { return; }
+    if (!lastComputation || !lastComputation.diagnostics) {
+      document.getElementById('diagnosticOutput').style.display = 'block';
+      document.getElementById('diagnosticOutput').innerHTML = '<p class="hint">Lancez d\u2019abord un calcul.</p>';
+      return;
+    }
+    const { graph, carTimes, carDistances, carJunctionDelays, carIndex, modeTimesByKey, modeDefs, nodeDegrees } = lastComputation.diagnostics;
+    const clickLon = e.latlng.lng, clickLat = e.latlng.lat;
+    const nearestNode = findNearestNode(graph, clickLon, clickLat);
+    if (nearestNode == null) { return; }
+    const [nodeLon, nodeLat] = graph.nodeCoords.get(nearestNode);
+    const snapDistance = haversineMeters(clickLon, clickLat, nodeLon, nodeLat);
+
+    if (diagnosticMarker) { map.removeLayer(diagnosticMarker); }
+    diagnosticMarker = L.circleMarker([nodeLat, nodeLon], { radius: 6, color: '#b3452f', fillColor: '#b3452f', fillOpacity: 0.8 }).addTo(map);
+
+    const straightLineFromOrigin = haversineMeters(lastComputation.lon, lastComputation.lat, nodeLon, nodeLat);
+    const carDirect = carTimes.get(nearestNode);
+    const carEffective = estimateCarTime(carTimes, carIndex, nearestNode, graph.nodeCoords);
+    const carIsFallback = carDirect === undefined && carEffective !== Infinity;
+    const carIsUnreachable = carEffective === Infinity;
+    const carNetworkDistance = carDistances.get(nearestNode); // distance réellement parcourue par la voiture (le long du chemin le plus rapide trouvé), pas à vol d'oiseau
+
+    let html = '<strong>Point inspecté</strong> (nœud le plus proche à ' + snapDistance.toFixed(0) + ' m du clic)<br>';
+    html += 'Degré du nœud (arêtes qui s\u2019y rejoignent) : ' + (nodeDegrees.get(nearestNode) || 0)
+      + ((nodeDegrees.get(nearestNode) || 0) >= 3 ? ' — compté comme carrefour (pénalité voiture appliquée)' : ' — pas un carrefour') + '<br>';
+    html += 'Distance à vol d\u2019oiseau depuis le départ : ' + (straightLineFromOrigin / 1000).toFixed(2) + ' km<br><br>';
+    html += '<strong>Voiture</strong> : ';
+    if (carIsUnreachable) {
+      html += 'inaccessible (aucun accès voiture à moins de 5 km)';
+    } else if (carIsFallback) {
+      html += (carEffective / 60).toFixed(1) + ' min <em>(estimé — nœud non relié au réseau voiture, repli via le point voiture le plus proche + marche)</em>';
+    } else {
+      html += (carDirect / 60).toFixed(1) + ' min (calculé directement)';
+      if (carNetworkDistance !== undefined) {
+        const detourRatio = carNetworkDistance / straightLineFromOrigin;
+        const impliedSpeed = (carNetworkDistance / 1000) / (carDirect / 3600);
+        const junctionDelaySum = carJunctionDelays.get(nearestNode) || 0;
+        const junctionCount = Math.round(junctionDelaySum / 6); // 6 s par carrefour pour la voiture
+        const junctionShare = junctionDelaySum / carDirect;
+        html += '<br>Distance réseau réellement parcourue : ' + (carNetworkDistance / 1000).toFixed(2) + ' km'
+          + ' (×' + detourRatio.toFixed(2) + ' par rapport au vol d\u2019oiseau)'
+          + '<br>Vitesse moyenne implicite : ' + impliedSpeed.toFixed(1) + ' km/h'
+          + '<br>Cumul des pénalités de carrefour sur ce trajet : ' + (junctionDelaySum / 60).toFixed(1) + ' min ('
+          + junctionCount + ' carrefours traversés, soit ' + (junctionShare * 100).toFixed(0) + '% du temps total)'
+          + (junctionShare > 0.3 ? ' — <strong style="color:var(--danger);">part anormalement élevée, probablement des faux carrefours (ex. fusion erronée des deux sens d\u2019une route à chaussées séparées)</strong>' : '')
+          + (detourRatio > 1.6 ? '<br><strong style="color:var(--danger);">Détour important, probablement topologique</strong>' : (impliedSpeed < 30 && junctionShare <= 0.3 ? '<br><strong style="color:var(--danger);">Vitesse anormalement basse, probablement une donnée de vitesse manquante/sous-estimée sur ce trajet</strong>' : ''));
+      }
+    }
+
+    // Attributs bruts des tronçons touchant ce nœud — pour vérifier directement
+    // ce que le parseur a réellement lu (nature, vitesse_moyenne_vl, importance)
+    // plutôt que de deviner depuis l'extérieur si un champ est mal nommé ou
+    // absent. Le "rang" est celui utilisé pour décider si une pénalité de
+    // carrefour s'applique — utile pour comprendre pourquoi un croisement
+    // compte ou non.
+    const incidentEdges = graph.edges.filter((e) => e.from === nearestNode || e.to === nearestNode).slice(0, 6);
+    if (incidentEdges.length > 0) {
+      html += '<br><strong>Tronçons connectés à ce nœud (données brutes)</strong>';
+      html += '<table style="width:100%; margin-top:4px;"><tr><th style="text-align:left;">Nature</th><th style="text-align:left;">Vitesse déclarée</th><th style="text-align:left;">Longueur</th></tr>';
+      for (const e of incidentEdges) {
+        html += '<tr><td>' + (e.nature || '<em>(vide)</em>') + '</td><td>' + (e.vitesse != null ? e.vitesse + ' km/h' : '<em>absente</em>') + '</td><td>' + e.length.toFixed(0) + ' m</td></tr>';
+      }
+      html += '</table>';
+    }
+
+    html += '<br><br><table style="width:100%;"><tr><th style="text-align:left;">Mode</th><th style="text-align:left;">Temps</th><th style="text-align:left;">Seuil à battre</th><th style="text-align:left;">Résultat</th></tr>';
+    for (const mode of modeDefs) {
+      const mt = modeTimesByKey[mode.key].get(nearestNode);
+      const seuil = carEffective === Infinity ? Infinity : carEffective + mode.carPenalty;
+      const label = mt === undefined ? 'hors budget-temps' : (mt / 60).toFixed(1) + ' min';
+      const seuilLabel = seuil === Infinity ? '—' : (seuil / 60).toFixed(1) + ' min';
+      const verdict = mt === undefined ? '—' : (mt < seuil ? '✅ gagne' : '❌ perd');
+      html += '<tr><td>' + mode.key + '</td><td>' + label + '</td><td>' + seuilLabel + '</td><td>' + verdict + '</td></tr>';
+    }
+    html += '</table>';
+
+    const out = document.getElementById('diagnosticOutput');
+    out.style.display = 'block';
+    out.innerHTML = html;
   });
 }

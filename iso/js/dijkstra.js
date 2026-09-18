@@ -41,22 +41,36 @@ class MinHeap {
  * @param {Map<string, Array<{to:string, cost:number}>>} adjacency
  * @param {string} originId
  * @param {number} maxCost Coupure (secondes) : on n'explore pas au-delà.
+ * @param {Map<string, number>} [distanceOut] Rempli, si fourni, avec la
+ *   distance (m) parcourue le long du même chemin optimal en temps — utile
+ *   pour le diagnostic (distinguer une vitesse sous-estimée d'un détour).
+ * @param {Map<string, number>} [delayOut] Rempli, si fourni, avec le cumul
+ *   des pénalités de carrefour le long du même chemin — utile pour le
+ *   diagnostic (vérifier si un temps élevé vient d'un enchaînement de
+ *   carrefours).
  * @returns {Map<string, number>} temps d'accès (secondes) par nœud atteint
  */
-export function dijkstra(adjacency, originId, maxCost) {
+export function dijkstra(adjacency, originId, maxCost, distanceOut, delayOut) {
   const dist = new Map();
   const heap = new MinHeap();
   dist.set(originId, 0);
+  if (distanceOut) { distanceOut.set(originId, 0); }
+  if (delayOut) { delayOut.set(originId, 0); }
   heap.push(0, originId);
   while (heap.size > 0) {
     const [d, u] = heap.pop();
     if (d > (dist.get(u) ?? Infinity)) { continue; }
     if (d > maxCost) { continue; }
     const neighbors = adjacency.get(u) || [];
-    for (const { to, cost } of neighbors) {
+    for (const { to, cost, length, delay } of neighbors) {
       const nd = d + cost;
       if (nd > maxCost) { continue; }
-      if (nd < (dist.get(to) ?? Infinity)) { dist.set(to, nd); heap.push(nd, to); }
+      if (nd < (dist.get(to) ?? Infinity)) {
+        dist.set(to, nd);
+        if (distanceOut) { distanceOut.set(to, (distanceOut.get(u) ?? 0) + (length ?? 0)); }
+        if (delayOut) { delayOut.set(to, (delayOut.get(u) ?? 0) + (delay ?? 0)); }
+        heap.push(nd, to);
+      }
     }
   }
   return dist;

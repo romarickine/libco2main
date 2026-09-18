@@ -5,7 +5,7 @@ import { dijkstra } from './dijkstra.js';
 import {
   parseIGNRoadsToGraph, buildAdjacency, isEdgeUsable, findNearestNode, computeNodeDegrees,
   checkRawConnectivity, connectedWinningNodes, analyzeFrontier, haversineMeters,
-  classifyUrbanContext, buildCarReachabilityIndex,
+  classifyUrbanContext, buildCarReachabilityIndex, computeNodeIncidentEdges,
 } from './graph.js';
 import { HexGrid, traceOuterBoundaries, buildPolygonsWithHoles, smoothPolygonsWithHoles } from './hexgrid.js';
 import { fetchIGNRoads, buildElevationGrid, bilinearElevation, fetchElevations } from './ign-api.js';
@@ -32,6 +32,7 @@ export async function computeIsochronesNetwork(opts) {
   });
   const graph = parseIGNRoadsToGraph(roadsGeoJson, nodeSnapToleranceMeters);
   const nodeDegrees = computeNodeDegrees(graph);
+  const nodeIncidentEdges = computeNodeIncidentEdges(graph);
 
   // Le délai d'accès voiture dépend du contexte (ville/campagne) : chercher
   // une place et marcher jusqu'à destination prend nettement plus longtemps
@@ -63,8 +64,10 @@ export async function computeIsochronesNetwork(opts) {
   onProgress('Calcul des temps de trajet voiture (référence)…', 0.55);
   await yieldToBrowser();
   const maxCarCutoff = Math.max(...modeDefs.map((m) => m.maxTime + m.carPenalty));
-  const carAdjacency = buildAdjacency(graph, elevations, 'car', nodeDegrees);
-  const carTimes = dijkstra(carAdjacency, originNode, maxCarCutoff);
+  const carAdjacency = buildAdjacency(graph, elevations, 'car', nodeDegrees, nodeIncidentEdges);
+  const carDistances = new Map();
+  const carJunctionDelays = new Map();
+  const carTimes = dijkstra(carAdjacency, originNode, maxCarCutoff, carDistances, carJunctionDelays);
   // Cellules de 200m : assez fines pour bien localiser le nœud voiture le
   // plus proche d'un chemin/sentier isolé, sans exploser le nombre de
   // compartiments sur un réseau de 15km de rayon.
@@ -72,14 +75,16 @@ export async function computeIsochronesNetwork(opts) {
 
   const results = {};
   const hexagonsByMode = {};
+  const modeTimesByKey = {}; // conservé pour l'outil de diagnostic (inspection d'un point)
   const hexGrid = new HexGrid(lon, lat, bufferRadiusMeters * 1.6, 6);
   const progressPerMode = { Walk: 0.65, Bike: 0.78, Ebike: 0.9 };
 
   for (const mode of modeDefs) {
     onProgress('Calcul — ' + mode.key + '…', progressPerMode[mode.key]);
     await yieldToBrowser();
-    const adjacency = buildAdjacency(graph, elevations, mode.mode, nodeDegrees);
+    const adjacency = buildAdjacency(graph, elevations, mode.mode, nodeDegrees, nodeIncidentEdges);
     const modeTimes = dijkstra(adjacency, originNode, mode.maxTime);
+    modeTimesByKey[mode.key] = modeTimes;
     const winningNodes = connectedWinningNodes(adjacency, modeTimes, carTimes, carIndex, graph.nodeCoords, originNode, mode.carPenalty);
 
     // Détecte si la zone touche le bord du rayon réseau interrogé : signe
@@ -139,5 +144,13 @@ export async function computeIsochronesNetwork(opts) {
     results, nodeCount: graph.nodeCoords.size, edgeCount: graph.edges.length, rawConnectivity,
     roadsTruncated: roadsGeoJson.truncated, rawFeatureCount: roadsGeoJson.rawFeatureCount,
     urbanContext, delayCarApplied: delayCar,
+    // Conservé pour l'outil de diagnostic (inspection d'un point) : permet de
+    // comparer directement, pour n'importe quel point cliqué, le temps
+    // voiture et le temps de chaque mode tels que calculés par le modèle —
+    // sans ça, impossible de savoir si un écart avec la réalité (type Google
+    // Maps) vient d'une vitesse voiture sous-estimée, d'un détour
+    // topologique, ou d'autre chose, sans republier une nouvelle version pour
+    // ajouter des logs.
+    diagnostics: { graph, carTimes, carDistances, carJunctionDelays, carIndex, originNode, modeTimesByKey, modeDefs, nodeDegrees },
   };
 }

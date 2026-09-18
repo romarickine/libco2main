@@ -22,7 +22,15 @@ export const DELAY_BIKE_MIN = 3;
 export const DELAY_CAR_MIN_URBAN = 8;
 export const DELAY_CAR_MIN_RURAL = 4;
 
-// Rayon du réseau interrogé.
+// Rayon du réseau interrogé. Ramené de 20 à 15 km : le passage à 20 km
+// visait à corriger une vitesse voiture sous-estimée près du bord du réseau
+// (un itinéraire rapide légèrement hors rayon n'existait alors pas dans les
+// données téléchargées) — mais la refonte des pénalités de carrefour
+// (hiérarchie routière + cap géographique, voir graph.js) supprime la cause
+// réelle du problème à la source : les faux carrefours qui ralentissaient
+// artificiellement la voiture. Un rayon plus large n'est donc plus
+// nécessaire pour corriger ce cas, et revenir à 15 km réduit d'autant le
+// volume de données téléchargées et le temps de calcul.
 export const NETWORK_RADIUS_M = 15000;
 
 // Résolution de la grille altimétrique, tolérance de fusion des nœuds, et

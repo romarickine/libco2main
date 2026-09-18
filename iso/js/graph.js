@@ -62,6 +62,10 @@ function createNodeSnapper(toleranceMeters) {
 export function parseIGNRoadsToGraph(featureCollection, nodeSnapTolerance) {
   const snapper = createNodeSnapper(nodeSnapTolerance);
   const edges = [];
+  // Identifiants négatifs, jamais générés par le snapper (qui compte à partir
+  // de 0) : réservés aux points de forme intermédiaires, pour qu'ils ne
+  // puissent jamais se fusionner avec un point d'un autre tronçon.
+  let privateNodeCounter = -1;
   for (const feature of featureCollection.features || []) {
     const props = feature.properties || {};
     const geom = feature.geometry;
@@ -71,18 +75,44 @@ export function parseIGNRoadsToGraph(featureCollection, nodeSnapTolerance) {
     const sens = props.sens_de_circulation || props.sens || 'Double sens';
     const vitesse = props.vitesse_moyenne_vl || props.vit_moy_vl || null;
     const accesVL = props.acces_vehicule_leger || props.acces_vl || null;
+    // Hiérarchie routière officielle BD TOPO® (1 = le plus important). Sert à
+    // ne compter une pénalité de carrefour que lorsque deux routes de
+    // hiérarchie comparable se croisent — voir edgeRank plus bas.
+    const importance = props.importance != null ? parseFloat(props.importance) : null;
     // Couverture incomplète : cet attribut n'est renseigné par l'IGN que
     // lorsqu'un partenaire a fourni l'information — son absence ne garantit
     // donc PAS qu'une voie est publique, seule sa présence à vrai est fiable.
     const prive = props.prive === true || props.prive === 'Vrai' || props.privee === true || props.privee === 'Vrai';
     for (const coords of lineStrings) {
-      for (let i = 0; i < coords.length - 1; i++) {
+      const n = coords.length;
+      if (n < 2) { continue; }
+      // Seules les DEUX EXTRÉMITÉS d'un tronçon correspondent à de vraies
+      // intersections dans la topologie BD TOPO® (deux tronçons qui se
+      // croisent partagent un point de départ/arrivée commun, confirmé dans
+      // la documentation IGN). Les points de forme intermédiaires (lissage
+      // de la géométrie d'une courbe) n'en sont pas — les fusionner avec un
+      // point proche d'un AUTRE tronçon crée de faux carrefours, en
+      // particulier sur une route à chaussées séparées où les deux sens de
+      // circulation ont des points de forme à quelques mètres l'un de
+      // l'autre tout du long (confirmé : IGN saisit un tracé par chaussée
+      // pour ces routes) : sans cette distinction, une route rapide sans
+      // aucune intersection réelle peut accumuler des dizaines de pénalités
+      // de carrefour totalement artificielles.
+      const nodeIds = new Array(n);
+      nodeIds[0] = snapper.snap(coords[0][0], coords[0][1]);
+      nodeIds[n - 1] = snapper.snap(coords[n - 1][0], coords[n - 1][1]);
+      for (let i = 1; i < n - 1; i++) {
+        const id = privateNodeCounter--;
+        snapper.nodeCoords.set(id, [coords[i][0], coords[i][1]]);
+        nodeIds[i] = id;
+      }
+      for (let i = 0; i < n - 1; i++) {
         const [lon1, lat1] = coords[i];
         const [lon2, lat2] = coords[i + 1];
-        const idA = snapper.snap(lon1, lat1), idB = snapper.snap(lon2, lat2);
+        const idA = nodeIds[i], idB = nodeIds[i + 1];
         const length = haversineMeters(lon1, lat1, lon2, lat2);
         if (length <= 0 || idA === idB) { continue; }
-        edges.push({ from: idA, to: idB, length, nature, sens, vitesse, accesVL, prive });
+        edges.push({ from: idA, to: idB, length, nature, sens, vitesse, accesVL, prive, importance });
       }
     }
   }
@@ -129,11 +159,73 @@ export function isEdgeUsable(edge, mode) {
 // carrefours au km, donc une vitesse moyenne de trajet mécaniquement plus
 // basse, sans avoir besoin de deviner un indice d'urbanité en plus.
 //
-// Approximation assumée : faute de données sur le type de régulation de
-// chaque carrefour (feu, stop, cédez-le-passage, rond-point — présentes dans
-// la couche BD TOPO® "noeud_routier", non récupérée ici), on applique une
-// valeur moyenne forfaitaire par mode plutôt qu'une valeur par carrefour réel.
+// La BD TOPO® ne renseigne pas le type de régulation de chaque carrefour
+// (feu, stop, cédez-le-passage) — recherché puis confirmé absent des données
+// disponibles, y compris via la couche "carrefour" dédiée, qui ne couvre que
+// les échangeurs et ronds-points nommés, pas les carrefours ordinaires.
+// À la place, on utilise la HIÉRARCHIE des routes qui se croisent : une route
+// principale qui croise une voie nettement moins importante n'est pas
+// pénalisée (priorité évidente, pas de ralentissement réel) ; seules deux
+// routes de hiérarchie comparable comptent comme un vrai carrefour.
 const JUNCTION_DELAY_SECONDS = { car: 6, walk: 2, bike: 4, ebike: 4 };
+
+// Hiérarchie de repli par nature de voie (1 = le plus important), utilisée
+// quand l'attribut officiel BD TOPO® "importance" est absent.
+const NATURE_RANK_FALLBACK = {
+  'Type autoroutier': 1, 'Route à 2 chaussées': 2, 'Bretelle': 2.5, 'Rond-point': 3,
+  'Route à 1 chaussée': 3, 'Piste cyclable': 4, 'Route empierrée': 4, 'Chemin': 5, 'Sentier': 5, 'Escalier': 5,
+};
+// Écart de rang au-delà duquel deux routes sont considérées de hiérarchie
+// trop différente pour qu'un vrai ralentissement ait lieu (priorité évidente).
+// Valeur volontairement resserrée (0.5, pas plus) : au-delà, une route
+// ordinaire (rang 3) qui croise une voie rapide de rang 2 était encore
+// comptée à tort comme un carrefour "comparable" — testé et corrigé.
+const JUNCTION_RANK_THRESHOLD = 0.5;
+function edgeRank(edge) {
+  if (Number.isFinite(edge.importance)) { return edge.importance; }
+  return NATURE_RANK_FALLBACK[edge.nature] ?? 3;
+}
+
+// Cap (direction) entre deux points, en radians (0 = nord, sens horaire) —
+// sert à distinguer une route qui continue tout droit après un carrefour
+// (même route, tronçon suivant) d'une route qui croise réellement la
+// direction de circulation. Sans cette distinction, le tronçon suivant de la
+// MÊME route est toujours de rang identique à celui qu'on vient de parcourir,
+// donc toujours compté à tort comme un "vrai carrefour" quel que soit le
+// seuil de hiérarchie choisi.
+function bearingRad(lon1, lat1, lon2, lat2) {
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const lat1r = (lat1 * Math.PI) / 180, lat2r = (lat2 * Math.PI) / 180;
+  const y = Math.sin(dLon) * Math.cos(lat2r);
+  const x = Math.cos(lat1r) * Math.sin(lat2r) - Math.sin(lat1r) * Math.cos(lat2r) * Math.cos(dLon);
+  return Math.atan2(y, x);
+}
+function angleDiffRad(a, b) {
+  const d = Math.abs(a - b) % (2 * Math.PI);
+  return d > Math.PI ? 2 * Math.PI - d : d;
+}
+// En dessous de 45° d'écart avec la direction d'arrivée, une route est
+// considérée comme un prolongement tout droit (même itinéraire), pas un
+// croisement à négocier — au-dessus, c'est une route qui coupe réellement la
+// trajectoire.
+const STRAIGHT_THROUGH_TOLERANCE_RAD = (45 * Math.PI) / 180;
+
+/**
+ * Pour chaque nœud, la liste des arêtes (objets, pas seulement leur rang) qui
+ * s'y rejoignent — sert à déterminer, pour une arête d'arrivée donnée, si
+ * une AUTRE arête de hiérarchie comparable existe à ce nœud (vrai carrefour)
+ * ou si toutes les autres sont nettement moins importantes (simple croisement
+ * sans ralentissement réel).
+ */
+export function computeNodeIncidentEdges(graph) {
+  const incident = new Map();
+  const add = (nodeId, edge) => {
+    if (!incident.has(nodeId)) { incident.set(nodeId, []); }
+    incident.get(nodeId).push(edge);
+  };
+  for (const edge of graph.edges) { add(edge.from, edge); add(edge.to, edge); }
+  return incident;
+}
 
 export function computeNodeDegrees(graph) {
   const degrees = new Map();
@@ -178,13 +270,37 @@ function surfaceFactor(nature, mode) {
   return (table && table[nature]) || 1.0;
 }
 
-export function buildAdjacency(graph, elevations, mode, nodeDegrees) {
+export function buildAdjacency(graph, elevations, mode, nodeDegrees, nodeIncidentEdges) {
   const adjacency = new Map();
   const junctionDelay = JUNCTION_DELAY_SECONDS[mode] || 0;
-  const addDirected = (from, to, cost) => {
+  const otherEndpoint = (e, nodeId) => (e.from === nodeId ? e.to : e.from);
+  const addDirected = (from, to, cost, length, edge) => {
     if (!adjacency.has(from)) { adjacency.set(from, []); }
-    const delay = (nodeDegrees.get(to) || 0) >= 3 ? junctionDelay : 0;
-    adjacency.get(from).push({ to, cost: cost + delay });
+    // Une pénalité n'est comptée que si une AUTRE route de hiérarchie
+    // comparable CROISE réellement la trajectoire à ce nœud (vrai carrefour à
+    // négocier) — ni quand toutes les autres sont nettement moins importantes
+    // (priorité évidente), ni quand l'unique route de rang comparable est en
+    // fait le prolongement tout droit du même itinéraire (le tronçon suivant
+    // d'une route continue a toujours le même rang que celui qu'on vient de
+    // parcourir, donc toujours "comparable" à tort si on ne regarde pas aussi
+    // la direction).
+    let delay = 0;
+    if ((nodeDegrees.get(to) || 0) >= 3) {
+      const arrivingRank = edgeRank(edge);
+      const [fromLon, fromLat] = graph.nodeCoords.get(from);
+      const [toLon, toLat] = graph.nodeCoords.get(to);
+      const arrivalBearing = bearingRad(fromLon, fromLat, toLon, toLat);
+      const others = nodeIncidentEdges.get(to) || [];
+      const hasComparable = others.some((other) => {
+        if (other === edge) { return false; }
+        const [otherLon, otherLat] = graph.nodeCoords.get(otherEndpoint(other, to));
+        const otherBearing = bearingRad(toLon, toLat, otherLon, otherLat);
+        if (angleDiffRad(arrivalBearing, otherBearing) < STRAIGHT_THROUGH_TOLERANCE_RAD) { return false; } // prolongement tout droit, pas un croisement
+        return edgeRank(other) <= arrivingRank + JUNCTION_RANK_THRESHOLD;
+      });
+      if (hasComparable) { delay = junctionDelay; }
+    }
+    adjacency.get(from).push({ to, cost: cost + delay, length, delay });
   };
   for (const edge of graph.edges) {
     if (!isEdgeUsable(edge, mode)) { continue; }
@@ -219,8 +335,8 @@ export function buildAdjacency(graph, elevations, mode, nodeDegrees) {
     // la marche et le vélo restent supposés bidirectionnels sur chaque tronçon.
     const forwardOnly = mode === 'car' && edge.sens === 'Sens direct';
     const backwardOnly = mode === 'car' && edge.sens === 'Sens inverse';
-    if (!backwardOnly) { addDirected(edge.from, edge.to, costForward); }
-    if (!forwardOnly) { addDirected(edge.to, edge.from, costBackward); }
+    if (!backwardOnly) { addDirected(edge.from, edge.to, costForward, edge.length, edge); }
+    if (!forwardOnly) { addDirected(edge.to, edge.from, costBackward, edge.length, edge); }
   }
   return adjacency;
 }

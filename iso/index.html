@@ -87,7 +87,7 @@
     <h3>Pénalités et frictions</h3>
     <ul>
       <li><strong>Délai d'accès</strong> — 3 min vélo/VAE (détacher/rattacher, estimation raisonnée — aucune étude trouvée ne chiffre précisément ce temps). Voiture : 8 min en zone urbaine, 4 min en zone rurale (accéder au véhicule, chercher une place et marcher jusqu'à destination). Ordre de grandeur cohérent avec la littérature : le temps de <em>recherche</em> seule d'une place sur voirie a une moyenne de 2-3 min à Lyon, avec une distribution étalée dépassant 10 min dans les secteurs tendus (CEREMA, enquête 2015) ; une étude d'accessibilité urbaine récente ajoute forfaitairement 15 min au trajet voiture brut pour couvrir marche jusqu'au véhicule + recherche + marche jusqu'à destination (pas de distinction ville/campagne dans cette étude). Le contexte est détecté automatiquement à partir de la densité de carrefours autour du point de départ (seuil : 20 carrefours dans un rayon de 600 m), sans appel réseau supplémentaire.</li>
-      <li><strong>Carrefours</strong> — quelques secondes ajoutées à chaque nœud où 3 rues ou plus se croisent (6 s voiture, 4 s vélo/VAE, 2 s marche), valeur moyenne forfaitaire faute de données sur le type de régulation (feu, stop, cédez-le-passage) de chaque carrefour. Ce mécanisme pénalise proportionnellement plus la voiture que le vélo dans un maillage dense (un délai fixe pèse plus sur un trajet rapide que sur un trajet déjà lent), reproduisant le fait bien documenté que les zones denses ralentissent la voiture plus que le vélo.</li>
+      <li><strong>Carrefours</strong> — quelques secondes ajoutées à un nœud où 3 rues ou plus se croisent (6 s voiture, 4 s vélo/VAE, 2 s marche), mais seulement quand une <strong>autre route de hiérarchie comparable croise réellement la trajectoire</strong> — ni quand toutes les autres sont nettement moins importantes (une route principale qui croise une allée ou un chemin a une priorité évidente), ni quand la route de rang comparable est en fait le prolongement tout droit du même itinéraire (identifié par le cap géographique, pas seulement le rang). La hiérarchie utilise l'attribut officiel BD TOPO® <code>Importance</code> quand il est renseigné, sinon un repli par nature de voie. La BD TOPO® ne renseigne pas le type de régulation (feu/stop/cédez-le-passage) de chaque carrefour — recherché puis confirmé absent des données disponibles pour les carrefours ordinaires — d'où ce repli par hiérarchie plutôt qu'une valeur exacte par carrefour. Ce mécanisme pénalise proportionnellement plus la voiture que le vélo dans un maillage dense (un délai fixe pèse plus sur un trajet rapide que sur un trajet déjà lent), reproduisant le fait bien documenté que les zones denses ralentissent la voiture plus que le vélo.</li>
       <li><strong>Surface de la voie</strong> — pénalité de vitesse pour marche/vélo/VAE selon la nature du revêtement (route empierrée ×0,75-0,95, chemin ×0,55-0,90, sentier ×0,35-1,0 selon le mode) ; estimation raisonnée, pas une régression publiée trouvée spécifiquement sur ce sujet.</li>
       <li><strong>Voies exclues</strong> — au-delà de 110 km/h pour marche/vélo/VAE (voies à caractère autoroutier) ; chemins/sentiers/pistes cyclables exclus pour la voiture ; bacs et liaisons maritimes exclus pour tous les modes (ni la marche ni le vélo ne traversent l'eau, et une traversée en bac implique une attente d'horaire non modélisée).</li>
       <li><strong>Repli du temps voiture</strong> — un chemin ou sentier peut longer une route bien plus rapide sans lui être topologiquement relié dans les données (deux tracés distincts). Sans correctif, la voiture y serait considérée comme n'arrivant jamais (temps infini), laissant un mode actif "gagner" à tort. Le temps voiture d'un nœud inaccessible est donc estimé à partir du nœud accessible en voiture le plus proche, plus une marche à vol d'oiseau pour combler l'écart — au-delà de 5 km de tout accès voiture connu, on revient à l'infini (zone réellement isolée).</li>
@@ -107,10 +107,11 @@
       <strong>Limites connues, assumées :</strong>
       <ul>
         <li>Modèle de pente vélo/VAE calibré sur un seul point de terrain réel (fiable pour corriger l'erreur qu'il corrige, mais pas une courbe validée sur plusieurs profils).</li>
-        <li>Pas de données sur le type de régulation des carrefours (feu/stop/cédez-le-passage) : valeur moyenne forfaitaire.</li>
+        <li>Pas de données sur le type de régulation des carrefours (feu/stop/cédez-le-passage) : approximation par hiérarchie routière plutôt qu'une valeur exacte par carrefour.</li>
         <li>Détection des voies privées incomplète (dépend de ce que les partenaires de l'IGN ont renseigné).</li>
         <li>Classification ville/campagne heuristique (densité de carrefours), pas un zonage officiel — peut se tromper en périphérie ou dans un bourg dense mais isolé.</li>
         <li>Le repli du temps voiture (chemins non reliés au réseau voiture) utilise une distance à vol d'oiseau et une vitesse de marche prudente, pas un vrai itinéraire calculé.</li>
+        <li>Le seuil de hiérarchie routière pour compter un carrefour (écart de 0,5 rang, et un cap à ±45° pour distinguer un croisement d'une ligne droite) est un choix raisonné, pas calibré sur des mesures réelles — un carrefour ignoré à tort ou compté à tort reste possible, notamment dans un virage prononcé qui pourrait être confondu avec un croisement.</li>
         <li>Coefficients de pénalité de surface estimés, pas mesurés.</li>
         <li>L'altitude est lissée sur une grille (70 m), pas un relevé exact à chaque mètre.</li>
       </ul>
@@ -179,6 +180,16 @@
       </div>
       <button id="exportButton" class="geo-btn" style="width:100%; margin-top:6px;">📥 Télécharger l'image (JPG)</button>
       <p class="hint" id="exportStatus"></p>
+    </div>
+
+    <div id="diagnosticSection" class="export-section">
+      <div class="section-title">Diagnostic (inspecter un point)</div>
+      <label style="display:flex; align-items:center; gap:7px; font-size:13px; cursor:pointer;">
+        <input type="checkbox" id="diagnosticToggle" />
+        Cliquer sur la carte pour voir le détail du calcul à cet endroit
+      </label>
+      <p class="hint">Utile pour comparer le temps voiture calculé par le modèle à une source externe (ex. Google Maps) et repérer une vitesse sous-estimée ou un détour topologique.</p>
+      <div id="diagnosticOutput" class="limits-box" style="display:none; margin-top:8px; font-size:12.5px;"></div>
     </div>
 
     <p class="hint" style="margin-top:20px;">Données : réseau routier <a href="https://geoservices.ign.fr/bdtopo" target="_blank">BD TOPO® IGN</a> (API WFS Géoplateforme), altimétrie <a href="https://geoservices.ign.fr/" target="_blank">IGN Géoplateforme</a>, géocodage IGN. Tous les calculs se font directement dans votre navigateur.</p>
