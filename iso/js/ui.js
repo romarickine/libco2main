@@ -271,14 +271,15 @@ export function initUI() {
     }
   });
 
-  // --- Diagnostic : inspection d'un point ---
+  // --- Temps de déplacement en un point cliqué ---
+  // Le clic est toujours actif (plus de case à cocher préalable) : l'objectif
+  // est que l'usager puisse valider en un coup d'œil la cohérence de la carte.
   let diagnosticMarker = null;
+  const MODE_LABELS = { Walk: 'Marche', Bike: 'Vélo', Ebike: 'Vélo électrique' };
   map.on('click', (e) => {
-    const toggle = document.getElementById('diagnosticToggle');
-    if (!toggle.checked) { return; }
     if (!lastComputation || !lastComputation.diagnostics) {
       document.getElementById('diagnosticOutput').style.display = 'block';
-      document.getElementById('diagnosticOutput').innerHTML = '<p class="hint">Lancez d\u2019abord un calcul.</p>';
+      document.getElementById('diagnosticOutput').innerHTML = '<p class="hint">Lancez d’abord un calcul.</p>';
       return;
     }
     const { graph, carTimes, carDistances, carJunctionDelays, carIndex, modeTimesByKey, modeDefs, nodeDegrees } = lastComputation.diagnostics;
@@ -298,29 +299,45 @@ export function initUI() {
     const carIsUnreachable = carEffective === Infinity;
     const carNetworkDistance = carDistances.get(nearestNode); // distance réellement parcourue par la voiture (le long du chemin le plus rapide trouvé), pas à vol d'oiseau
 
-    let html = '<strong>Point inspecté</strong> (nœud le plus proche à ' + snapDistance.toFixed(0) + ' m du clic)<br>';
-    html += 'Degré du nœud (arêtes qui s\u2019y rejoignent) : ' + (nodeDegrees.get(nearestNode) || 0)
+    // --- Affichage principal : temps bruts par mode, sans jargon technique,
+    // pour que l'usager puisse "faire confiance à la carte" en un coup d'œil. ---
+    let html = '<strong>Temps jusqu’à ce point</strong> (' + snapDistance.toFixed(0) + ' m du point cliqué)<br>';
+    html += '<table style="width:100%; margin-top:4px;"><tr><th style="text-align:left;">Mode</th><th style="text-align:left;">Temps</th></tr>';
+    for (const mode of modeDefs) {
+      const mt = modeTimesByKey[mode.key].get(nearestNode);
+      const label = mt === undefined ? 'hors budget-temps' : (mt / 60).toFixed(1) + ' min';
+      html += '<tr><td>' + (MODE_LABELS[mode.key] || mode.key) + '</td><td>' + label + '</td></tr>';
+    }
+    const carLabel = carIsUnreachable ? 'inaccessible' : (carEffective / 60).toFixed(1) + ' min' + (carIsFallback ? ' (estimé)' : '');
+    html += '<tr><td>Voiture</td><td>' + carLabel + '</td></tr>';
+    html += '</table>';
+
+    // --- Détails techniques : repliés par défaut (usage interne, comparaison
+    // à une source externe type Google Maps, diagnostic d'un détour ou d'une
+    // vitesse suspecte) — pas destinés à l'usager final. ---
+    let advancedHtml = '';
+    advancedHtml += 'Degré du nœud (arêtes qui s’y rejoignent) : ' + (nodeDegrees.get(nearestNode) || 0)
       + ((nodeDegrees.get(nearestNode) || 0) >= 3 ? ' — compté comme carrefour (pénalité voiture appliquée)' : ' — pas un carrefour') + '<br>';
-    html += 'Distance à vol d\u2019oiseau depuis le départ : ' + (straightLineFromOrigin / 1000).toFixed(2) + ' km<br><br>';
-    html += '<strong>Voiture</strong> : ';
+    advancedHtml += 'Distance à vol d’oiseau depuis le départ : ' + (straightLineFromOrigin / 1000).toFixed(2) + ' km<br><br>';
+    advancedHtml += '<strong>Voiture</strong> : ';
     if (carIsUnreachable) {
-      html += 'inaccessible (aucun accès voiture à moins de 5 km)';
+      advancedHtml += 'inaccessible (aucun accès voiture à moins de 5 km)';
     } else if (carIsFallback) {
-      html += (carEffective / 60).toFixed(1) + ' min <em>(estimé — nœud non relié au réseau voiture, repli via le point voiture le plus proche + marche)</em>';
+      advancedHtml += (carEffective / 60).toFixed(1) + ' min <em>(estimé — nœud non relié au réseau voiture, repli via le point voiture le plus proche + marche)</em>';
     } else {
-      html += (carDirect / 60).toFixed(1) + ' min (calculé directement)';
+      advancedHtml += (carDirect / 60).toFixed(1) + ' min (calculé directement)';
       if (carNetworkDistance !== undefined) {
         const detourRatio = carNetworkDistance / straightLineFromOrigin;
         const impliedSpeed = (carNetworkDistance / 1000) / (carDirect / 3600);
         const junctionDelaySum = carJunctionDelays.get(nearestNode) || 0;
         const junctionCount = Math.round(junctionDelaySum / 6); // 6 s par carrefour pour la voiture
         const junctionShare = junctionDelaySum / carDirect;
-        html += '<br>Distance réseau réellement parcourue : ' + (carNetworkDistance / 1000).toFixed(2) + ' km'
-          + ' (×' + detourRatio.toFixed(2) + ' par rapport au vol d\u2019oiseau)'
+        advancedHtml += '<br>Distance réseau réellement parcourue : ' + (carNetworkDistance / 1000).toFixed(2) + ' km'
+          + ' (×' + detourRatio.toFixed(2) + ' par rapport au vol d’oiseau)'
           + '<br>Vitesse moyenne implicite : ' + impliedSpeed.toFixed(1) + ' km/h'
           + '<br>Cumul des pénalités de carrefour sur ce trajet : ' + (junctionDelaySum / 60).toFixed(1) + ' min ('
           + junctionCount + ' carrefours traversés, soit ' + (junctionShare * 100).toFixed(0) + '% du temps total)'
-          + (junctionShare > 0.3 ? ' — <strong style="color:var(--danger);">part anormalement élevée, probablement des faux carrefours (ex. fusion erronée des deux sens d\u2019une route à chaussées séparées)</strong>' : '')
+          + (junctionShare > 0.3 ? ' — <strong style="color:var(--danger);">part anormalement élevée, probablement des faux carrefours (ex. fusion erronée des deux sens d’une route à chaussées séparées)</strong>' : '')
           + (detourRatio > 1.6 ? '<br><strong style="color:var(--danger);">Détour important, probablement topologique</strong>' : (impliedSpeed < 30 && junctionShare <= 0.3 ? '<br><strong style="color:var(--danger);">Vitesse anormalement basse, probablement une donnée de vitesse manquante/sous-estimée sur ce trajet</strong>' : ''));
       }
     }
@@ -333,24 +350,27 @@ export function initUI() {
     // compte ou non.
     const incidentEdges = graph.edges.filter((e) => e.from === nearestNode || e.to === nearestNode).slice(0, 6);
     if (incidentEdges.length > 0) {
-      html += '<br><strong>Tronçons connectés à ce nœud (données brutes)</strong>';
-      html += '<table style="width:100%; margin-top:4px;"><tr><th style="text-align:left;">Nature</th><th style="text-align:left;">Vitesse déclarée</th><th style="text-align:left;">Longueur</th></tr>';
+      advancedHtml += '<br><strong>Tronçons connectés à ce nœud (données brutes)</strong>';
+      advancedHtml += '<table style="width:100%; margin-top:4px;"><tr><th style="text-align:left;">Nature</th><th style="text-align:left;">Vitesse déclarée</th><th style="text-align:left;">Longueur</th></tr>';
       for (const e of incidentEdges) {
-        html += '<tr><td>' + (e.nature || '<em>(vide)</em>') + '</td><td>' + (e.vitesse != null ? e.vitesse + ' km/h' : '<em>absente</em>') + '</td><td>' + e.length.toFixed(0) + ' m</td></tr>';
+        advancedHtml += '<tr><td>' + (e.nature || '<em>(vide)</em>') + '</td><td>' + (e.vitesse != null ? e.vitesse + ' km/h' : '<em>absente</em>') + '</td><td>' + e.length.toFixed(0) + ' m</td></tr>';
       }
-      html += '</table>';
+      advancedHtml += '</table>';
     }
 
-    html += '<br><br><table style="width:100%;"><tr><th style="text-align:left;">Mode</th><th style="text-align:left;">Temps</th><th style="text-align:left;">Seuil à battre</th><th style="text-align:left;">Résultat</th></tr>';
+    advancedHtml += '<br><br><table style="width:100%;"><tr><th style="text-align:left;">Mode</th><th style="text-align:left;">Temps</th><th style="text-align:left;">Seuil à battre</th><th style="text-align:left;">Résultat</th></tr>';
     for (const mode of modeDefs) {
       const mt = modeTimesByKey[mode.key].get(nearestNode);
       const seuil = carEffective === Infinity ? Infinity : carEffective + mode.carPenalty;
       const label = mt === undefined ? 'hors budget-temps' : (mt / 60).toFixed(1) + ' min';
       const seuilLabel = seuil === Infinity ? '—' : (seuil / 60).toFixed(1) + ' min';
       const verdict = mt === undefined ? '—' : (mt < seuil ? '✅ gagne' : '❌ perd');
-      html += '<tr><td>' + mode.key + '</td><td>' + label + '</td><td>' + seuilLabel + '</td><td>' + verdict + '</td></tr>';
+      advancedHtml += '<tr><td>' + mode.key + '</td><td>' + label + '</td><td>' + seuilLabel + '</td><td>' + verdict + '</td></tr>';
     }
-    html += '</table>';
+    advancedHtml += '</table>';
+
+    html += '<details style="margin-top:8px;"><summary style="cursor:pointer; color:var(--muted); font-size:11.5px;">Détails techniques (pour vérification)</summary>'
+      + '<div style="margin-top:6px;">' + advancedHtml + '</div></details>';
 
     const out = document.getElementById('diagnosticOutput');
     out.style.display = 'block';
