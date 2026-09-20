@@ -77,7 +77,11 @@ export function parkinRotheramCyclingSpeed(grade, isElectric) {
   }
   const flatSpeed = isElectric ? 25 : 21.6;
   const downCoeff = isElectric ? 0.48 : 1.44;
-  return Math.max(3, flatSpeed + downCoeff * Math.abs(gradePercent));
+  // Plafond de 50 km/h : au-delà, la régression linéaire de Parkin & Rotheram
+  // (non calibrée sur une vraie descente, cf. commentaire plus haut) devient
+  // irréaliste — un cycliste freine bien avant d'atteindre une telle vitesse,
+  // pour des raisons de sécurité et de confort, quelle que soit la pente.
+  return Math.min(50, Math.max(3, flatSpeed + downCoeff * Math.abs(gradePercent)));
 }
 
 // Vitesses voiture par défaut selon la nature du tronçon BD TOPO® (utilisées

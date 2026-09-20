@@ -238,12 +238,16 @@ export function computeNodeDegrees(graph) {
 
 // Classification ville/campagne par densité de carrefours autour du point de
 // départ — sans appel réseau supplémentaire (le graphe est déjà téléchargé à
-// ce stade), donc sans coût de temps ni d'incertitude. Seuil empirique (pas
-// une donnée officielle de zonage) : un centre-ville dense compte typiquement
-// plusieurs dizaines de carrefours (nœuds à 3 rues ou plus) dans un rayon de
-// 600 m, contre une poignée en zone rurale ou pavillonnaire lâche.
+// ce stade), donc sans coût de temps ni d'incertitude. Seuil recalibré sur
+// des mesures réelles (nombre de carrefours à moins de 600 m rapporté par
+// l'outil) : Bonneval (Eure-et-Loir, bourg rural, 74) et Vassieux-en-Vercors
+// (hameau de montagne, 24) doivent être classés ruraux, alors qu'Andrézieux-
+// Bouthéon (périurbain dense, 167), Saint-Étienne (235), Lyon Croix-Rousse
+// (287) et Paris République (217) doivent rester urbains — un seuil de 120
+// sépare correctement les deux groupes sur cet échantillon. L'ancien seuil
+// (20) classait à tort Bonneval et Vassieux comme urbains.
 export const URBAN_CLASSIFICATION_RADIUS_M = 600;
-const URBAN_CLASSIFICATION_JUNCTION_THRESHOLD = 20;
+const URBAN_CLASSIFICATION_JUNCTION_THRESHOLD = 120;
 export function classifyUrbanContext(graph, nodeDegrees, originLon, originLat) {
   let junctionCount = 0;
   for (const [id, [lon, lat]] of graph.nodeCoords) {

@@ -3,14 +3,24 @@
 // (Leaflet est chargé globalement via <script> dans index.html — pas un
 // module ES6, d'où l'usage direct de la variable globale L.)
 // ==========================================================================
-import { computeIsochronesNetwork } from './isochrones.js';
+import { computeIsochronesNetwork, probeJunctionDensity } from './isochrones.js';
 import { geocodeAddress, fetchAddressSuggestions, setWfsMaxRequestsPerSecond } from './ign-api.js';
 import { exportMapImage } from './export-image.js';
 import { getModeColors } from './colors.js';
 import { URBAN_CLASSIFICATION_RADIUS_M, findNearestNode, haversineMeters, estimateCarTime } from './graph.js';
 import {
-  NETWORK_RADIUS_M, ELEVATION_GRID_SPACING_M, NODE_SNAP_TOLERANCE_M, WFS_PAGE_SIZE, WFS_MAX_REQUESTS_PER_SECOND,
+  NETWORK_RADIUS_PROBE_M, RADIUS_TIER_DENSE_MIN_JUNCTIONS, RADIUS_TIER_DENSE_M,
+  RADIUS_TIER_INTERMEDIATE_MIN_JUNCTIONS, RADIUS_TIER_INTERMEDIATE_M, RADIUS_TIER_SPARSE_M,
+  NETWORK_RADIUS_MAX_M, ELEVATION_GRID_SPACING_M, NODE_SNAP_TOLERANCE_M, WFS_PAGE_SIZE, WFS_MAX_REQUESTS_PER_SECOND,
 } from './config.js';
+
+// Choisit le rayon de réseau initial d'après la densité de carrefours mesurée
+// par la sonde (voir config.js pour la justification des seuils et rayons).
+function pickInitialRadius(junctionCount) {
+  if (junctionCount >= RADIUS_TIER_DENSE_MIN_JUNCTIONS) { return RADIUS_TIER_DENSE_M; }
+  if (junctionCount >= RADIUS_TIER_INTERMEDIATE_MIN_JUNCTIONS) { return RADIUS_TIER_INTERMEDIATE_M; }
+  return RADIUS_TIER_SPARSE_M;
+}
 
 export function initUI() {
   const map = L.map('map').setView([46.6, 2.2], 6);
@@ -165,7 +175,6 @@ export function initUI() {
 
     const opts = {
       lon, lat,
-      networkRadiusMeters: NETWORK_RADIUS_M,
       elevationGridSpacingMeters: ELEVATION_GRID_SPACING_M,
       nodeSnapToleranceMeters: NODE_SNAP_TOLERANCE_M,
       wfsPageSize: WFS_PAGE_SIZE,
@@ -180,19 +189,45 @@ export function initUI() {
     ['countWalk', 'countBike', 'countEbike'].forEach((id) => { document.getElementById(id).textContent = ''; });
 
     try {
-      const { results, nodeCount, edgeCount, rawConnectivity, roadsTruncated, rawFeatureCount, urbanContext, delayCarApplied, diagnostics } = await computeIsochronesNetwork({
-        ...opts,
-        onProgress: (label, fraction) => {
-          statusEl.textContent = label;
-          const pct = Math.round(fraction * 100);
-          progressInner.style.width = pct + '%';
-          progressPercent.textContent = pct + '%';
-        },
+      const makeOnProgress = (prefix) => (label, fraction) => {
+        statusEl.textContent = prefix + label;
+        const pct = Math.round(fraction * 100);
+        progressInner.style.width = pct + '%';
+        progressPercent.textContent = pct + '%';
+      };
+      const isTruncated = (c) => c.roadsTruncated || ['Walk', 'Bike', 'Ebike'].some((k) => c.results[k].possiblyTruncated);
+
+      // Sonde légère (1 km) pour choisir un rayon de départ adapté au
+      // contexte, avant de lancer le téléchargement principal, coûteux.
+      statusEl.textContent = 'Analyse du contexte local (sonde ' + (NETWORK_RADIUS_PROBE_M / 1000) + ' km)…';
+      progressInner.style.width = '2%'; progressPercent.textContent = '2%';
+      const probeJunctionCount = await probeJunctionDensity(lon, lat, NETWORK_RADIUS_PROBE_M, opts.nodeSnapToleranceMeters, opts.wfsPageSize);
+      const probeChosenRadiusMeters = pickInitialRadius(probeJunctionCount);
+      let usedRadiusMeters = probeChosenRadiusMeters;
+      let computation = await computeIsochronesNetwork({
+        ...opts, networkRadiusMeters: usedRadiusMeters,
+        onProgress: makeOnProgress('Contexte : ' + probeJunctionCount + ' carrefours détectés en 1 km, rayon choisi ' + (usedRadiusMeters / 1000) + ' km — '),
       });
 
-      document.getElementById('networkInfo').textContent = nodeCount + ' nœuds, ' + edgeCount + ' rues — contexte détecté : '
+      // Filet de sécurité : si ce rayon adapté au contexte ne suffit
+      // finalement pas (voir config.js — la relation carrefours/distance
+      // n'est pas monotone, un hypercentre ou un rural très épars peuvent
+      // dépasser toutes les estimations), on relance au rayon maximal.
+      let radiusRetried = false;
+      if (isTruncated(computation)) {
+        radiusRetried = true;
+        usedRadiusMeters = NETWORK_RADIUS_MAX_M;
+        computation = await computeIsochronesNetwork({
+          ...opts, networkRadiusMeters: usedRadiusMeters,
+          onProgress: makeOnProgress('Rayon de ' + (probeChosenRadiusMeters / 1000) + ' km insuffisant, nouvel essai à ' + (NETWORK_RADIUS_MAX_M / 1000) + ' km — '),
+        });
+      }
+
+      const { results, nodeCount, edgeCount, rawConnectivity, roadsTruncated, rawFeatureCount, urbanContext, delayCarApplied, diagnostics } = computation;
+
+      document.getElementById('networkInfo').textContent = nodeCount + ' nœuds, ' + edgeCount + ' rues (rayon interrogé : ' + (usedRadiusMeters / 1000) + ' km, sonde : ' + probeJunctionCount + ' carrefours/1km) — contexte détecté : '
         + (urbanContext.isUrban ? 'urbain' : 'rural') + ' (' + urbanContext.junctionCount + ' carrefours à moins de ' + URBAN_CLASSIFICATION_RADIUS_M + ' m, délai voiture appliqué : ' + delayCarApplied + ' min)';
-      lastComputation = { results, lat, lon, address: document.getElementById('address').value.trim(), diagnostics };
+      lastComputation = { results, lat, lon, address: document.getElementById('address').value.trim(), diagnostics, delayCarApplied };
       document.getElementById('exportSection').classList.add('active');
       document.getElementById('diagnosticSection').classList.add('active');
 
@@ -232,14 +267,15 @@ export function initUI() {
       };
 
       const rawPct = Math.round((rawConnectivity.reachable / rawConnectivity.total) * 100);
-      const connectivityNote = 'Connexité brute du réseau : ' + rawConnectivity.reachable + '/' + rawConnectivity.total + ' nœuds (' + rawPct + '%).';
+      const connectivityNote = 'Connexité brute du réseau : ' + rawConnectivity.reachable + '/' + rawConnectivity.total + ' nœuds (' + rawPct + '%).'
+        + (radiusRetried ? ' Rayon de ' + (probeChosenRadiusMeters / 1000) + ' km (sonde) insuffisant ici, calcul refait à ' + (usedRadiusMeters / 1000) + ' km.' : '');
 
       if (roadsTruncated) {
         statusEl.className = 'error';
         statusEl.textContent = 'Calcul terminé, mais le téléchargement du réseau routier semble avoir été tronqué (' + rawFeatureCount + ' tronçons récupérés, la limite de pagination a été atteinte) — le réseau est probablement incomplet dans cette zone très dense. ' + connectivityNote;
       } else if (truncatedModes.length > 0) {
         statusEl.className = 'error';
-        statusEl.textContent = 'Calcul terminé, mais la zone ' + truncatedModes.join(' et ') + ' atteint le bord du rayon interrogé (' + opts.networkRadiusMeters + ' m) — sa vraie limite est probablement plus loin, hors de la zone couverte par ce calcul. ' + connectivityNote;
+        statusEl.textContent = 'Calcul terminé, mais la zone ' + truncatedModes.join(' et ') + ' atteint le bord du rayon interrogé (' + usedRadiusMeters + ' m) — sa vraie limite est probablement plus loin, hors de la zone couverte par ce calcul. ' + connectivityNote;
       } else if (bikeEbikeIdentical) {
         statusEl.className = 'error';
         statusEl.textContent = 'Calcul terminé, mais Vélo et VAE atteignent exactement la même limite. ' + connectivityNote + ' Diagnostic de la frontière — Vélo : ' + formatDiagnosis(results.Bike.frontierDiagnosis) + '. VAE : ' + formatDiagnosis(results.Ebike.frontierDiagnosis) + '.';
@@ -299,18 +335,38 @@ export function initUI() {
     const carIsUnreachable = carEffective === Infinity;
     const carNetworkDistance = carDistances.get(nearestNode); // distance réellement parcourue par la voiture (le long du chemin le plus rapide trouvé), pas à vol d'oiseau
 
-    // --- Affichage principal : temps bruts par mode, sans jargon technique,
-    // pour que l'usager puisse "faire confiance à la carte" en un coup d'œil. ---
+    // --- Affichage principal : temps total porte-à-porte (délai d'accès
+    // inclus) pour chaque mode, directement comparable à la voiture, sans
+    // avoir à déplier les détails techniques pour comprendre le calcul.
+    // Le délai propre à chaque mode se déduit de carPenalty (déjà calculé
+    // dans isochrones.js comme la différence de délai d'accès entre la
+    // voiture et ce mode) et du délai voiture appliqué à ce calcul :
+    // délai_mode = délai_voiture - carPenalty. Pour la marche, carPenalty =
+    // délai_voiture (pas de délai propre) ; pour vélo/VAE, carPenalty =
+    // délai_voiture - délai_vélo.
+    const delayCarSeconds = lastComputation.delayCarApplied * 60;
     let html = '<strong>Temps jusqu’à ce point</strong> (' + snapDistance.toFixed(0) + ' m du point cliqué)<br>';
-    html += '<table style="width:100%; margin-top:4px;"><tr><th style="text-align:left;">Mode</th><th style="text-align:left;">Temps</th></tr>';
+    html += '<table style="width:100%; margin-top:4px;"><tr><th style="text-align:left;">Mode</th><th style="text-align:left;">Trajet</th><th style="text-align:left;">+ Accès</th><th style="text-align:left;">Total porte-à-porte</th></tr>';
+    const carTotalSeconds = carIsUnreachable ? null : carEffective + delayCarSeconds;
     for (const mode of modeDefs) {
       const mt = modeTimesByKey[mode.key].get(nearestNode);
-      const label = mt === undefined ? 'hors budget-temps' : (mt / 60).toFixed(1) + ' min';
-      html += '<tr><td>' + (MODE_LABELS[mode.key] || mode.key) + '</td><td>' + label + '</td></tr>';
+      const ownDelaySeconds = delayCarSeconds - mode.carPenalty;
+      if (mt === undefined) {
+        html += '<tr><td>' + (MODE_LABELS[mode.key] || mode.key) + '</td><td colspan="3">hors budget-temps</td></tr>';
+        continue;
+      }
+      const totalSeconds = mt + ownDelaySeconds;
+      const beatsCarr = carTotalSeconds !== null && totalSeconds < carTotalSeconds;
+      const verdict = carTotalSeconds === null ? '' : (beatsCarr ? ' ✅' : ' ❌');
+      html += '<tr><td>' + (MODE_LABELS[mode.key] || mode.key) + '</td><td>' + (mt / 60).toFixed(1) + ' min</td><td>+' + (ownDelaySeconds / 60).toFixed(1) + ' min</td><td><strong>' + (totalSeconds / 60).toFixed(1) + ' min</strong>' + verdict + '</td></tr>';
     }
-    const carLabel = carIsUnreachable ? 'inaccessible' : (carEffective / 60).toFixed(1) + ' min' + (carIsFallback ? ' (estimé)' : '');
-    html += '<tr><td>Voiture</td><td>' + carLabel + '</td></tr>';
+    if (carIsUnreachable) {
+      html += '<tr><td>Voiture</td><td colspan="3">inaccessible</td></tr>';
+    } else {
+      html += '<tr><td>Voiture</td><td>' + (carEffective / 60).toFixed(1) + ' min' + (carIsFallback ? ' (estimé)' : '') + '</td><td>+' + lastComputation.delayCarApplied.toFixed(1) + ' min</td><td><strong>' + (carTotalSeconds / 60).toFixed(1) + ' min</strong></td></tr>';
+    }
     html += '</table>';
+    html += '<p class="hint" style="margin-top:4px;">« Accès » = temps pour détacher/rattacher son vélo, ou trouver une place et se garer (plus long en ville). ✅ = ce mode arrive plus vite que la voiture porte-à-porte à ce point précis.</p>';
 
     // --- Détails techniques : repliés par défaut (usage interne, comparaison
     // à une source externe type Google Maps, diagnostic d'un détour ou d'une

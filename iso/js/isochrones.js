@@ -22,6 +22,23 @@ function yieldToBrowser() {
   return new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
 }
 
+// Sonde légère : télécharge un tout petit réseau (probeRadiusMeters, voir
+// NETWORK_RADIUS_PROBE_M dans config.js) autour du point de départ et en
+// mesure la densité de carrefours, pour choisir un rayon de réseau principal
+// adapté au contexte (voir config.js) avant de lancer le téléchargement
+// coûteux. Le calcul du délai voiture urbain/rural, lui, reste fait à part
+// sur le réseau principal une fois téléchargé (classification tout aussi
+// fiable — la sonde ne mesure que dans les 600 m, largement à l'intérieur
+// de n'importe quel rayon principal — mais sans réutiliser ce résultat pour
+// éviter de dépendre de l'ordre d'exécution entre les deux fonctions).
+export async function probeJunctionDensity(lon, lat, probeRadiusMeters, nodeSnapToleranceMeters, wfsPageSize) {
+  const roadsGeoJson = await fetchIGNRoads(lon, lat, probeRadiusMeters, wfsPageSize, () => {});
+  const graph = parseIGNRoadsToGraph(roadsGeoJson, nodeSnapToleranceMeters);
+  const nodeDegrees = computeNodeDegrees(graph);
+  const { junctionCount } = classifyUrbanContext(graph, nodeDegrees, lon, lat);
+  return junctionCount;
+}
+
 export async function computeIsochronesNetwork(opts) {
   const { lon, lat, networkRadiusMeters, elevationGridSpacingMeters = 200, nodeSnapToleranceMeters = 8, wfsPageSize = 1000, onProgress } = opts;
   const bufferRadiusMeters = 40;
@@ -70,7 +87,7 @@ export async function computeIsochronesNetwork(opts) {
   const carTimes = dijkstra(carAdjacency, originNode, maxCarCutoff, carDistances, carJunctionDelays);
   // Cellules de 200m : assez fines pour bien localiser le nœud voiture le
   // plus proche d'un chemin/sentier isolé, sans exploser le nombre de
-  // compartiments sur un réseau de 14km de rayon.
+  // compartiments sur un réseau de 6 à 15 km de rayon (voir les paliers RADIUS_TIER_* et NETWORK_RADIUS_MAX_M dans config.js).
   const carIndex = buildCarReachabilityIndex(carTimes, graph.nodeCoords, 200);
 
   const results = {};
