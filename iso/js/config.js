@@ -36,7 +36,9 @@ export const DELAY_CAR_MIN_RURAL = 4;
 //    Seuils et rayons calibrés sur des mesures réelles (distance maximale
 //    à vol d'oiseau de la limite VAE, le mode qui va le plus loin) :
 //    - dense (≥150 carrefours/600m, ex. Andrézieux 167→8,5km, Saint-Étienne
-//      235→8,52km, Lyon Croix-Rousse 287→11,34km) : 10 km ;
+//      235→8,52km, Lyon Croix-Rousse 287→11,34km) : 11,5 km — marge au-dessus
+//      de Lyon, le cas dense le plus large mesuré, pour éviter une relance
+//      systématique sur ce type de zone ;
 //    - intermédiaire (30-150, ex. Bonneval 74→5,54km) : 7 km ;
 //    - clairsemé (<30, ex. Vassieux-en-Vercors 24→4,93km) : 6 km.
 //    La relation carrefours→distance n'est pas monotone : les deux extrêmes
@@ -54,7 +56,7 @@ export const DELAY_CAR_MIN_RURAL = 4;
 //    nécessaire.
 export const NETWORK_RADIUS_PROBE_M = 1000;
 export const RADIUS_TIER_DENSE_MIN_JUNCTIONS = 150;
-export const RADIUS_TIER_DENSE_M = 10000;
+export const RADIUS_TIER_DENSE_M = 11500;
 export const RADIUS_TIER_INTERMEDIATE_MIN_JUNCTIONS = 30;
 export const RADIUS_TIER_INTERMEDIATE_M = 7000;
 export const RADIUS_TIER_SPARSE_M = 6000;
