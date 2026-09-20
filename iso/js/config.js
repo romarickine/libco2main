@@ -22,21 +22,10 @@ export const DELAY_BIKE_MIN = 3;
 export const DELAY_CAR_MIN_URBAN = 8;
 export const DELAY_CAR_MIN_RURAL = 4;
 
-// Rayon du réseau interrogé. Ramené de 20 à 15 km une première fois : le
-// passage à 20 km visait à corriger une vitesse voiture sous-estimée près du
-// bord du réseau (un itinéraire rapide légèrement hors rayon n'existait alors
-// pas dans les données téléchargées) — mais la refonte des pénalités de
-// carrefour (hiérarchie routière + cap géographique, voir graph.js) supprime
-// la cause réelle du problème à la source : les faux carrefours qui
-// ralentissaient artificiellement la voiture. Un rayon plus large n'est donc
-// plus nécessaire pour corriger ce cas.
-// Ramené ensuite de 15 à 13,5 km : optimum retenu après tests en zones
-// urbaines plates (relief négligeable, réseau dense) — réduit encore le
-// volume de données téléchargées et le temps de calcul sans perte de
-// précision observée sur ce type de terrain. À revoir si des tests en zone
-// rurale ou vallonnée montrent un besoin de rayon plus large (cf. historique
-// ci-dessus pour le cas qui avait justifié un rayon élargi).
-export const NETWORK_RADIUS_M = 13500;
+// Rayon du réseau interrogé. Optimum retenu après tests en zones urbaines
+// plates : suffisant pour couvrir les zones isochrones sans télécharger de
+// données inutiles.
+export const NETWORK_RADIUS_M = 14000;
 
 // Résolution de la grille altimétrique, tolérance de fusion des nœuds, et
 // paramètres WFS.

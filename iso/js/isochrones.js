@@ -70,7 +70,7 @@ export async function computeIsochronesNetwork(opts) {
   const carTimes = dijkstra(carAdjacency, originNode, maxCarCutoff, carDistances, carJunctionDelays);
   // Cellules de 200m : assez fines pour bien localiser le nœud voiture le
   // plus proche d'un chemin/sentier isolé, sans exploser le nombre de
-  // compartiments sur un réseau de 13,5km de rayon.
+  // compartiments sur un réseau de 14km de rayon.
   const carIndex = buildCarReachabilityIndex(carTimes, graph.nodeCoords, 200);
 
   const results = {};
