@@ -19,7 +19,11 @@
   <meta name="twitter:title" content="Lib&CO2 — Décarboner les professions libérales" />
   <meta name="twitter:description" content="Lib&CO2 conçoit des outils gratuits et open source pour aider les professionnels libéraux à mesurer et réduire leur empreinte carbone." />
   <meta name="twitter:image" content="https://libco2.fr/assets/og-image.png" />
-  <link rel="icon" href="assets/logo/logo-libco2.png" />
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon.png" />
+  <link rel="manifest" href="site.webmanifest" />
   <style>
     :root {
       --vert: #2E673E; --vert-fond: #2E673E14; --bleu: #0071C1; --ambre: #C98A2C;
@@ -147,7 +151,10 @@
     <div class="grille-outils">
 
       <div class="carte-outil">
-        <img class="apercu" src="assets/portfolio/cab-intro.png" alt="Aperçu de Lib&CO2 Cab" />
+        <picture>
+          <source srcset="assets/portfolio/cab-intro.webp" type="image/webp" />
+          <img class="apercu" src="assets/portfolio/cab-intro.png" alt="Aperçu de Lib&CO2 Cab" loading="lazy" />
+        </picture>
         <div class="statut dispo">Disponible</div>
         <h3>Lib&CO2 Cab</h3>
         <p>Le calculateur pour les professionnels libéraux individuels : santé, juridique, conseil, architecture, artisanat d'art... Estimez votre empreinte annuelle et votre ratio par acte en moins de 8 minutes, avec un plan d'action priorisé.</p>
@@ -155,7 +162,10 @@
       </div>
 
       <div class="carte-outil">
-        <img class="apercu" src="assets/portfolio/msp-intro.png" alt="Aperçu de Lib&CO2 MSP" />
+        <picture>
+          <source srcset="assets/portfolio/msp-intro.webp" type="image/webp" />
+          <img class="apercu" src="assets/portfolio/msp-intro.png" alt="Aperçu de Lib&CO2 MSP" loading="lazy" />
+        </picture>
         <div class="statut dispo">Disponible</div>
         <h3>Lib&CO2 MSP</h3>
         <p>Le calculateur pensé pour les maisons de santé pluriprofessionnelles (MSP) : une version collective de la démarche, un seul répondant pour toute la structure, avec un indicateur de dépendance aux énergies fossiles et un plan d'action par praticien.</p>
@@ -163,7 +173,10 @@
       </div>
 
       <div class="carte-outil">
-        <img class="apercu" src="assets/portfolio/iso-intro.png" alt="Aperçu de La carte du sans-voiture" />
+        <picture>
+          <source srcset="assets/portfolio/iso-intro.webp" type="image/webp" />
+          <img class="apercu" src="assets/portfolio/iso-intro.png" alt="Aperçu de La carte du sans-voiture" loading="lazy" />
+        </picture>
         <div class="statut dispo">Disponible</div>
         <h3>La carte du sans-voiture</h3>
         <p>Calculez, autour de votre cabinet, les zones où marcher, pédaler ou rouler en vélo électrique est plus rapide qu'y venir en voiture — sur le vrai réseau de rues et le relief réel. Un outil pour orienter concrètement votre patientèle vers la mobilité douce.</p>

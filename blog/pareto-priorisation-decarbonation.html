@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pareto au cabinet : pourquoi quelques postes pèsent plus que tous les autres réunis — Lib&CO2</title>
+  <meta name="description" content="Le principe de Pareto, né de l'étude des terres italiennes en 1896, explique pourquoi un petit nombre de postes concentre l'essentiel de l'empreinte carbone d'un cabinet. Avec les chiffres réels du projet KinéCO2." />
+  <link rel="canonical" href="https://libco2.fr/blog/pareto-priorisation-decarbonation.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Pareto au cabinet : pourquoi quelques postes pèsent plus que tous les autres réunis" />
+  <meta property="og:description" content="Le principe de Pareto explique pourquoi un petit nombre de postes concentre l'essentiel de l'empreinte carbone d'un cabinet. Avec les chiffres réels du projet KinéCO2." />
+  <meta property="og:url" content="https://libco2.fr/blog/pareto-priorisation-decarbonation.html" />
+  <meta property="og:image" content="https://libco2.fr/assets/og-image.png" />
+  <meta property="og:locale" content="fr_FR" />
+  <meta property="og:site_name" content="Lib&CO2" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" href="../favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../assets/favicon/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="../assets/favicon/apple-touch-icon.png" />
+  <link rel="manifest" href="../site.webmanifest" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "Pareto au cabinet : pourquoi quelques postes pèsent plus que tous les autres réunis",
+    "description": "Le principe de Pareto explique pourquoi un petit nombre de postes concentre l'essentiel de l'empreinte carbone d'un cabinet. Avec les chiffres réels du projet KinéCO2.",
+    "url": "https://libco2.fr/blog/pareto-priorisation-decarbonation.html",
+    "datePublished": "2026-09-23",
+    "author": { "@type": "Organization", "name": "Lib&CO2" },
+    "publisher": { "@type": "Organization", "name": "Lib&CO2", "url": "https://libco2.fr/" }
+  }
+  </script>
+  <style>
+    :root {
+      --vert: #2E673E; --vert-fond: #2E673E14; --ambre: #C98A2C;
+      --bleu: #0071C1; --bleu-fond: #0071C114;
+      --fond: #F7F5F0; --bordure: #E4E0D6; --encre: #1B2B26;
+      --texte: #3E4A45; --discret: #5C665F;
+      --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
+      --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: var(--sans); background: var(--fond); color: var(--encre); line-height: 1.7; }
+    .conteneur { max-width: 720px; margin: 0 auto; padding: 40px 20px 90px; }
+    a { color: var(--vert); }
+    .retour { display: inline-block; margin-bottom: 24px; font-size: 14px; font-weight: 600; text-decoration: none; }
+    .eyebrow { font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--ambre); }
+    h1 { font-family: var(--serif); font-size: 32px; margin: 10px 0 6px; line-height: 1.25; }
+    .meta-article { font-size: 13px; color: var(--discret); margin-bottom: 30px; }
+    article p { font-size: 16px; color: var(--texte); margin: 0 0 18px; }
+    article h2 { font-family: var(--serif); font-size: 23px; margin: 40px 0 14px; }
+    article ul { padding-left: 22px; margin: 0 0 18px; }
+    article li { font-size: 16px; color: var(--texte); margin-bottom: 8px; }
+    .chiffre-cle { background: var(--vert-fond); border-radius: 12px; padding: 20px 22px; margin: 26px 0; }
+    .chiffre-cle .n { font-family: var(--serif); font-size: 32px; color: var(--vert); font-weight: 700; }
+    .chiffre-cle .l { font-size: 13.5px; color: var(--texte); margin-top: 4px; }
+    .source-note { font-size: 12.5px; color: var(--discret); margin-top: -10px; margin-bottom: 20px; }
+    sup.ref a { text-decoration: none; color: var(--bleu); font-weight: 700; }
+    .repartition { background: #fff; border: 1px solid var(--bordure); border-radius: 14px; padding: 22px 24px; margin: 28px 0; }
+    .repartition .titre { font-size: 13px; font-weight: 700; color: var(--discret); text-transform: uppercase; letter-spacing: .3px; margin-bottom: 14px; }
+    .barre-poste { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .barre-poste .label { flex: 0 0 190px; font-size: 13.5px; color: var(--texte); }
+    .barre-poste .piste { flex: 1; background: var(--fond); border-radius: 6px; height: 18px; overflow: hidden; }
+    .barre-poste .remplissage { height: 100%; border-radius: 6px; }
+    .barre-poste .valeur { flex: 0 0 42px; font-size: 13.5px; font-weight: 700; color: var(--encre); text-align: right; }
+    .bloc-cta { background: var(--encre); color: #fff; border-radius: 14px; padding: 26px 24px; text-align: center; margin-top: 44px; }
+    .bloc-cta h2 { margin-top: 0; font-size: 21px; }
+    .bloc-cta p { opacity: .85; font-size: 14px; }
+    .bouton { display: inline-block; background: var(--vert); color: #fff; text-decoration: none; font-weight: 700; padding: 12px 26px; border-radius: 10px; margin-top: 10px; }
+    .bibliographie { margin-top: 46px; padding-top: 24px; border-top: 1px solid var(--bordure); }
+    .bibliographie h2 { font-family: var(--serif); font-size: 19px; margin: 0 0 14px; }
+    .bibliographie ol { padding-left: 20px; margin: 0; }
+    .bibliographie li { font-size: 13.5px; color: var(--texte); margin-bottom: 10px; }
+    .bibliographie li a { word-break: break-word; }
+  </style>
+</head>
+<body>
+  <div class="conteneur">
+    <a href="index.html" class="retour">‹ Retour au blog</a>
+    <div class="eyebrow">Méthodologie</div>
+    <h1>Pareto au cabinet : pourquoi quelques postes pèsent plus que tous les autres réunis</h1>
+    <div class="meta-article">Publié le 23 septembre 2026 · Lecture 6 min</div>
+
+    <article>
+      <p>En 1896, l'économiste italien Vilfredo Pareto dépouille les registres fonciers de son pays et tombe sur une régularité qui ne le quittera plus : environ 80 % des terres appartiennent à 20 % de la population<sup class="ref"><a href="#ref1">[1]</a></sup>. Il ne s'agit ni d'une erreur de calcul ni d'une curiosité isolée à l'Italie : la même disproportion réapparaît, presque à l'identique, dans la répartition des richesses d'un pays, des ventes d'une entreprise, ou des causes de défauts sur une chaîne de production. Intéressons-nous à ce que cette régularité change, une fois appliquée à la décarbonation d'un cabinet.</p>
+
+      <h2>Une régularité que Pareto n'a pas cherché à généraliser</h2>
+      <p>Pareto lui-même n'a jamais prétendu que sa proportion foncière valait pour autre chose que la propriété terrienne italienne. C'est l'ingénieur américain Joseph Juran qui, en étudiant les défauts de qualité dans l'industrie des années 1940, retrouve cette même disproportion : un petit nombre de causes explique l'essentiel des défauts observés. Juran nomme ce phénomène « the vital few and the trivial many » (« les rares qui comptent et les nombreux qui ne comptent guère »), et choisit d'emprunter le nom de Pareto comme désignation commode, tout en reconnaissant explicitement que la généralisation à un principe universel n'était pas d'origine pareto­tienne mais bien la sienne<sup class="ref"><a href="#ref2">[2]</a></sup>.</p>
+      <p>Le principe qui en résulte est simple à énoncer et redoutablement utile en pratique : dans la plupart des systèmes réels, les effets ne se répartissent pas uniformément entre leurs causes. Un petit sous-ensemble de facteurs concentre l'essentiel du résultat, qu'il s'agisse de chiffre d'affaires, de pannes ou, ici, d'émissions de gaz à effet de serre. La conséquence pour l'action est directe : prioriser par poids réel plutôt que par visibilité ou par habitude.</p>
+
+      <h2>Ce que ça donne pour un cabinet de kinésithérapie</h2>
+      <p>Le projet KinéCO2, à l'origine de Lib&CO2, mesure depuis plusieurs années l'empreinte carbone réelle de cabinets de kinésithérapie en France. Ses résultats intermédiaires, présentés à l'Environmental Physiotherapy Association, chiffrent l'empreinte moyenne d'une séance au cabinet à 3,7 kgCO2e, répartie entre sept postes<sup class="ref"><a href="#ref3">[3]</a></sup> :</p>
+
+      <div class="repartition">
+        <div class="titre">Répartition de l'empreinte carbone d'une séance au cabinet</div>
+        <div class="barre-poste"><div class="label">Déplacements patientèle</div><div class="piste"><div class="remplissage" style="width:45%;background:#C98A2C"></div></div><div class="valeur">45 %</div></div>
+        <div class="barre-poste"><div class="label">Immobilisations</div><div class="piste"><div class="remplissage" style="width:24%;background:#0071C1"></div></div><div class="valeur">24 %</div></div>
+        <div class="barre-poste"><div class="label">Énergie des sites</div><div class="piste"><div class="remplissage" style="width:11%;background:#2E673E"></div></div><div class="valeur">11 %</div></div>
+        <div class="barre-poste"><div class="label">Déplacements professionnels</div><div class="piste"><div class="remplissage" style="width:10%;background:#C98A2C"></div></div><div class="valeur">10 %</div></div>
+        <div class="barre-poste"><div class="label">Achats (dont alimentation)</div><div class="piste"><div class="remplissage" style="width:9%;background:#0071C1"></div></div><div class="valeur">9 %</div></div>
+        <div class="barre-poste"><div class="label">Gaz frigorigènes</div><div class="piste"><div class="remplissage" style="width:2%;background:#B04D4D"></div></div><div class="valeur">2 %</div></div>
+        <div class="barre-poste"><div class="label">Déchets</div><div class="piste"><div class="remplissage" style="width:1%;background:#5C665F"></div></div><div class="valeur">1 %</div></div>
+      </div>
+      <p class="source-note">Résultats intermédiaires du projet KinéCO2 (Lib&CO2 / MyCO2 / Carbone4), présentation à l'Environmental Physiotherapy Association, juin 2026<sup class="ref"><a href="#ref3">[3]</a></sup>. Étude en cours, résultats définitifs à paraître.</p>
+
+      <p>En regroupant ces sept postes en deux blocs, la disproportion saute aux yeux. La mobilité, patientèle et kinés confondus, représente à elle seule 55 % de l'empreinte d'une séance. L'énergie du local, les déchets et les gaz frigorigènes réunis n'en représentent que 14 %.</p>
+
+      <div class="chiffre-cle">
+        <div class="n">55 % contre 14 %</div>
+        <div class="l">la mobilité (patientèle + déplacements professionnels) pèse quatre fois plus que l'énergie, les déchets et les gaz frigorigènes réunis, dans l'empreinte carbone d'une séance de kinésithérapie</div>
+      </div>
+
+      <h2>Ce que ça change concrètement</h2>
+      <p>Le tri des déchets reste pertinent pour d'autres raisons, réglementaires ou d'image, mais il n'a physiquement pas la capacité de faire bouger significativement une empreinte carbone dont il représente 1 %. Réduire de moitié ce poste, un objectif déjà ambitieux, ferait gagner un demi-point sur cent. Réduire de moitié la mobilité patientèle en ferait gagner plus de vingt.</p>
+      <p>C'est tout l'intérêt d'un bilan chiffré plutôt que d'une intuition : il révèle où se trouvent réellement les rares postes qui comptent, avant d'y consacrer du temps et de l'énergie. Pour la mobilité, la piste la plus directe reste d'orienter une partie de la patientèle vers des modes actifs quand la distance et l'état de santé le permettent, un sujet que nous développons dans un article dédié à la mobilité active et à la carte isochrone du cabinet.</p>
+    </article>
+
+    <div class="bloc-cta">
+      <h2>Où se trouvent vos propres postes prioritaires ?</h2>
+      <p>Faites votre bilan poste par poste et identifiez ce qui compte vraiment pour votre cabinet.</p>
+      <a href="../cab/" class="bouton">Faire mon bilan avec Lib&CO2 Cab ›</a>
+    </div>
+
+    <div class="bibliographie">
+      <h2>Bibliographie</h2>
+      <ol>
+        <li id="ref1">Pareto, V. (1896–1897). <em>Cours d'Économie Politique</em> (2 tomes). F. Rouge (Lausanne) &amp; F. Pichon (Paris).</li>
+        <li id="ref2">Juran, J.M. (1974). « The Non-Pareto Principle; Mea Culpa ». Archives du Juran Institute. Texte intégral : <a href="https://www.juran.com/wp-content/uploads/2021/03/The-Non-Pareto-Principle-1974.pdf" target="_blank" rel="noopener">juran.com/The-Non-Pareto-Principle-1974.pdf</a>.</li>
+        <li id="ref3">Projet KinéCO2 (Lib&CO2 / MyCO2 / Carbone4). Présentation des résultats intermédiaires, Environmental Physiotherapy Association, 8 juin 2026. Communication interne du projet, résultats non encore publiés dans une revue à comité de lecture.</li>
+      </ol>
+    </div>
+  </div>
+</body>
+</html>

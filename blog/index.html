@@ -14,7 +14,11 @@
   <meta property="og:locale" content="fr_FR" />
   <meta property="og:site_name" content="Lib&CO2" />
   <meta name="twitter:card" content="summary_large_image" />
-  <link rel="icon" href="../assets/logo/logo-libco2.png" />
+  <link rel="icon" href="../favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../assets/favicon/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="../assets/favicon/apple-touch-icon.png" />
+  <link rel="manifest" href="../site.webmanifest" />
   <style>
     :root {
       --vert: #2E673E; --vert-fond: #2E673E14; --ambre: #C98A2C;
@@ -32,6 +36,9 @@
     .entete img { height: 40px; margin-bottom: 18px; }
     .entete h1 { font-family: var(--serif); font-size: 32px; margin: 0 0 10px; }
     .entete p { color: var(--discret); font-size: 15px; max-width: 520px; margin: 0 auto; }
+    .qui-sommes-nous { background: var(--carte); border: 1px solid var(--bordure); border-radius: 14px; padding: 22px 24px; margin-bottom: 32px; }
+    .qui-sommes-nous h2 { font-family: var(--serif); font-size: 16px; margin: 0 0 8px; color: var(--encre); }
+    .qui-sommes-nous p { font-size: 14.5px; color: var(--texte); margin: 0; }
     .liste-articles { display: flex; flex-direction: column; gap: 18px; }
     .carte-article { background: var(--carte); border: 1px solid var(--bordure); border-radius: 14px; padding: 24px; text-decoration: none; color: inherit; display: block; transition: box-shadow .15s, transform .15s; }
     .carte-article:hover { box-shadow: 0 8px 22px rgba(27,43,38,.1); transform: translateY(-1px); }
@@ -51,7 +58,24 @@
       <p>Méthodologie, retours d'expérience et pistes concrètes pour décarboner une activité libérale — un nouvel article environ toutes les deux semaines.</p>
     </div>
 
+    <div class="qui-sommes-nous">
+      <h2>Qui sommes-nous ?</h2>
+      <p>Une équipe de terrain engagée depuis le projet KinéCO2 dans la mesure scientifique de l'empreinte carbone des professions libérales, en partenariat avec plusieurs URPS de kinésithérapeutes. Même exigence que dans nos outils : rien n'avance ici sans source vérifiable. Ce blog documente notre démarche, avance des idées de réflexion autour de la décarbonation et ouvre sur des sujets connexes.</p>
+    </div>
+
     <div class="liste-articles" id="liste-articles">
+      <a class="carte-article" href="pareto-priorisation-decarbonation.html">
+        <div class="date">Septembre 2026</div>
+        <h2>Pareto au cabinet : pourquoi quelques postes pèsent plus que tous les autres réunis</h2>
+        <p>Le principe de Pareto, né de l'étude des terres italiennes en 1896, explique pourquoi la mobilité pèse quatre fois plus que l'énergie, les déchets et les gaz frigorigènes réunis dans l'empreinte carbone d'une séance de kinésithérapie.</p>
+        <span class="lire">Lire l'article →</span>
+      </a>
+      <a class="carte-article" href="depassement-equilibre-systemes-vivants.html">
+        <div class="date">Septembre 2026</div>
+        <h2>Dépassement ou équilibre : ce que les systèmes vivants disent de notre trajectoire</h2>
+        <p>Le modèle World3 du Club de Rome et le cycle proie-prédateur de Lotka-Volterra racontent deux issues très différentes au dépassement — laquelle s'applique à nous, qui n'avons pas de prédateur ?</p>
+        <span class="lire">Lire l'article →</span>
+      </a>
       <a class="carte-article" href="priorisation-dechets-mobilite.html">
         <div class="date">Septembre 2026</div>
         <h2>Déchets ou mobilité : par où commencer sa décarbonation ?</h2>

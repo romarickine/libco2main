@@ -3,6 +3,17 @@
  * Palette 2 validée : bleu du logo (#0071C1) en couleur dominante, vert du
  * logo (#2E673E) en accent secondaire (badges "Sourcé", éléments dépliables).
  * Couleurs mesurées directement dans le fichier logo fourni.
+ *
+ * Passe "lisibilité" (audit du 22/09/2026) : les mêmes teintes de gris et de
+ * rouge que Cab avaient sous le seuil WCAG AA (4.5:1) pour du texte, mais
+ * n'avaient reçu la correction appliquée à Cab — corrigé ici avec les mêmes
+ * valeurs : gris discret (3.13:1 sur blanc / 2.87:1 sur fond papier →
+ * 5.96:1 / 5.47:1, conforme AA) ; rouge erreur (4.45:1 / 4.08:1 → 5.23:1 /
+ * 4.80:1, conforme AA). Le gris très discret (utilisé notamment dans le
+ * pied de page) reste sous le seuil AA texte normal même après correction
+ * (2.21:1 / 2.03:1 → 4.10:1 / 3.76:1) — comme dans Cab, à réserver au texte
+ * large (≥18px, ou ≥14px en gras) où le seuil AA est 3:1, ou à retravailler
+ * si utilisé ailleurs.
  */
 :root {
   /* Couleurs de marque */
@@ -21,14 +32,14 @@
   --couleur-bordure-legere: #F0EDE4;
   --couleur-encre: #1B2B26;
   --couleur-texte: #3E4A45;
-  --couleur-discret: #8A9490;
-  --couleur-tres-discret: #B4AE9E;
+  --couleur-discret: #5C665F;      /* était #8A9490 (3.13:1) → 5.96:1 */
+  --couleur-tres-discret: #75807A; /* était #B4AE9E (2.21:1) → 4.10:1 */
 
   /* Sémantique postes/actions */
   --couleur-gratuit: #2E673E;
   --couleur-faible-cout: #C98A2C;
-  --couleur-investissement: #B85C5C;
-  --couleur-erreur: #B85C5C;
+  --couleur-investissement: #B04D4D; /* était #B85C5C (4.45:1) → 5.23:1 */
+  --couleur-erreur: #B04D4D;
   --couleur-info: #0071C1;
 
   /* Typographie */

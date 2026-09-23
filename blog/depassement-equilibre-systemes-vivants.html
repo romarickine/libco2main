@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dépassement ou équilibre : ce que les systèmes vivants disent de notre trajectoire — Lib&CO2</title>
+  <meta name="description" content="Deux modèles biologiques classiques, le dépassement de capacité de charge (modèle World3) et la régulation cyclique proie-prédateur (Lotka-Volterra), pour comprendre à quelle vitesse et comment sortir d'une trajectoire de dépassement." />
+  <link rel="canonical" href="https://libco2.fr/blog/depassement-equilibre-systemes-vivants.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Dépassement ou équilibre : ce que les systèmes vivants disent de notre trajectoire" />
+  <meta property="og:description" content="Le modèle World3 (Club de Rome) et le modèle proie-prédateur, mis en regard, pour comprendre la dynamique de dépassement et les conditions du retour à l'équilibre." />
+  <meta property="og:url" content="https://libco2.fr/blog/depassement-equilibre-systemes-vivants.html" />
+  <meta property="og:image" content="https://libco2.fr/assets/og-image.png" />
+  <meta property="og:locale" content="fr_FR" />
+  <meta property="og:site_name" content="Lib&CO2" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" href="../favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../assets/favicon/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="../assets/favicon/apple-touch-icon.png" />
+  <link rel="manifest" href="../site.webmanifest" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "Dépassement ou équilibre : ce que les systèmes vivants disent de notre trajectoire",
+    "description": "Le modèle World3 (Club de Rome) et le modèle proie-prédateur, mis en regard, pour comprendre la dynamique de dépassement et les conditions du retour à l'équilibre.",
+    "url": "https://libco2.fr/blog/depassement-equilibre-systemes-vivants.html",
+    "datePublished": "2026-09-22",
+    "author": { "@type": "Organization", "name": "Lib&CO2" },
+    "publisher": { "@type": "Organization", "name": "Lib&CO2", "url": "https://libco2.fr/" }
+  }
+  </script>
+  <style>
+    :root {
+      --vert: #2E673E; --vert-fond: #2E673E14; --ambre: #C98A2C;
+      --bleu: #0071C1; --bleu-fond: #0071C114;
+      --fond: #F7F5F0; --bordure: #E4E0D6; --encre: #1B2B26;
+      --texte: #3E4A45; --discret: #5C665F;
+      --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
+      --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: var(--sans); background: var(--fond); color: var(--encre); line-height: 1.7; }
+    .conteneur { max-width: 720px; margin: 0 auto; padding: 40px 20px 90px; }
+    a { color: var(--vert); }
+    .retour { display: inline-block; margin-bottom: 24px; font-size: 14px; font-weight: 600; text-decoration: none; }
+    .eyebrow { font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--ambre); }
+    h1 { font-family: var(--serif); font-size: 32px; margin: 10px 0 6px; line-height: 1.25; }
+    .meta-article { font-size: 13px; color: var(--discret); margin-bottom: 30px; }
+    article p { font-size: 16px; color: var(--texte); margin: 0 0 18px; }
+    article h2 { font-family: var(--serif); font-size: 23px; margin: 40px 0 14px; }
+    article h3 { font-family: var(--serif); font-size: 18.5px; margin: 28px 0 10px; color: var(--encre); }
+    article ul { padding-left: 22px; margin: 0 0 18px; }
+    article li { font-size: 16px; color: var(--texte); margin-bottom: 8px; }
+    .chiffre-cle { background: var(--vert-fond); border-radius: 12px; padding: 20px 22px; margin: 26px 0; }
+    .chiffre-cle .n { font-family: var(--serif); font-size: 32px; color: var(--vert); font-weight: 700; }
+    .chiffre-cle .l { font-size: 13.5px; color: var(--texte); margin-top: 4px; }
+    .source-note { font-size: 12.5px; color: var(--discret); margin-top: -10px; margin-bottom: 20px; }
+    sup.ref a { text-decoration: none; color: var(--bleu); font-weight: 700; }
+    .graphique { background: #fff; border: 1px solid var(--bordure); border-radius: 14px; padding: 20px 20px 16px; margin: 28px 0 8px; }
+    .graphique svg { display: block; width: 100%; height: auto; }
+    .legende-graph { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: var(--texte); }
+    .legende-graph span { display: inline-flex; align-items: center; gap: 6px; }
+    .legende-graph i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+    .note-graphique { font-size: 12.5px; color: var(--discret); margin: 8px 0 24px; }
+    .encadre { border: 1px solid var(--bordure); background: #fff; border-radius: 12px; padding: 18px 20px; margin: 24px 0; }
+    .encadre h4 { margin: 0 0 8px; font-size: 15px; font-family: var(--serif); }
+    .encadre p { margin: 0; font-size: 14.5px; }
+    .bloc-cta { background: var(--encre); color: #fff; border-radius: 14px; padding: 26px 24px; text-align: center; margin-top: 44px; }
+    .bloc-cta h2 { margin-top: 0; font-size: 21px; }
+    .bloc-cta p { opacity: .85; font-size: 14px; }
+    .bouton { display: inline-block; background: var(--vert); color: #fff; text-decoration: none; font-weight: 700; padding: 12px 26px; border-radius: 10px; margin-top: 10px; }
+    .bibliographie { margin-top: 46px; padding-top: 24px; border-top: 1px solid var(--bordure); }
+    .bibliographie h2 { font-family: var(--serif); font-size: 19px; margin: 0 0 14px; }
+    .bibliographie ol { padding-left: 20px; margin: 0; }
+    .bibliographie li { font-size: 13.5px; color: var(--texte); margin-bottom: 10px; }
+    .bibliographie li a { word-break: break-word; }
+  </style>
+</head>
+<body>
+  <div class="conteneur">
+    <a href="index.html" class="retour">‹ Retour au blog</a>
+    <div class="eyebrow">Grand angle</div>
+    <h1>Dépassement ou équilibre : ce que les systèmes vivants disent de notre trajectoire</h1>
+    <div class="meta-article">Publié le 22 septembre 2026 · Lecture 9 min</div>
+
+    <article>
+      <p>Une graine touchée par l'eau sort de sa dormance et déclenche un enchaînement de réactions internes pour croître : elle puise d'abord dans ses réserves, puis capte en urgence l'énergie du dehors, faute de quoi elle dépérit. À plus grande échelle, un système de santé qui absorbe plus de ressources qu'il n'en régénère, une économie mondiale qui prélève plus que la planète ne renouvelle en un an suivent la même logique. Intéressons-nous à ce qui arrête une trajectoire de dépassement. La biologie a étudié cette question bien avant l'économie : deux modèles, conçus indépendamment pour décrire des populations vivantes, éclairent deux issues très différentes.</p>
+
+      <h2>Une population sans régulateur : le modèle World3</h2>
+      <p>En 1972, une équipe de dix-sept chercheurs du MIT, avec à sa tête Donella Meadows, Dennis Meadows, Jørgen Randers et William Behrens III, publie <em>The Limits to Growth</em> (« Les limites à la croissance ») pour le Club de Rome<sup class="ref"><a href="#ref1">[1]</a></sup>. Leur outil, un modèle informatique baptisé World3, s'organise autour de deux déterminants moteurs, la population et le capital industriel, dont la croissance entraîne à sa suite trois autres grandeurs : la production alimentaire, la pollution persistante et les réserves de ressources non renouvelables. Ces trois dernières ne sont pas de simples fonctions directes de la production industrielle — elles s'accumulent et se résorbent avec leurs propres délais, et se rétroagissent sur les déterminants : à mesure que les ressources s'épuisent, une part croissante du capital doit être détournée vers leur extraction, au détriment de l'agriculture ou de la lutte contre la pollution<sup class="ref"><a href="#ref1">[1]</a></sup><sup class="ref"><a href="#ref2">[2]</a></sup>.</p>
+      <p>Le scénario central du rapport, le « <em>standard run</em> », prolonge simplement les tendances observées sans changement de politique. Il ne montre pas une croissance qui s'arrête d'elle-même en douceur, mais un <strong>dépassement puis un déclin</strong> : la population et la production industrielle croissent, dépassent ce que les ressources et l'environnement peuvent durablement soutenir, puis se retournent sous l'effet conjugué de l'épuisement des ressources et de l'accumulation de pollution.</p>
+
+      <div class="graphique">
+        <svg viewBox="0 0 700 340" xmlns="http://www.w3.org/2000/svg" role="img" class="axes-svg" aria-label="Graphique à deux axes : en abscisse le temps en unités relatives (échelle du modèle World3), en ordonnée le niveau relatif de quatre variables (ressources non renouvelables, population, production industrielle, pollution), montrant une trajectoire de dépassement puis de déclin.">
+<line x1="62" y1="294.0" x2="682" y2="294.0" stroke="#E4E0D6" stroke-width="1" />
+<line x1="62" y1="224.5" x2="682" y2="224.5" stroke="#E4E0D6" stroke-width="1" />
+<line x1="62" y1="155.0" x2="682" y2="155.0" stroke="#E4E0D6" stroke-width="1" />
+<line x1="62" y1="85.5" x2="682" y2="85.5" stroke="#E4E0D6" stroke-width="1" />
+<line x1="62" y1="16.0" x2="682" y2="16.0" stroke="#E4E0D6" stroke-width="1" />
+<line x1="62" y1="16" x2="62" y2="294" stroke="#1B2B26" stroke-width="1.4" />
+<line x1="62" y1="294" x2="682" y2="294" stroke="#1B2B26" stroke-width="1.4" />
+<line x1="62.0" y1="294" x2="62.0" y2="299" stroke="#1B2B26" stroke-width="1.2" />
+<text x="62.0" y="312" font-size="11" fill="#5C665F" text-anchor="middle" font-family="-apple-system,Segoe UI,sans-serif">0</text>
+<line x1="186.0" y1="294" x2="186.0" y2="299" stroke="#1B2B26" stroke-width="1.2" />
+<text x="186.0" y="312" font-size="11" fill="#5C665F" text-anchor="middle" font-family="-apple-system,Segoe UI,sans-serif">20</text>
+<line x1="310.0" y1="294" x2="310.0" y2="299" stroke="#1B2B26" stroke-width="1.2" />
+<text x="310.0" y="312" font-size="11" fill="#5C665F" text-anchor="middle" font-family="-apple-system,Segoe UI,sans-serif">40</text>
+<line x1="434.0" y1="294" x2="434.0" y2="299" stroke="#1B2B26" stroke-width="1.2" />
+<text x="434.0" y="312" font-size="11" fill="#5C665F" text-anchor="middle" font-family="-apple-system,Segoe UI,sans-serif">60</text>
+<line x1="558.0" y1="294" x2="558.0" y2="299" stroke="#1B2B26" stroke-width="1.2" />
+<text x="558.0" y="312" font-size="11" fill="#5C665F" text-anchor="middle" font-family="-apple-system,Segoe UI,sans-serif">80</text>
+<line x1="682.0" y1="294" x2="682.0" y2="299" stroke="#1B2B26" stroke-width="1.2" />
+<text x="682.0" y="312" font-size="11" fill="#5C665F" text-anchor="middle" font-family="-apple-system,Segoe UI,sans-serif">100</text>
+<line x1="57" y1="294.0" x2="62" y2="294.0" stroke="#1B2B26" stroke-width="1.2" />
+<text x="52" y="297.5" font-size="11" fill="#5C665F" text-anchor="end" font-family="-apple-system,Segoe UI,sans-serif">0</text>
+<line x1="57" y1="224.5" x2="62" y2="224.5" stroke="#1B2B26" stroke-width="1.2" />
+<text x="52" y="228.0" font-size="11" fill="#5C665F" text-anchor="end" font-family="-apple-system,Segoe UI,sans-serif">25</text>
+<line x1="57" y1="155.0" x2="62" y2="155.0" stroke="#1B2B26" stroke-width="1.2" />
+<text x="52" y="158.5" font-size="11" fill="#5C665F" text-anchor="end" font-family="-apple-system,Segoe UI,sans-serif">50</text>
+<line x1="57" y1="85.5" x2="62" y2="85.5" stroke="#1B2B26" stroke-width="1.2" />
+<text x="52" y="89.0" font-size="11" fill="#5C665F" text-anchor="end" font-family="-apple-system,Segoe UI,sans-serif">75</text>
+<line x1="57" y1="16.0" x2="62" y2="16.0" stroke="#1B2B26" stroke-width="1.2" />
+<text x="52" y="19.5" font-size="11" fill="#5C665F" text-anchor="end" font-family="-apple-system,Segoe UI,sans-serif">100</text>
+<text x="372.0" y="332" font-size="12" fill="#1B2B26" text-anchor="middle" font-weight="600" font-family="-apple-system,Segoe UI,sans-serif">Temps (unités relatives, échelle du modèle World3)</text>
+<text x="14" y="155.0" font-size="12" fill="#1B2B26" text-anchor="middle" font-weight="600" font-family="-apple-system,Segoe UI,sans-serif" transform="rotate(-90 14 155.0)">Niveau relatif (base 100)</text>
+<polyline points="62.0,16.0 68.2,19.9 74.4,23.7 80.6,27.4 86.8,31.1 93.0,34.8 99.2,38.4 105.4,42.0 111.6,45.5 117.8,48.9 124.0,52.3 130.2,55.7 136.4,59.0 142.6,62.3 148.8,65.5 155.0,68.7 161.2,71.8 167.4,74.9 173.6,77.9 179.8,80.9 186.0,83.9 192.2,86.8 198.4,89.7 204.6,92.5 210.8,95.3 217.0,98.1 223.2,100.8 229.4,103.5 235.6,106.2 241.8,108.8 248.0,111.3 254.2,113.9 260.4,116.4 266.6,118.9 272.8,121.3 279.0,123.7 285.2,126.1 291.4,128.4 297.6,130.7 303.8,133.0 310.0,135.2 316.2,137.4 322.4,139.6 328.6,141.7 334.8,143.9 341.0,145.9 347.2,148.0 353.4,150.0 359.6,152.0 365.8,154.0 372.0,155.9 378.2,157.9 384.4,159.8 390.6,161.6 396.8,163.5 403.0,165.3 409.2,167.1 415.4,168.8 421.6,170.6 427.8,172.3 434.0,174.0 440.2,175.7 446.4,177.3 452.6,178.9 458.8,180.5 465.0,182.1 471.2,183.7 477.4,185.2 483.6,186.7 489.8,188.2 496.0,189.7 502.2,191.1 508.4,192.5 514.6,194.0 520.8,195.3 527.0,196.7 533.2,198.1 539.4,199.4 545.6,200.7 551.8,202.0 558.0,203.3 564.2,204.6 570.4,205.8 576.6,207.0 582.8,208.2 589.0,209.4 595.2,210.6 601.4,211.8 607.6,212.9 613.8,214.0 620.0,215.1 626.2,216.2 632.4,217.3 638.6,218.4 644.8,219.4 651.0,220.5 657.2,221.5 663.4,222.5 669.6,223.5 675.8,224.5 682.0,225.4" fill="none" stroke="#0071C1" stroke-width="2.5" />
+<polyline points="62.0,286.9 68.2,286.3 74.4,285.5 80.6,284.8 86.8,283.9 93.0,283.0 99.2,282.0 105.4,281.0 111.6,279.8 117.8,278.6 124.0,277.2 130.2,275.7 136.4,274.1 142.6,272.4 148.8,270.6 155.0,268.6 161.2,266.4 167.4,264.1 173.6,261.6 179.8,259.0 186.0,256.1 192.2,253.1 198.4,249.9 204.6,246.5 210.8,242.9 217.0,239.1 223.2,235.0 229.4,230.8 235.6,226.3 241.8,221.7 248.0,216.9 254.2,211.8 260.4,206.6 266.6,201.3 272.8,195.7 279.0,190.1 285.2,184.3 291.4,178.5 297.6,172.5 303.8,166.6 310.0,160.6 316.2,154.6 322.4,148.6 328.6,142.7 334.8,136.8 341.0,131.0 347.2,125.4 353.4,119.9 359.6,114.5 365.8,109.3 372.0,104.3 378.2,99.4 384.4,94.8 390.6,90.3 396.8,86.1 403.0,82.1 409.2,78.2 415.4,74.6 421.6,71.2 427.8,68.0 434.0,65.0 440.2,62.1 446.4,59.5 452.6,57.0 458.8,54.7 465.0,52.6 471.2,50.6 477.4,48.7 483.6,47.0 489.8,45.4 496.0,43.9 502.2,42.6 508.4,41.3 514.6,46.4 520.8,51.5 527.0,56.6 533.2,61.6 539.4,66.6 545.6,71.6 551.8,76.5 558.0,81.3 564.2,86.1 570.4,90.8 576.6,95.4 582.8,100.0 589.0,104.5 595.2,108.9 601.4,113.2 607.6,117.5 613.8,121.6 620.0,125.7 626.2,129.7 632.4,133.6 638.6,137.5 644.8,141.2 651.0,144.9 657.2,148.5 663.4,152.0 669.6,155.4 675.8,158.8 682.0,162.1" fill="none" stroke="#2E673E" stroke-width="2.5" />
+<polyline points="62.0,288.2 68.2,287.5 74.4,286.8 80.6,286.0 86.8,285.1 93.0,284.1 99.2,283.0 105.4,281.8 111.6,280.4 117.8,278.9 124.0,277.3 130.2,275.5 136.4,273.5 142.6,271.3 148.8,268.9 155.0,266.3 161.2,263.4 167.4,260.3 173.6,256.9 179.8,253.2 186.0,249.2 192.2,244.9 198.4,240.3 204.6,235.4 210.8,230.1 217.0,224.6 223.2,218.7 229.4,212.5 235.6,206.0 241.8,199.3 248.0,192.3 254.2,185.1 260.4,177.7 266.6,170.2 272.8,162.6 279.0,155.0 285.2,147.4 291.4,139.8 297.6,132.3 303.8,124.9 310.0,117.7 316.2,110.7 322.4,104.0 328.6,97.5 334.8,91.3 341.0,85.4 347.2,79.9 353.4,74.6 359.6,69.7 365.8,65.1 372.0,60.8 378.2,56.8 384.4,53.1 390.6,49.7 396.8,46.6 403.0,43.7 409.2,41.1 415.4,38.7 421.6,36.5 427.8,45.9 434.0,55.2 440.2,64.3 446.4,73.1 452.6,81.8 458.8,90.2 465.0,98.3 471.2,106.2 477.4,113.9 483.6,121.3 489.8,128.5 496.0,135.4 502.2,142.0 508.4,148.4 514.6,154.6 520.8,160.5 527.0,166.2 533.2,171.7 539.4,176.9 545.6,182.0 551.8,186.8 558.0,191.4 564.2,195.9 570.4,200.1 576.6,204.2 582.8,208.1 589.0,211.9 595.2,215.4 601.4,218.9 607.6,222.1 613.8,225.3 620.0,228.3 626.2,231.2 632.4,233.9 638.6,236.5 644.8,239.1 651.0,241.5 657.2,243.8 663.4,246.0 669.6,248.1 675.8,250.1 682.0,252.0" fill="none" stroke="#C98A2C" stroke-width="2.5" />
+<polyline points="62.0,291.7 68.2,291.5 74.4,291.2 80.6,290.9 86.8,290.6 93.0,290.3 99.2,289.9 105.4,289.5 111.6,289.0 117.8,288.5 124.0,287.9 130.2,287.3 136.4,286.6 142.6,285.9 148.8,285.0 155.0,284.1 161.2,283.1 167.4,282.0 173.6,280.8 179.8,279.5 186.0,278.1 192.2,276.5 198.4,274.8 204.6,272.9 210.8,270.9 217.0,268.7 223.2,266.3 229.4,263.7 235.6,260.9 241.8,257.8 248.0,254.6 254.2,251.1 260.4,247.3 266.6,243.3 272.8,239.0 279.0,234.5 285.2,229.6 291.4,224.6 297.6,219.2 303.8,213.6 310.0,207.8 316.2,201.8 322.4,195.5 328.6,189.0 334.8,182.4 341.0,175.7 347.2,168.9 353.4,161.9 359.6,155.0 365.8,148.1 372.0,141.1 378.2,134.3 384.4,127.6 390.6,121.0 396.8,114.5 403.0,108.2 409.2,102.2 415.4,96.4 421.6,90.8 427.8,85.4 434.0,80.4 440.2,75.5 446.4,71.0 452.6,66.7 458.8,62.7 465.0,58.9 471.2,55.4 477.4,60.0 483.6,64.8 489.8,69.7 496.0,74.7 502.2,79.8 508.4,84.9 514.6,90.1 520.8,95.3 527.0,100.4 533.2,105.6 539.4,110.7 545.6,115.8 551.8,120.8 558.0,125.7 564.2,130.6 570.4,135.3 576.6,140.0 582.8,144.6 589.0,149.1 595.2,153.5 601.4,157.7 607.6,161.9 613.8,166.0 620.0,169.9 626.2,173.8 632.4,177.6 638.6,181.2 644.8,184.8 651.0,188.2 657.2,191.5 663.4,194.8 669.6,197.9 675.8,201.0 682.0,204.0" fill="none" stroke="#B04D4D" stroke-width="2.5" stroke-dasharray="5,4" />
+</svg>
+        <div class="legende-graph">
+          <span><i style="background:#0071C1"></i>Ressources non renouvelables</span>
+          <span><i style="background:#2E673E"></i>Population</span>
+          <span><i style="background:#C98A2C"></i>Production industrielle</span>
+          <span><i style="background:#B04D4D"></i>Pollution</span>
+        </div>
+      </div>
+      <p class="note-graphique">Illustration schématique reconstruite pour cet article, inspirée de la forme du scénario « standard run » du modèle World3 telle que décrite dans la littérature<sup class="ref"><a href="#ref1">[1]</a></sup><sup class="ref"><a href="#ref2">[2]</a></sup>. Ce n'est pas une reproduction des courbes originales de 1972 : leurs valeurs numériques exactes n'ont pas pu être vérifiées depuis cet environnement.</p>
+
+      <p>Cinquante ans plus tard, la chercheuse Gaya Herrington a comparé ces scénarios aux données économiques et environnementales réellement observées jusqu'en 2019<sup class="ref"><a href="#ref2">[2]</a></sup>. Le résultat, repris par le Club de Rome lui-même, est net : la trajectoire réelle colle le plus aux scénarios <strong>« Business-as-Usual 2 »</strong> et <strong>« Comprehensive Technology »</strong>, deux scénarios de dépassement, l'un plus sévère que l'autre. Le scénario « monde stabilisé », celui qui évite le dépassement par une action précoce, s'écarte le <em>plus</em> des données observées.</p>
+
+      <div class="chiffre-cle">
+        <div class="n">6 limites sur 9</div>
+        <div class="l">planétaires (climat, biodiversité, azote, eau douce, usage des sols, nouvelles entités dont le plastique) sont aujourd'hui considérées comme franchies</div>
+      </div>
+      <p class="source-note">Richardson et al., <em>Science Advances</em>, 9(37), 2023<sup class="ref"><a href="#ref3">[3]</a></sup>.</p>
+
+      <div class="chiffre-cle">
+        <div class="n">1,7 planète</div>
+        <div class="l">c'est la biocapacité totale que l'humanité prélevait chaque année dès 2014, selon la méthode de comptabilité de l'empreinte écologique (dernière mise à jour publiée de cet indicateur dans la littérature scientifique)</div>
+      </div>
+      <p class="source-note">Lin et al., <em>Resources</em>, 7(3), 58, 2018<sup class="ref"><a href="#ref4">[4]</a></sup>.</p>
+
+      <h2>Un système qui s'autorégule : le modèle proie-prédateur</h2>
+      <p>Dans une forêt, proies et prédateurs se répondent sans relâche, dans un tumulte renouvelé à chaque saison. C'est ce tumulte que décrit le modèle Lotka-Volterra, formulé indépendamment par Alfred Lotka (1925) et Vito Volterra (1926)<sup class="ref"><a href="#ref5">[5]</a></sup> : une population de proies qui, livrée à elle-même, croîtrait indéfiniment, mais que la pression d'un prédateur maintient dans des limites. Quand les proies abondent, les prédateurs se nourrissent bien et se reproduisent davantage ; leur nombre croissant finit par prélever plus de proies que la reproduction n'en remplace ; les proies déclinent ; les prédateurs, à leur tour, déclinent faute de nourriture ; les proies peuvent alors se refaire, et le cycle recommence.</p>
+
+      <div class="graphique">
+        <svg viewBox="0 0 700 340" xmlns="http://www.w3.org/2000/svg" role="img" class="axes-svg" aria-label="Graphique à deux axes : en abscisse le temps en générations, en ordonnée la population en unités arbitraires, montrant des oscillations cycliques régulières entre proies et prédateurs.">
+<line x1="62" y1="294.0" x2="682" y2="294.0" stroke="#E4E0D6" stroke-width="1" />
+<line x1="62" y1="201.3" x2="682" y2="201.3" stroke="#E4E0D6" stroke-width="1" />
+<line x1="62" y1="108.7" x2="682" y2="108.7" stroke="#E4E0D6" stroke-width="1" />
+<line x1="62" y1="16.0" x2="682" y2="16.0" stroke="#E4E0D6" stroke-width="1" />
+<line x1="62" y1="16" x2="62" y2="294" stroke="#1B2B26" stroke-width="1.4" />
+<line x1="62" y1="294" x2="682" y2="294" stroke="#1B2B26" stroke-width="1.4" />
+<line x1="62.0" y1="294" x2="62.0" y2="299" stroke="#1B2B26" stroke-width="1.2" />
+<text x="62.0" y="312" font-size="11" fill="#5C665F" text-anchor="middle" font-family="-apple-system,Segoe UI,sans-serif">0</text>
+<line x1="186.0" y1="294" x2="186.0" y2="299" stroke="#1B2B26" stroke-width="1.2" />
+<text x="186.0" y="312" font-size="11" fill="#5C665F" text-anchor="middle" font-family="-apple-system,Segoe UI,sans-serif">10</text>
+<line x1="310.0" y1="294" x2="310.0" y2="299" stroke="#1B2B26" stroke-width="1.2" />
+<text x="310.0" y="312" font-size="11" fill="#5C665F" text-anchor="middle" font-family="-apple-system,Segoe UI,sans-serif">20</text>
+<line x1="434.0" y1="294" x2="434.0" y2="299" stroke="#1B2B26" stroke-width="1.2" />
+<text x="434.0" y="312" font-size="11" fill="#5C665F" text-anchor="middle" font-family="-apple-system,Segoe UI,sans-serif">30</text>
+<line x1="558.0" y1="294" x2="558.0" y2="299" stroke="#1B2B26" stroke-width="1.2" />
+<text x="558.0" y="312" font-size="11" fill="#5C665F" text-anchor="middle" font-family="-apple-system,Segoe UI,sans-serif">40</text>
+<line x1="682.0" y1="294" x2="682.0" y2="299" stroke="#1B2B26" stroke-width="1.2" />
+<text x="682.0" y="312" font-size="11" fill="#5C665F" text-anchor="middle" font-family="-apple-system,Segoe UI,sans-serif">50</text>
+<line x1="57" y1="294.0" x2="62" y2="294.0" stroke="#1B2B26" stroke-width="1.2" />
+<text x="52" y="297.5" font-size="11" fill="#5C665F" text-anchor="end" font-family="-apple-system,Segoe UI,sans-serif">0</text>
+<line x1="57" y1="201.3" x2="62" y2="201.3" stroke="#1B2B26" stroke-width="1.2" />
+<text x="52" y="204.8" font-size="11" fill="#5C665F" text-anchor="end" font-family="-apple-system,Segoe UI,sans-serif">10</text>
+<line x1="57" y1="108.7" x2="62" y2="108.7" stroke="#1B2B26" stroke-width="1.2" />
+<text x="52" y="112.2" font-size="11" fill="#5C665F" text-anchor="end" font-family="-apple-system,Segoe UI,sans-serif">20</text>
+<line x1="57" y1="16.0" x2="62" y2="16.0" stroke="#1B2B26" stroke-width="1.2" />
+<text x="52" y="19.5" font-size="11" fill="#5C665F" text-anchor="end" font-family="-apple-system,Segoe UI,sans-serif">30</text>
+<text x="372.0" y="332" font-size="12" fill="#1B2B26" text-anchor="middle" font-weight="600" font-family="-apple-system,Segoe UI,sans-serif">Temps (générations)</text>
+<text x="14" y="155.0" font-size="12" fill="#1B2B26" text-anchor="middle" font-weight="600" font-family="-apple-system,Segoe UI,sans-serif" transform="rotate(-90 14 155.0)">Population (unités arbitraires)</text>
+<polyline points="62.0,201.3 65.1,251.3 68.2,274.8 71.3,284.9 74.4,289.4 77.5,291.5 80.6,292.5 83.7,293.0 86.8,293.3 89.9,293.5 93.0,293.6 96.1,293.7 99.2,293.7 102.3,293.8 105.4,293.8 108.5,293.8 111.6,293.8 114.7,293.8 117.8,293.8 120.9,293.8 124.0,293.8 127.1,293.8 130.2,293.7 133.3,293.7 136.4,293.6 139.5,293.6 142.6,293.5 145.7,293.4 148.8,293.3 151.9,293.1 155.0,292.9 158.1,292.7 161.2,292.4 164.3,292.0 167.4,291.5 170.5,290.9 173.6,290.0 176.7,289.0 179.8,287.6 182.9,285.9 186.0,283.6 189.1,280.7 192.2,276.9 195.3,272.1 198.4,265.8 201.5,257.7 204.6,247.3 207.7,234.0 210.8,217.0 213.9,195.5 217.0,168.6 220.1,135.8 223.2,97.8 226.3,58.3 229.4,28.8 232.5,32.5 235.6,89.5 238.7,173.9 241.8,236.5 244.9,268.2 248.0,282.1 251.1,288.1 254.2,290.9 257.3,292.2 260.4,292.9 263.5,293.2 266.6,293.5 269.7,293.6 272.8,293.7 275.9,293.7 279.0,293.8 282.1,293.8 285.2,293.8 288.3,293.8 291.4,293.8 294.5,293.8 297.6,293.8 300.7,293.8 303.8,293.8 306.9,293.7 310.0,293.7 313.1,293.7 316.2,293.6 319.3,293.5 322.4,293.4 325.5,293.3 328.6,293.2 331.7,293.0 334.8,292.8 337.9,292.5 341.0,292.2 344.1,291.7 347.2,291.1 350.3,290.4 353.4,289.4 356.5,288.2 359.6,286.6 362.7,284.5 365.8,281.9 368.9,278.4 372.0,274.0 375.1,268.3 378.2,261.0 381.3,251.5 384.4,239.4 387.5,223.9 390.6,204.1 393.7,179.3 396.8,148.8 399.9,112.5 403.0,72.7 406.1,37.4 409.2,25.4 412.3,62.3 415.4,142.8 418.5,217.1 421.6,259.1 424.7,278.2 427.8,286.4 430.9,290.1 434.0,291.8 437.1,292.7 440.2,293.1 443.3,293.4 446.4,293.6 449.5,293.7 452.6,293.7 455.7,293.8 458.8,293.8 461.9,293.8 465.0,293.8 468.1,293.8 471.2,293.8 474.3,293.8 477.4,293.8 480.5,293.8 483.6,293.7 486.7,293.7 489.8,293.7 492.9,293.6 496.0,293.6 499.1,293.5 502.2,293.4 505.3,293.3 508.4,293.1 511.5,292.9 514.6,292.6 517.7,292.3 520.8,291.9 523.9,291.4 527.0,290.7 530.1,289.8 533.2,288.7 536.3,287.2 539.4,285.3 542.5,282.9 545.6,279.8 548.7,275.8 551.8,270.6 554.9,264.0 558.0,255.4 561.1,244.3 564.2,230.1 567.3,212.1 570.4,189.3 573.5,160.9 576.6,126.7 579.7,87.7 582.8,49.2 585.9,25.5 589.0,41.8 592.1,110.5 595.2,192.9 598.3,246.9 601.4,272.8 604.5,284.1 607.6,289.0 610.7,291.3 613.8,292.4 616.9,293.0 620.0,293.3 623.1,293.5 626.2,293.6 629.3,293.7 632.4,293.7 635.5,293.8 638.6,293.8 641.7,293.8 644.8,293.8 647.9,293.8 651.0,293.8 654.1,293.8 657.2,293.8 660.3,293.8 663.4,293.7 666.5,293.7 669.6,293.6 672.7,293.6 675.8,293.5 678.9,293.4 682.0,293.3" fill="none" stroke="#2E673E" stroke-width="2.5" />
+<polyline points="62.0,201.3 65.1,194.1 68.2,196.2 71.3,202.2 74.4,209.5 77.5,216.8 80.6,223.8 83.7,230.2 86.8,236.2 89.9,241.6 93.0,246.5 96.1,251.0 99.2,255.1 102.3,258.8 105.4,262.1 108.5,265.1 111.6,267.8 114.7,270.3 117.8,272.6 120.9,274.6 124.0,276.4 127.1,278.1 130.2,279.6 133.3,281.0 136.4,282.2 139.5,283.3 142.6,284.3 145.7,285.2 148.8,286.0 151.9,286.8 155.0,287.5 158.1,288.1 161.2,288.6 164.3,289.1 167.4,289.5 170.5,289.9 173.6,290.3 176.7,290.6 179.8,290.9 182.9,291.1 186.0,291.3 189.1,291.5 192.2,291.6 195.3,291.7 198.4,291.8 201.5,291.9 204.6,291.8 207.7,291.7 210.8,291.5 213.9,291.2 217.0,290.5 220.1,289.4 223.2,287.3 226.3,283.2 229.4,274.7 232.5,258.1 235.6,232.3 238.7,207.6 241.8,195.4 244.9,194.7 248.0,199.7 251.1,206.7 254.2,214.1 257.3,221.2 260.4,227.9 263.5,234.0 266.6,239.6 269.7,244.7 272.8,249.4 275.9,253.6 279.0,257.4 282.1,260.9 285.2,264.0 288.3,266.9 291.4,269.4 294.5,271.8 297.6,273.9 300.7,275.8 303.8,277.5 306.9,279.1 310.0,280.5 313.1,281.7 316.2,282.9 319.3,283.9 322.4,284.9 325.5,285.7 328.6,286.5 331.7,287.2 334.8,287.8 337.9,288.4 341.0,288.9 344.1,289.4 347.2,289.8 350.3,290.2 353.4,290.5 356.5,290.8 359.6,291.0 362.7,291.2 365.8,291.4 368.9,291.6 372.0,291.7 375.1,291.8 378.2,291.8 381.3,291.8 384.4,291.8 387.5,291.6 390.6,291.3 393.7,290.8 396.8,289.9 399.9,288.3 403.0,285.1 406.1,278.6 409.2,265.5 412.3,242.6 415.4,215.7 418.5,198.3 421.6,194.0 424.7,197.5 427.8,204.0 430.9,211.3 434.0,218.6 437.1,225.4 440.2,231.8 443.3,237.6 446.4,242.9 449.5,247.7 452.6,252.1 455.7,256.0 458.8,259.6 461.9,262.9 465.0,265.8 468.1,268.5 471.2,270.9 474.3,273.1 477.4,275.1 480.5,276.9 483.6,278.5 486.7,280.0 489.8,281.3 492.9,282.5 496.0,283.6 499.1,284.5 502.2,285.4 505.3,286.2 508.4,287.0 511.5,287.6 514.6,288.2 517.7,288.7 520.8,289.2 523.9,289.6 527.0,290.0 530.1,290.4 533.2,290.7 536.3,290.9 539.4,291.2 542.5,291.4 545.6,291.5 548.7,291.7 551.8,291.8 554.9,291.8 558.0,291.9 561.1,291.8 564.2,291.7 567.3,291.5 570.4,291.0 573.5,290.3 576.6,289.0 579.7,286.5 582.8,281.6 585.9,271.4 589.0,252.3 592.1,225.4 595.2,203.1 598.3,194.4 601.4,195.6 604.5,201.4 607.6,208.6 610.7,215.9 613.8,222.9 616.9,229.5 620.0,235.5 623.1,241.0 626.2,246.0 629.3,250.5 632.4,254.6 635.5,258.3 638.6,261.7 641.7,264.8 644.8,267.5 647.9,270.0 651.0,272.3 654.1,274.4 657.2,276.2 660.3,277.9 663.4,279.4 666.5,280.8 669.6,282.0 672.7,283.2 675.8,284.2 678.9,285.1 682.0,285.9" fill="none" stroke="#0071C1" stroke-width="2.5" />
+</svg>
+        <div class="legende-graph">
+          <span><i style="background:#2E673E"></i>Proies</span>
+          <span><i style="background:#0071C1"></i>Prédateurs</span>
+        </div>
+      </div>
+      <p class="note-graphique">Simulation numérique réelle des équations de Lotka-Volterra (intégration Runge-Kutta), avec des coefficients illustratifs choisis pour la lisibilité pédagogique : ce ne sont pas des données empiriques d'une population réelle.</p>
+
+      <div class="encadre">
+        <h4>Une précision importante</h4>
+        <p>Contrairement à une idée reçue, ce modèle ne repose pas sur une « destruction nécessaire » ponctuelle. C'est une <strong>régulation continue</strong> : la pression de prédation freine la proie <em>avant</em> qu'elle n'épuise son milieu, et maintient les deux populations dans un cycle stable autour d'un point d'équilibre, sans jamais l'effondrement brutal et définitif du scénario World3.</p>
+      </div>
+
+      <h2>Deux façons de sortir d'un excès : laquelle s'applique à nous ?</h2>
+      <p>La différence entre les deux modèles tient à une seule chose : l'existence, ou non, d'un régulateur externe. Une population de proies a un prédateur qui la freine avant le point de rupture. L'humanité, à l'échelle de la planète, n'a pas de prédateur : rien d'extérieur à elle-même ne la freine automatiquement avant que les limites ne soient franchies. Le modèle World3 décrit exactement cette situation : sans régulation volontaire, le système ne s'auto-corrige pas en douceur comme un cycle proie-prédateur, il dépasse puis décline.</p>
+      <p>La mise à jour de Herrington souligne un point utile : les scénarios ne divergent réellement qu'à partir des deux prochaines décennies<sup class="ref"><a href="#ref2">[2]</a></sup>. Le scénario « Comprehensive Technology » (déclin plus progressif) et le scénario « Business-as-Usual 2 » (déclin plus sévère) partent aujourd'hui du même point. Seules la vitesse et l'ampleur de la régulation que l'humanité s'impose à elle-même, volontairement et faute de prédateur pour le faire à sa place, les séparent encore.</p>
+      <p>C'est là que le changement d'échelle reprend tout son sens. Une maison de santé qui pilote sa trajectoire, un praticien qui oriente sa patientèle vers la mobilité active : chacun de ces gestes est une micro-régulation volontaire, du même ordre que celle qui, à l'échelle collective, sépare un déclin maîtrisé d'un effondrement subi. Rien de tout cela ne change à lui seul la trajectoire mondiale. C'est pourtant le même mécanisme, à une autre échelle : mesurer avant d'agir, pour être son propre régulateur plutôt que d'attendre que les limites s'imposent d'elles-mêmes.</p>
+    </article>
+
+    <div class="bloc-cta">
+      <h2>Mesurer, c'est déjà réguler</h2>
+      <p>À l'échelle de votre cabinet, la première étape de toute trajectoire maîtrisée reste la même : savoir d'où l'on part.</p>
+      <a href="../cab/" class="bouton">Faire mon bilan avec Lib&CO2 Cab ›</a>
+    </div>
+
+    <div class="bibliographie">
+      <h2>Bibliographie</h2>
+      <ol>
+        <li id="ref1">Meadows, D.H., Meadows, D.L., Randers, J., Behrens III, W.W. (1972). <em>The Limits to Growth: A Report for the Club of Rome's Project on the Predicament of Mankind</em>. Universe Books. Texte intégral : <a href="https://archive.org/details/TheLimitsToGrowth" target="_blank" rel="noopener">archive.org/details/TheLimitsToGrowth</a>.</li>
+        <li id="ref2">Herrington, G. (2021). « Update to limits to growth: Comparing the World3 model with empirical data ». <em>Journal of Industrial Ecology</em>, 25(3), 614–626. DOI : <a href="https://doi.org/10.1111/jiec.13084" target="_blank" rel="noopener">10.1111/jiec.13084</a>.</li>
+        <li id="ref3">Richardson, K., Steffen, W., Lucht, W., Bendtsen, J., Cornell, S.E., Donges, J.F., et al. (2023). « Earth beyond six of nine planetary boundaries ». <em>Science Advances</em>, 9(37), eadh2458. DOI : <a href="https://doi.org/10.1126/sciadv.adh2458" target="_blank" rel="noopener">10.1126/sciadv.adh2458</a>.</li>
+        <li id="ref4">Lin, D., Hanscom, L., Murthy, A., Galli, A., Evans, M., Neill, E., Mancini, M.S., Martindill, J., Medouar, F.-Z., Huang, S., Wackernagel, M. (2018). « Ecological Footprint Accounting for Countries: Updates and Results of the National Footprint Accounts, 2012–2018 ». <em>Resources</em>, 7(3), 58. DOI : <a href="https://doi.org/10.3390/resources7030058" target="_blank" rel="noopener">10.3390/resources7030058</a>.</li>
+        <li id="ref5">Lotka, A.J. (1925). <em>Elements of Physical Biology</em>. Williams &amp; Wilkins. Texte intégral : <a href="https://archive.org/details/elementsofphysic0000alfr" target="_blank" rel="noopener">archive.org/details/elementsofphysic0000alfr</a>. Volterra, V. (1926). « Fluctuations in the Abundance of a Species considered Mathematically ». <em>Nature</em>, 118, 558–560. DOI : <a href="https://doi.org/10.1038/118558a0" target="_blank" rel="noopener">10.1038/118558a0</a>.</li>
+      </ol>
+    </div>
+  </div>
+</body>
+</html>

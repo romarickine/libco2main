@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Page introuvable — Lib&CO2</title>
+  <meta name="description" content="Cette page n'existe pas ou plus. Retrouvez les outils Lib&CO2 : Cab, MSP et La carte du sans-voiture." />
+  <meta name="robots" content="noindex, follow" />
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon.png" />
+  <link rel="manifest" href="site.webmanifest" />
+  <style>
+    :root {
+      --vert: #2E673E; --vert-fond: #2E673E14; --ambre: #C98A2C;
+      --fond: #F7F5F0; --bordure: #E4E0D6; --encre: #1B2B26;
+      --texte: #3E4A45; --discret: #5C665F;
+      --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
+      --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: var(--sans); background: var(--fond); color: var(--encre); line-height: 1.65; }
+    .page-404 { max-width: 560px; margin: 0 auto; padding: 70px 20px 90px; text-align: center; }
+    .page-404 img.logo { height: 40px; display: block; margin: 0 auto 32px; }
+    .page-404 .code { font-family: var(--serif); font-size: 15px; letter-spacing: 2px; color: var(--ambre); font-weight: 700; margin-bottom: 8px; }
+    .page-404 h1 { font-family: var(--serif); font-size: 26px; margin: 0 0 14px; }
+    .page-404 p { font-size: 15px; color: var(--texte); margin: 0 0 30px; }
+    .page-404 .liens { display: flex; flex-direction: column; gap: 10px; max-width: 320px; margin: 0 auto; }
+    .page-404 .liens a {
+      display: block; padding: 12px 18px; border-radius: 10px; text-decoration: none;
+      font-weight: 600; font-size: 14.5px; border: 1px solid var(--bordure); color: var(--encre); background: #fff;
+    }
+    .page-404 .liens a.principal { background: var(--vert); border-color: var(--vert); color: #fff; }
+    .page-404 .retour { display: inline-block; margin-top: 30px; font-size: 13.5px; color: var(--discret); text-decoration: none; }
+  </style>
+</head>
+<body>
+  <main class="page-404">
+    <img src="assets/logo/logo-libco2.png" alt="Lib&CO2" class="logo" />
+    <p class="code">ERREUR 404</p>
+    <h1>Cette page n'existe pas ou plus</h1>
+    <p>Le lien suivi est peut-être incomplet, périmé, ou la page a été déplacée. Voici les pages principales du site :</p>
+    <div class="liens">
+      <a href="/" class="principal">Accueil Lib&CO2</a>
+      <a href="/cab/">Lib&CO2 Cab — calculateur individuel</a>
+      <a href="/msp/">Lib&CO2 MSP — maisons de santé</a>
+      <a href="/iso/">La carte du sans-voiture</a>
+      <a href="/blog/">Blog</a>
+    </div>
+    <a href="/mentions-legales.html" class="retour">Mentions légales & confidentialité</a>
+  </main>
+</body>
+</html>
