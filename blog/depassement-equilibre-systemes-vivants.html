@@ -15,9 +15,9 @@
   <meta property="og:site_name" content="Lib&CO2" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="../favicon.ico" sizes="any" />
-  <link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon/favicon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="../assets/favicon/favicon-16x16.png" />
-  <link rel="apple-touch-icon" href="../assets/favicon/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../shared/assets/favicon/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../shared/assets/favicon/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="../shared/assets/favicon/apple-touch-icon.png" />
   <link rel="manifest" href="../site.webmanifest" />
   <script type="application/ld+json">
   {
@@ -31,52 +31,8 @@
     "publisher": { "@type": "Organization", "name": "Lib&CO2", "url": "https://libco2.fr/" }
   }
   </script>
-  <style>
-    :root {
-      --vert: #2E673E; --vert-fond: #2E673E14; --ambre: #C98A2C;
-      --bleu: #0071C1; --bleu-fond: #0071C114;
-      --fond: #F7F5F0; --bordure: #E4E0D6; --encre: #1B2B26;
-      --texte: #3E4A45; --discret: #5C665F;
-      --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
-      --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: var(--sans); background: var(--fond); color: var(--encre); line-height: 1.7; }
-    .conteneur { max-width: 720px; margin: 0 auto; padding: 40px 20px 90px; }
-    a { color: var(--vert); }
-    .retour { display: inline-block; margin-bottom: 24px; font-size: 14px; font-weight: 600; text-decoration: none; }
-    .eyebrow { font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--ambre); }
-    h1 { font-family: var(--serif); font-size: 32px; margin: 10px 0 6px; line-height: 1.25; }
-    .meta-article { font-size: 13px; color: var(--discret); margin-bottom: 30px; }
-    article p { font-size: 16px; color: var(--texte); margin: 0 0 18px; }
-    article h2 { font-family: var(--serif); font-size: 23px; margin: 40px 0 14px; }
-    article h3 { font-family: var(--serif); font-size: 18.5px; margin: 28px 0 10px; color: var(--encre); }
-    article ul { padding-left: 22px; margin: 0 0 18px; }
-    article li { font-size: 16px; color: var(--texte); margin-bottom: 8px; }
-    .chiffre-cle { background: var(--vert-fond); border-radius: 12px; padding: 20px 22px; margin: 26px 0; }
-    .chiffre-cle .n { font-family: var(--serif); font-size: 32px; color: var(--vert); font-weight: 700; }
-    .chiffre-cle .l { font-size: 13.5px; color: var(--texte); margin-top: 4px; }
-    .source-note { font-size: 12.5px; color: var(--discret); margin-top: -10px; margin-bottom: 20px; }
-    sup.ref a { text-decoration: none; color: var(--bleu); font-weight: 700; }
-    .graphique { background: #fff; border: 1px solid var(--bordure); border-radius: 14px; padding: 20px 20px 16px; margin: 28px 0 8px; }
-    .graphique svg { display: block; width: 100%; height: auto; }
-    .legende-graph { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: var(--texte); }
-    .legende-graph span { display: inline-flex; align-items: center; gap: 6px; }
-    .legende-graph i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
-    .note-graphique { font-size: 12.5px; color: var(--discret); margin: 8px 0 24px; }
-    .encadre { border: 1px solid var(--bordure); background: #fff; border-radius: 12px; padding: 18px 20px; margin: 24px 0; }
-    .encadre h4 { margin: 0 0 8px; font-size: 15px; font-family: var(--serif); }
-    .encadre p { margin: 0; font-size: 14.5px; }
-    .bloc-cta { background: var(--encre); color: #fff; border-radius: 14px; padding: 26px 24px; text-align: center; margin-top: 44px; }
-    .bloc-cta h2 { margin-top: 0; font-size: 21px; }
-    .bloc-cta p { opacity: .85; font-size: 14px; }
-    .bouton { display: inline-block; background: var(--vert); color: #fff; text-decoration: none; font-weight: 700; padding: 12px 26px; border-radius: 10px; margin-top: 10px; }
-    .bibliographie { margin-top: 46px; padding-top: 24px; border-top: 1px solid var(--bordure); }
-    .bibliographie h2 { font-family: var(--serif); font-size: 19px; margin: 0 0 14px; }
-    .bibliographie ol { padding-left: 20px; margin: 0; }
-    .bibliographie li { font-size: 13.5px; color: var(--texte); margin-bottom: 10px; }
-    .bibliographie li a { word-break: break-word; }
-  </style>
+  <link rel="stylesheet" href="../shared/css/tokens.css" />
+  <link rel="stylesheet" href="css/blog.css" />
 </head>
 <body>
   <div class="conteneur">

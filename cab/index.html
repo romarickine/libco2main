@@ -19,10 +19,10 @@
   <meta name="twitter:title" content="Lib&CO2 Cab — Calculateur carbone pour les professions libérales" />
   <meta name="twitter:description" content="Estimez l'ordre de grandeur des émissions de gaz à effet de serre de votre activité indépendante et identifiez vos leviers de décarbonation." />
   <meta name="twitter:image" content="https://libco2.fr/assets/og-image.png" />
-  <link rel="icon" href="favicon.ico" sizes="any" />
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon/favicon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon/favicon-16x16.png" />
-  <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon.png" />
+  <link rel="icon" href="../favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../shared/assets/favicon/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../shared/assets/favicon/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="../shared/assets/favicon/apple-touch-icon.png" />
   <link rel="manifest" href="site.webmanifest" />
   <!-- Aucune police externe : la charte utilise des polices système natives
        (voir css/variables.css) — zéro requête tierce, conforme RGPD, et plus
@@ -31,6 +31,7 @@
   <!-- Les graphiques (répartition et évolution) sont dessinés en Canvas natif
        par js/graphiques.js, sans dépendance externe. -->
 
+  <link rel="stylesheet" href="../shared/css/tokens.css" />
   <link rel="stylesheet" href="css/variables.css" />
   <link rel="stylesheet" href="css/style.css" />
   <script type="application/ld+json">
@@ -48,7 +49,15 @@
   </script>
 </head>
 <body>
-  <div id="app"></div>
+  <!-- Titre de la page, hors de #app pour survivre aux re-rendus : masqué à
+       l'écran (le logo et les titres d'étape h2 suffisent visuellement) mais
+       lu par les lecteurs d'écran et les moteurs de recherche. -->
+  <h1 class="visuellement-masque">Lib&amp;CO2 Cab — Calculateur carbone pour les professions libérales</h1>
+  <div id="app">
+    <!-- Contenu de secours : remplacé par l'application dès que js/main.js
+         se charge ; message clair si JavaScript est désactivé. -->
+    <noscript><p>Ce calculateur a besoin de JavaScript pour fonctionner. Activez-le dans votre navigateur puis rechargez la page.</p></noscript>
+  </div>
 
   <!-- Point d'entrée de l'application (module ES6) -->
   <script type="module" src="js/main.js"></script>

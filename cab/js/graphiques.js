@@ -10,6 +10,7 @@
  * reçoit des données déjà prêtes à afficher.
  * ----------------------------------------------------------------------
  */
+import { echapperHtml } from "../../shared/js/echappement.js";
 
 // Prépare un canvas pour un rendu net sur les écrans haute densité (Retina).
 // Renvoie le contexte 2D déjà mis à l'échelle, et {w, h} en pixels CSS.
@@ -38,12 +39,15 @@ export function dessinerGraphiqueRepartition(canvas, donnees, type) {
   const { ctx, w, h } = preparerCanvas(canvas);
   if (donnees.length === 0) return;
   const total = donnees.reduce((s, d) => s + d.value, 0);
-  const geometrie = type === "pie" ? dessinerCamembert(ctx, w, h, donnees, total) : dessinerHistogramme(ctx, w, h, donnees, total);
+  const geometrie =
+    type === "pie" ? dessinerCamembert(ctx, w, h, donnees, total) : dessinerHistogramme(ctx, w, h, donnees, total);
   activerInfobulle(canvas, geometrie);
 }
 
 function dessinerCamembert(ctx, w, h, donnees, total) {
-  const cx = w / 2, cy = h / 2, r = Math.min(w, h) / 2 - 12;
+  const cx = w / 2,
+    cy = h / 2,
+    r = Math.min(w, h) / 2 - 12;
   let angle = -Math.PI / 2;
   const items = [];
 
@@ -135,7 +139,8 @@ function activerInfobulle(canvas, geometrie) {
 
   function trouverItem(px, py) {
     if (geometrie.type === "pie") {
-      const dx = px - geometrie.cx, dy = py - geometrie.cy;
+      const dx = px - geometrie.cx,
+        dy = py - geometrie.cy;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist > geometrie.r) return null;
       let ang = Math.atan2(dy, dx);
@@ -148,9 +153,12 @@ function activerInfobulle(canvas, geometrie) {
   }
 
   function afficherPourItem(item, clientX, clientY) {
-    if (!item) { tooltip.style.display = "none"; return; }
+    if (!item) {
+      tooltip.style.display = "none";
+      return;
+    }
     const rectConteneur = conteneur.getBoundingClientRect();
-    tooltip.innerHTML = `<strong>${item.label}</strong><br>${Math.round(item.part * 100)}% · ${item.value.toLocaleString("fr-FR")} kgCO2e`;
+    tooltip.innerHTML = `<strong>${echapperHtml(item.label)}</strong><br>${Math.round(item.part * 100)}% · ${item.value.toLocaleString("fr-FR")} kgCO2e`;
     tooltip.style.display = "block";
     let x = clientX - rectConteneur.left + 14;
     let y = clientY - rectConteneur.top + 14;
@@ -170,10 +178,30 @@ function activerInfobulle(canvas, geometrie) {
   }
 
   canvas.addEventListener("mousemove", (e) => gererPointeur(e.clientX, e.clientY));
-  canvas.addEventListener("mouseleave", () => { tooltip.style.display = "none"; });
-  canvas.addEventListener("touchstart", (e) => { e.preventDefault(); const t = e.touches[0]; if (t) gererPointeur(t.clientX, t.clientY); }, { passive: false });
-  canvas.addEventListener("touchmove", (e) => { e.preventDefault(); const t = e.touches[0]; if (t) gererPointeur(t.clientX, t.clientY); }, { passive: false });
-  canvas.addEventListener("touchend", () => { tooltip.style.display = "none"; });
+  canvas.addEventListener("mouseleave", () => {
+    tooltip.style.display = "none";
+  });
+  canvas.addEventListener(
+    "touchstart",
+    (e) => {
+      e.preventDefault();
+      const t = e.touches[0];
+      if (t) gererPointeur(t.clientX, t.clientY);
+    },
+    { passive: false },
+  );
+  canvas.addEventListener(
+    "touchmove",
+    (e) => {
+      e.preventDefault();
+      const t = e.touches[0];
+      if (t) gererPointeur(t.clientX, t.clientY);
+    },
+    { passive: false },
+  );
+  canvas.addEventListener("touchend", () => {
+    tooltip.style.display = "none";
+  });
 }
 
 function tracerRectArrondi(ctx, x, y, w, h, r) {
@@ -204,7 +232,10 @@ export function dessinerGraphiqueEvolution(canvas, labels, series) {
   for (let i = 0; i < n; i++) {
     let acc = 0;
     const niveaux = [0];
-    series.forEach((s) => { acc += s.data[i] || 0; niveaux.push(acc); });
+    series.forEach((s) => {
+      acc += s.data[i] || 0;
+      niveaux.push(acc);
+    });
     cumuls.push(niveaux);
   }
   const maxTotal = Math.max(...cumuls.map((c) => c[c.length - 1]), 0.1);
@@ -212,12 +243,19 @@ export function dessinerGraphiqueEvolution(canvas, labels, series) {
   const xAt = (i) => marge.gauche + (n === 1 ? zoneW / 2 : (i / (n - 1)) * zoneW);
   const yAt = (v) => marge.haut + zoneH - (v / maxTotal) * zoneH;
 
-  ctx.strokeStyle = "#E4E0D6"; ctx.lineWidth = 1;
-  ctx.font = "10px -apple-system, sans-serif"; ctx.fillStyle = "#8A9490"; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+  ctx.strokeStyle = "#E4E0D6";
+  ctx.lineWidth = 1;
+  ctx.font = "10px -apple-system, sans-serif";
+  ctx.fillStyle = "#8A9490";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
   for (let g = 0; g <= 4; g++) {
     const v = (maxTotal / 4) * g;
     const y = yAt(v);
-    ctx.beginPath(); ctx.moveTo(marge.gauche, y); ctx.lineTo(w - marge.droite, y); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(marge.gauche, y);
+    ctx.lineTo(w - marge.droite, y);
+    ctx.stroke();
     ctx.fillText(v.toFixed(1), marge.gauche - 6, y);
   }
 
@@ -228,16 +266,21 @@ export function dessinerGraphiqueEvolution(canvas, labels, series) {
     ctx.closePath();
     ctx.fillStyle = s.color + "AA";
     ctx.fill();
-    ctx.strokeStyle = s.color; ctx.lineWidth = 1.5;
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
     for (let i = 0; i < n; i++) {
-      const x = xAt(i), y = yAt(cumuls[i][idxSerie + 1]);
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      const x = xAt(i),
+        y = yAt(cumuls[i][idxSerie + 1]);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
     }
     ctx.stroke();
   });
 
-  ctx.fillStyle = "#8A9490"; ctx.textAlign = "center"; ctx.textBaseline = "top";
+  ctx.fillStyle = "#8A9490";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
   labels.forEach((lbl, i) => ctx.fillText(lbl, xAt(i), marge.haut + zoneH + 8));
 }
 
@@ -249,7 +292,9 @@ export function dessinerGraphiqueEvolution(canvas, labels, series) {
 export function dessinerJaugeEngagement(conteneur, pctReductionPlan, totalT, objectif3ansT) {
   const pct = Math.max(0, Math.min(30, pctReductionPlan || 0));
   const fraction = pct / 30;
-  const cx = 150, cy = 118, r = 92;
+  const cx = 150,
+    cy = 118,
+    r = 92;
 
   const pointAt = (frac, radius) => {
     const theta = Math.PI * (1 - frac);
@@ -266,10 +311,19 @@ export function dessinerJaugeEngagement(conteneur, pctReductionPlan, totalT, obj
   const labelR = r + 18;
 
   let statut, classeCouleur;
-  if (pct >= 15) { statut = "Trajectoire 3 ans ou plus"; classeCouleur = "jauge-vert"; }
-  else if (pct >= 5) { statut = "Trajectoire à 1 an (-5%/an)"; classeCouleur = "jauge-vertclair"; }
-  else if (pct > 0) { statut = "Engagement amorcé"; classeCouleur = "jauge-ambre"; }
-  else { statut = "Pas encore d'action engagée"; classeCouleur = "jauge-rouge"; }
+  if (pct >= 15) {
+    statut = "Trajectoire 3 ans ou plus";
+    classeCouleur = "jauge-vert";
+  } else if (pct >= 5) {
+    statut = "Trajectoire à 1 an (-5%/an)";
+    classeCouleur = "jauge-vertclair";
+  } else if (pct > 0) {
+    statut = "Engagement amorcé";
+    classeCouleur = "jauge-ambre";
+  } else {
+    statut = "Pas encore d'action engagée";
+    classeCouleur = "jauge-rouge";
+  }
 
   conteneur.innerHTML = `
     <div class="jauge-engagement">

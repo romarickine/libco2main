@@ -8,11 +8,21 @@
  * ----------------------------------------------------------------------
  */
 import {
-  FE_TRANSPORT, FE_ENERGIE, RATIOS_ENERGIE_PAR_ACTIVITE,
-  FE_NUMERIQUE, FE_REPAS, FE_MONETAIRE, FE_FRET_COLIS, FE_MOBILIER, DUREE_AMORTISSEMENT_ANS,
-  ACTIONS, COST_WEIGHT, FE_DECHETS, FE_DASRI,
-} from "./data/facteurs-emission.js";
-import { emissionsPatienteleParActe } from "./data/zonage-insee.js";
+  FE_TRANSPORT,
+  FE_ENERGIE,
+  RATIOS_ENERGIE_PAR_ACTIVITE,
+  FE_NUMERIQUE,
+  FE_REPAS,
+  FE_MONETAIRE,
+  FE_FRET_COLIS,
+  FE_MOBILIER,
+  DUREE_AMORTISSEMENT_ANS,
+  ACTIONS,
+  COST_WEIGHT,
+  FE_DECHETS,
+  FE_DASRI,
+} from "../../shared/js/data/facteurs-emission.js";
+import { emissionsPatienteleParActe } from "../../shared/js/data/zonage-insee.js";
 
 // Calcule l'empreinte carbone liée aux déplacements professionnels
 // (domicile-travail + visites + congrès/formations).
@@ -181,8 +191,12 @@ export function calculPrescriptions({ active = false, depenseMedicaments = 0, de
 export function calculerBilan(data, famille, zone) {
   const dp = calculDeplacementsPro(data.deplacements);
   const dc = calculDeplacementsPatientele({
-    zone, motifId: famille.motifDeplacement, nbActesAn: data.profil.nbActesAn, partCabinet: data.profil.partCabinet,
-    recoitPublic: data.profil.recoitPublic, aLocal: data.local.aLocal,
+    zone,
+    motifId: famille.motifDeplacement,
+    nbActesAn: data.profil.nbActesAn,
+    partCabinet: data.profil.partCabinet,
+    recoitPublic: data.profil.recoitPublic,
+    aLocal: data.local.aLocal,
   });
   const lo = calculLocal(data.local, famille.id);
   const nu = calculNumerique(data.numerique);
@@ -210,23 +224,41 @@ export function calculerBilan(data, famille, zone) {
   const totalKgHorsPrescriptions = totalKg - presc.total;
 
   const detail = {
-    domTrav: dp.domTrav, visites: dp.visites, congres: dp.congres,
+    domTrav: dp.domTrav,
+    visites: dp.visites,
+    congres: dp.congres,
     patientele: dc.total,
-    localElec: lo.elec, localChauffage: lo.chauffage, localDeporte: lo.deporte,
-    numOrdisFixes: nu.ordisFixes, numOrdisPortables: nu.ordisPortables, numEcrans: nu.ecrans, numUsage: nu.usage,
-    materiel: ma.detailConsommables, grosMateriel: ma.detailGros, mobilier: ma.mobilier,
-    dechets: de.detail, dechetsTotal: de.total,
+    localElec: lo.elec,
+    localChauffage: lo.chauffage,
+    localDeporte: lo.deporte,
+    numOrdisFixes: nu.ordisFixes,
+    numOrdisPortables: nu.ordisPortables,
+    numEcrans: nu.ecrans,
+    numUsage: nu.usage,
+    materiel: ma.detailConsommables,
+    grosMateriel: ma.detailGros,
+    mobilier: ma.mobilier,
+    dechets: de.detail,
+    dechetsTotal: de.total,
     alimentation: al,
-    servicesCompta: se.compta, servicesSousTraitance: se.sousTraitance, fret: se.fret,
-    medicamentsVendus: med.medicaments, parapharmacie: med.parapharmacie,
-    prescriptionsMedicaments: presc.medicaments, prescriptionsActes: presc.actes,
+    servicesCompta: se.compta,
+    servicesSousTraitance: se.sousTraitance,
+    fret: se.fret,
+    medicamentsVendus: med.medicaments,
+    parapharmacie: med.parapharmacie,
+    prescriptionsMedicaments: presc.medicaments,
+    prescriptionsActes: presc.actes,
   };
 
   return {
-    parPoste, totalKg, totalT: totalKg / 1000,
-    totalKgHorsPrescriptions, totalTHorsPrescriptions: totalKgHorsPrescriptions / 1000,
+    parPoste,
+    totalKg,
+    totalT: totalKg / 1000,
+    totalKgHorsPrescriptions,
+    totalTHorsPrescriptions: totalKgHorsPrescriptions / 1000,
     parActe: data.profil.nbActesAn > 0 ? totalKg / data.profil.nbActesAn : 0,
-    detail, nbActesLieuFixe: dc.nbActesLieuFixe,
+    detail,
+    nbActesLieuFixe: dc.nbActesLieuFixe,
   };
 }
 
@@ -244,9 +276,11 @@ export function calculerActions(results, selectedActions) {
     // l'électricité) : detailKey pointe alors vers la bonne valeur dans
     // results.detail plutôt que vers le poste complet, pour ne pas
     // surestimer le gain. À défaut, on retombe sur le poste entier.
-    const kgPoste = isDegres ? (results.detail.localChauffage || 0)
-      : act.detailKey ? (results.detail[act.detailKey] || 0)
-      : (results.parPoste[act.poste] || 0);
+    const kgPoste = isDegres
+      ? results.detail.localChauffage || 0
+      : act.detailKey
+        ? results.detail[act.detailKey] || 0
+        : results.parPoste[act.poste] || 0;
     const sel = selectedActions[act.id] || { checked: false, pct: act.defaultPct, degres: act.defaultDegres };
     let potentielKg;
     if (isDegres) {
@@ -257,8 +291,18 @@ export function calculerActions(results, selectedActions) {
       potentielKg = kgPoste * act.maxReduction * (pctAppliquee / 100);
     }
     const score = potentielKg / COST_WEIGHT[act.cost];
-    return { ...act, kgPoste, checked: sel.checked, pct: sel.pct ?? act.defaultPct, degres: sel.degres ?? act.defaultDegres, potentielKg, score };
-  }).filter((a) => a.kgPoste > 0).sort((a, b) => b.score - a.score);
+    return {
+      ...act,
+      kgPoste,
+      checked: sel.checked,
+      pct: sel.pct ?? act.defaultPct,
+      degres: sel.degres ?? act.defaultDegres,
+      potentielKg,
+      score,
+    };
+  })
+    .filter((a) => a.kgPoste > 0)
+    .sort((a, b) => b.score - a.score);
 }
 
 // Calcule la réduction totale (kgCO2e/an) représentée par les actions

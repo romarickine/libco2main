@@ -6,8 +6,8 @@
 export function getModeColors() {
   const style = getComputedStyle(document.documentElement);
   return {
-    Walk: style.getPropertyValue('--walk').trim(),
-    Bike: style.getPropertyValue('--bike').trim(),
-    Ebike: style.getPropertyValue('--ebike').trim(),
+    Walk: style.getPropertyValue("--walk").trim(),
+    Bike: style.getPropertyValue("--bike").trim(),
+    Ebike: style.getPropertyValue("--ebike").trim(),
   };
 }

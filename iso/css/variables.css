@@ -3,16 +3,18 @@
    (palette verte/bleue extraite du logo), police système native (pas de
    Google Fonts, cohérent avec le reste du site).
    ========================================================================== */
+/* Les valeurs viennent de shared/css/tokens.css (chargé avant ce fichier) :
+   seuls les noms propres à cet outil sont définis ici. */
 :root {
-  --ink: #1B2B26;
-  --paper: #F7F5F0;
-  --panel: #ffffff;
-  --line: #E4E0D6;
+  --ink: var(--lc-encre);
+  --paper: var(--lc-fond);
+  --panel: var(--lc-carte);
+  --line: var(--lc-bordure);
 
-  --moss: #2E673E;
-  --moss-dark: #1f4a2c;
-  --brand-blue: #0071C1;
-  --brand-blue-dark: #005490;
+  --moss: var(--lc-vert);
+  --moss-dark: var(--lc-vert-fonce);
+  --brand-blue: var(--lc-bleu);
+  --brand-blue-dark: var(--lc-bleu-fonce);
 
   /* Couleurs des zones isochrones (marche / vélo / vélo électrique) —
      conservées telles quelles : convention cartographique fonctionnelle
@@ -21,9 +23,9 @@
   --bike: #f4c40f;
   --ebike: #1a73e8;
 
-  --muted: #5C665F;
-  --danger: #B04D4D;
+  --muted: var(--lc-discret);
+  --danger: var(--lc-rouge);
 
-  --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'URW Palladio L', serif;
-  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --serif: var(--lc-police-titres);
+  --sans: var(--lc-police-texte);
 }

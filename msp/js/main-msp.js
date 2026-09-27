@@ -1,178 +1,59 @@
-import { chargerBrouillon, sauvegarderBrouillon, enregistrerBilan, enregistrerBilanBrut, listerBilans } from './stockage-msp.js';
-import { calculBilanMSP } from './calcul-msp.js';
-import { rendreEcran, afficherBulle } from './ui-msp.js';
-import { FE_GROS_MATERIEL_STANDARD } from './data/facteurs-emission.js';
-import { FACTEURS_NUMERIQUE_BRUT, FACTEURS_MOBILIER_UNITE } from './data/facteurs-emission-msp.js';
+/**
+ * main-msp.js — point d'entrée et état de Lib&CO2 MSP
+ * ---------------------------------------------------------------------------
+ * Détient l'état unique du formulaire (structure, praticiens, staff, postes
+ * mutualisés), le sauvegarde en brouillon à chaque modification et
+ * redemande l'affichage. Toutes les modifications d'état passent par les
+ * fonctions exportées ici (majEtat, ajouterPraticien, allerEcran,
+ * calculerEtEnregistrer…) : c'est la seule porte d'entrée de l'état.
+ *
+ * Forme des données et calcul : etat-msp.js. Stockage : stockage-msp.js.
+ * Affichage : ui-msp.js. Utilisé par : index.html (module chargé au démarrage),
+ * et par les modules d'affichage et d'export, qui lisent l'état via getEtat().
+ */
+import {
+  chargerBrouillon,
+  sauvegarderBrouillon,
+  enregistrerBilan,
+  enregistrerBilanBrut,
+  listerBilans,
+} from "./stockage-msp.js";
+import { rendreEcran, afficherBulle } from "./ui-msp.js";
+import {
+  etatInitial,
+  nouveauPraticien,
+  migrerEtat,
+  calculerBilanDepuisEtat,
+  chargerDonneesCalcul,
+} from "./etat-msp.js";
+import { echapperHtml } from "../../shared/js/echappement.js";
+// Réexportée pour ui-msp.js, qui l'importe depuis ce module.
+export { calculerSurfaceDeclaree } from "./etat-msp.js";
 
-// Rassemble les lignes d'immobilisation (numérique, matériel dédié, mobilier)
-// séparément pour chaque praticien et pour le staff admin — nécessaire pour
-// attribuer à chaque praticien sa propre empreinte (et non plus un seul total
-// fusionné). Chaque ligne porte sa propre durée de détention déclarée.
-function collecterLignesImmobilisationParPraticien(praticien) {
-  const lignes = [];
-  const num = praticien.numerique;
-  if (num.nbOrdisFixes) lignes.push({ quantite: num.nbOrdisFixes, facteurUnitaireBrut: FACTEURS_NUMERIQUE_BRUT.ordinateurFixe, dureeDetentionAns: num.dureeDetentionOrdis });
-  if (num.nbOrdisPortables) lignes.push({ quantite: num.nbOrdisPortables, facteurUnitaireBrut: FACTEURS_NUMERIQUE_BRUT.ordinateurPortable, dureeDetentionAns: num.dureeDetentionOrdis });
-  if (num.nbEcransSuppl) lignes.push({ quantite: num.nbEcransSuppl, facteurUnitaireBrut: FACTEURS_NUMERIQUE_BRUT.ecranSupplementaire, dureeDetentionAns: num.dureeDetentionOrdis });
-  for (const m of num.autreMaterielInfo) lignes.push({ quantite: m.valeurAchat, facteurUnitaireBrut: FE_GROS_MATERIEL_STANDARD, dureeDetentionAns: m.dureeDetention });
-  for (const m of praticien.materielDedie) lignes.push({ quantite: m.valeurAchat, facteurUnitaireBrut: FE_GROS_MATERIEL_STANDARD, dureeDetentionAns: m.dureeDetention });
-  for (const m of praticien.mobilierDedie) lignes.push({ quantite: m.nombre, facteurUnitaireBrut: FACTEURS_MOBILIER_UNITE[m.type], dureeDetentionAns: m.dureeDetention });
-  return lignes;
-}
-
-function collecterLignesImmobilisationAdmin(staffAdmin) {
-  const lignes = [];
-  const num = staffAdmin.numerique;
-  if (num.nbOrdisFixes) lignes.push({ quantite: num.nbOrdisFixes, facteurUnitaireBrut: FACTEURS_NUMERIQUE_BRUT.ordinateurFixe, dureeDetentionAns: num.dureeDetentionOrdis });
-  if (num.nbOrdisPortables) lignes.push({ quantite: num.nbOrdisPortables, facteurUnitaireBrut: FACTEURS_NUMERIQUE_BRUT.ordinateurPortable, dureeDetentionAns: num.dureeDetentionOrdis });
-  if (num.nbEcransSuppl) lignes.push({ quantite: num.nbEcransSuppl, facteurUnitaireBrut: FACTEURS_NUMERIQUE_BRUT.ecranSupplementaire, dureeDetentionAns: num.dureeDetentionOrdis });
-  for (const m of num.autreMaterielInfo) lignes.push({ quantite: m.valeurAchat, facteurUnitaireBrut: FE_GROS_MATERIEL_STANDARD, dureeDetentionAns: m.dureeDetention });
-  for (const m of staffAdmin.mobilier) lignes.push({ quantite: m.nombre, facteurUnitaireBrut: FACTEURS_MOBILIER_UNITE[m.type], dureeDetentionAns: m.dureeDetention });
-  return lignes;
-}
-
-export function etatInitial() {
-  return {
-    ecranActuel: 0, // 0 = accueil (première visite uniquement), 1..7 = parcours
-    structureMSP: {
-      nom: '',
-      commune: '',
-      surfaceTotale: null,
-      local: {
-        energieChauffage: 'electricite',
-        consoReelle: null,
-        localDeporte: null,
-        batiment: { anneeConstruction: null, renovationLourde: null }
-      }
-    },
-    praticiens: [], // { id, profession, professionAPL, nbActesAnnuel, partLieuFixe, surfaceDediee,
-                     //   distanceDomicileTravail, modesDomicileTravail: [{mode, part}], joursTravaillesSemaine,
-                     //   semainesTravailleesAn, tourneesDomicile: {kmAnnuel, modes: [{mode,part}]},
-                     //   deplacementsProAnnuels: {kmAnnuel, modes: [{mode,part}]}, materielDedie: [], mobilierDedie: [] }
-    staffAdmin: {
-      etp: null, surfaceDediee: null,
-      numerique: { nbOrdisFixes: 0, nbOrdisPortables: 0, nbEcransSuppl: 0, dureeDetentionOrdis: 5, usageNumerique: 'moyen', autreMaterielInfo: [] },
-      mobilier: [],
-      distanceDomicileTravailMoyenne: null, modeDomicileTravailMoyen: 'voiture_thermique',
-      joursTravaillesSemaine: 5, semainesTravailleesAn: 46
-    },
-    postesMutualises: {
-      materielSecretariat: { montantAnnuelConsommables: 0 },
-      services: { comptaBanqueAssurance: 0, sousTraitance: 0 },
-      fret: { nbColisAn: 0 },
-      materielPartage: [], // équipement lourd utilisé par plusieurs praticiens : { type, valeurAchat, dureeDetention }
-      dechets: { plastique: 0, metal: 0, papier: 0, carton: 0, aluminium: 0, verre: 0, menagers: 0, electronique: 0, dasri: 0 } // kg/semaine, structure entière
-    },
-    emailExport: '',
-    actionsChoix: {},
-    affichageParActe: false,
-    // Le total et le ratio/acte affichés excluent prescriptions et
-    // médicaments/parapharmacie vendus en officine par défaut, pour rester
-    // comparables entre une MSP avec et sans pharmacie/prescripteurs
-    // intégrés — bascule cochable en résultats (voir rendreResultats).
-    inclureMedicaments: false,
-    dernierResultat: null
-  };
-}
-
-// ---------------------------------------------------------------------------
-// MIGRATION — un brouillon sauvegardé dans le navigateur peut dater d'une
-// version antérieure du schéma de données (ex. avant l'ajout des modes de
-// transport multiples ou du numérique par praticien). Sans cette étape, les
-// champs manquants provoquent un plantage au premier rendu. Appelée une
-// seule fois au chargement, elle complète les champs manquants sans jamais
-// écraser les données déjà saisies par l'utilisateur.
-function migrerPraticien(p) {
-  if (!Array.isArray(p.modesDomicileTravail)) {
-    p.modesDomicileTravail = p.modeDomicileTravail
-      ? [{ mode: p.modeDomicileTravail, part: 100 }]
-      : [{ mode: 'voiture_thermique', part: 100 }];
-  }
-  delete p.modeDomicileTravail;
-  if (!p.numerique) p.numerique = { nbOrdisFixes: 0, nbOrdisPortables: 0, nbEcransSuppl: 0, dureeDetentionOrdis: 5, autreMaterielInfo: [] };
-  if (!Array.isArray(p.numerique.autreMaterielInfo)) p.numerique.autreMaterielInfo = [];
-  if (p.numerique.dureeDetentionOrdis == null) p.numerique.dureeDetentionOrdis = 5;
-  if (!p.tourneesDomicile) p.tourneesDomicile = { kmAnnuel: 0, modes: [{ mode: 'voiture_thermique', part: 100 }] };
-  if (!Array.isArray(p.tourneesDomicile.modes)) {
-    p.tourneesDomicile.modes = p.tourneesDomicile.mode
-      ? [{ mode: p.tourneesDomicile.mode, part: 100 }]
-      : [{ mode: 'voiture_thermique', part: 100 }];
-  }
-  delete p.tourneesDomicile.mode;
-  if (!p.deplacementsProAnnuels) p.deplacementsProAnnuels = { kmAnnuel: 0, modes: [{ mode: 'voiture_thermique', part: 100 }] };
-  if (!Array.isArray(p.deplacementsProAnnuels.modes)) p.deplacementsProAnnuels.modes = [{ mode: 'voiture_thermique', part: 100 }];
-  if (!p.alimentation) p.alimentation = { repasParSemaine: 0, pctVegetarien: 0 };
-  if (!p.prescriptions) p.prescriptions = { montantAnnuelMedicaments: 0, actesParamedicauxExternes: [] };
-  if (!Array.isArray(p.prescriptions.actesParamedicauxExternes)) p.prescriptions.actesParamedicauxExternes = [];
-  if (!Array.isArray(p.materielDedie)) p.materielDedie = [];
-  if (!Array.isArray(p.mobilierDedie)) p.mobilierDedie = [];
-  if (p.surfaceDediee == null) p.surfaceDediee = 0;
-  if (p.professionAPL === undefined) p.professionAPL = null;
-  if (!p.pharmacien) p.pharmacien = { caMedicaments: 0, caParapharmacie: 0, coeffAchatPrescriptions: 100 };
-  if (p.pharmacien.coeffAchatPrescriptions == null) p.pharmacien.coeffAchatPrescriptions = 100;
-  return p;
-}
-
-function migrerEtat(donnees) {
-  if (!donnees) return etatInitial();
-  const base = etatInitial();
-  donnees.structureMSP = { ...base.structureMSP, ...donnees.structureMSP };
-  donnees.structureMSP.local = { ...base.structureMSP.local, ...donnees.structureMSP.local };
-  if (!donnees.structureMSP.local.batiment) donnees.structureMSP.local.batiment = { anneeConstruction: null, renovationLourde: null };
-
-  donnees.praticiens = Array.isArray(donnees.praticiens) ? donnees.praticiens.map(migrerPraticien) : [];
-
-  donnees.staffAdmin = { ...base.staffAdmin, ...donnees.staffAdmin };
-  donnees.staffAdmin.numerique = { ...base.staffAdmin.numerique, ...donnees.staffAdmin.numerique };
-  if (!Array.isArray(donnees.staffAdmin.numerique.autreMaterielInfo)) donnees.staffAdmin.numerique.autreMaterielInfo = [];
-  if (!Array.isArray(donnees.staffAdmin.mobilier)) donnees.staffAdmin.mobilier = [];
-
-  donnees.postesMutualises = { ...base.postesMutualises, ...donnees.postesMutualises };
-  if (!Array.isArray(donnees.postesMutualises.materielPartage)) donnees.postesMutualises.materielPartage = [];
-  if (donnees.emailExport == null) donnees.emailExport = '';
-  if (!donnees.actionsChoix) donnees.actionsChoix = {};
-  if (donnees.affichageParActe == null) donnees.affichageParActe = false;
-  if (donnees.inclureMedicaments == null) donnees.inclureMedicaments = false;
-  // 0 = écran d'accueil (valeur légitime, pas une absence de valeur) : on ne
-  // remet à 1 que si le champ est réellement absent (ancien format).
-  if (donnees.ecranActuel == null) donnees.ecranActuel = 1;
-
-  // Un résultat calculé lors d'une session précédente peut avoir une forme
-  // incompatible avec la version actuelle du calcul (ex. nouveau poste
-  // ajouté depuis, comme "prescriptions"). Plutôt que de migrer le résultat
-  // poste par poste (fragile et jamais exhaustif), on l'invalide
-  // systématiquement au chargement : l'utilisateur relance le calcul d'un
-  // clic, et ce type de plantage ne peut plus se reproduire à l'avenir,
-  // quelle que soit l'évolution future du moteur de calcul.
-  donnees.dernierResultat = null;
-
-  return donnees;
-}
-
-let etat = migrerEtat(chargerBrouillon()?.data ?? etatInitial());
-
-export function getEtat() { return etat; }
+const etat = migrerEtat(chargerBrouillon()?.data ?? etatInitial());
 
 /**
- * Vérifie que la somme des surfaces dédiées déclarées (praticiens + staff
- * admin) ne dépasse pas la surface totale de la structure — le résidu
- * "espaces communs" gère déjà le cas inverse (somme < total), mais rien ne
- * protégeait contre une saisie qui dépasse le total (double comptage de
- * surface entre plusieurs praticiens, ou simple erreur de saisie).
+ * Renvoie l'état courant du formulaire (objet unique, voir etatInitial).
+ * À lire seulement : toute modification passe par les fonctions ci-dessous.
+ * @returns {object}
  */
-export function calculerSurfaceDeclaree(etatCourant) {
-  const declaree = etatCourant.praticiens.reduce((s, p) => s + (p.surfaceDediee || 0), 0) + (etatCourant.staffAdmin.surfaceDediee || 0);
-  const totale = etatCourant.structureMSP.surfaceTotale || 0;
-  return { declaree, totale, depassement: totale > 0 && declaree > totale };
+export function getEtat() {
+  return etat;
 }
 
+/**
+ * Modifie une valeur de l'état, la sauvegarde en brouillon et redemande
+ * l'affichage (différé tant qu'un champ texte est en cours de saisie).
+ * @param {string} chemin  Chemin pointé, ex. "structureMSP.commune" ou "praticiens.0.nbActesAnnuel".
+ * @param {unknown} valeur
+ */
 export function majEtat(chemin, valeur) {
   // chemin : ex. "structureMSP.commune" ou "praticiens.0.nbActesAnnuel"
   // Auto-crée les objets intermédiaires manquants (null/undefined) rencontrés
   // en chemin — corrige à la racine toute une classe de plantage ("Cannot
   // set properties of null") qui touchait notamment consoReelle et
   // renovationLourde (initialisés à null tant qu'ils ne sont pas saisis).
-  const parts = chemin.split('.');
+  const parts = chemin.split(".");
   let cible = etat;
   for (let i = 0; i < parts.length - 1; i++) {
     if (cible[parts[i]] == null) cible[parts[i]] = {};
@@ -209,9 +90,12 @@ function demanderRendu(etat) {
     // éléments : la jauge et les gains d'actions ne se mettaient jamais à
     // jour tant qu'on ne cliquait pas ailleurs. On ne fait donc attendre
     // que les types de champs réellement concernés par le risque initial.
-    const typeSensible = actif && (actif.tagName === 'INPUT') && (actif.type === 'text' || actif.type === 'number');
+    const typeSensible = actif && actif.tagName === "INPUT" && (actif.type === "text" || actif.type === "number");
     const champActif = typeSensible && (actif.dataset?.path || actif.dataset?.pathMobilier);
-    if (champActif) { renduEnAttente = setTimeout(tenter, 150); return; }
+    if (champActif) {
+      renduEnAttente = setTimeout(tenter, 150);
+      return;
+    }
     rendreEcran(etat);
   };
   renduEnAttente = setTimeout(tenter, 120);
@@ -227,30 +111,28 @@ function demanderRendu(etat) {
 // faire juste après (ex. cliquer "Ajouter un praticien" puis commencer à
 // choisir sa profession, interrompu par ce re-rendu fantôme).
 function rendreImmediat(etat) {
-  if (renduEnAttente) { clearTimeout(renduEnAttente); renduEnAttente = null; }
+  if (renduEnAttente) {
+    clearTimeout(renduEnAttente);
+    renduEnAttente = null;
+  }
   rendreEcran(etat);
 }
 
+/**
+ * Ajoute un praticien vierge (voir nouveauPraticien), sauvegarde et redessine.
+ */
 export function ajouterPraticien() {
-  etat.praticiens.push({
-    id: crypto.randomUUID(), profession: '', professionAPL: null,
-    nbActesAnnuel: 0, partLieuFixe: 100, surfaceDediee: 0,
-    distanceDomicileTravail: 0, modesDomicileTravail: [{ mode: 'voiture_thermique', part: 100 }],
-    joursTravaillesSemaine: 5, semainesTravailleesAn: 46,
-    tourneesDomicile: { kmAnnuel: 0, modes: [{ mode: 'voiture_thermique', part: 100 }] },
-    deplacementsProAnnuels: { kmAnnuel: 0, modes: [{ mode: 'voiture_thermique', part: 100 }] },
-    alimentation: { repasParSemaine: 0, pctVegetarien: 0 },
-    prescriptions: { montantAnnuelMedicaments: 0, actesParamedicauxExternes: [] },
-    pharmacien: { caMedicaments: 0, caParapharmacie: 0, coeffAchatPrescriptions: 100 },
-    numerique: { nbOrdisFixes: 0, nbOrdisPortables: 0, nbEcransSuppl: 0, dureeDetentionOrdis: 5, autreMaterielInfo: [] },
-    materielDedie: [], mobilierDedie: []
-  });
+  etat.praticiens.push(nouveauPraticien(crypto.randomUUID()));
   sauvegarderBrouillon(etat);
   rendreImmediat(etat);
 }
 
+/**
+ * Retire un praticien, sauvegarde et redessine.
+ * @param {string} id  Identifiant du praticien.
+ */
 export function supprimerPraticien(id) {
-  etat.praticiens = etat.praticiens.filter(p => p.id !== id);
+  etat.praticiens = etat.praticiens.filter((p) => p.id !== id);
   sauvegarderBrouillon(etat);
   rendreImmediat(etat);
 }
@@ -262,7 +144,7 @@ export function supprimerPraticien(id) {
  * ajouterLignePraticien ci-dessous (plus robuste qu'un index qui peut bouger).
  */
 export function ajouterLigne(chemin, item) {
-  const parts = chemin.split('.');
+  const parts = chemin.split(".");
   let cible = etat;
   for (const part of parts) cible = cible[part];
   cible.push(item);
@@ -270,8 +152,13 @@ export function ajouterLigne(chemin, item) {
   rendreImmediat(etat);
 }
 
+/**
+ * Retire l'élément d'indice donné d'un tableau de l'état.
+ * @param {string} chemin  Chemin pointé du tableau, ex. "staffAdmin.mobilier".
+ * @param {number} index
+ */
 export function supprimerLigne(chemin, index) {
-  const parts = chemin.split('.');
+  const parts = chemin.split(".");
   let cible = etat;
   for (const part of parts) cible = cible[part];
   cible.splice(index, 1);
@@ -279,39 +166,68 @@ export function supprimerLigne(chemin, index) {
   rendreImmediat(etat);
 }
 
+/**
+ * Ajoute un élément à un tableau d'un praticien désigné par son identifiant
+ * (plus sûr qu'un indice, qui change quand on supprime un praticien).
+ * @param {string} praticienId
+ * @param {string} champTableau  Ex. "materielDedie", "mobilierDedie".
+ * @param {object} item
+ */
 export function ajouterLignePraticien(praticienId, champTableau, item) {
-  const p = etat.praticiens.find(x => x.id === praticienId);
+  const p = etat.praticiens.find((x) => x.id === praticienId);
   if (!p) return;
   p[champTableau].push(item);
   sauvegarderBrouillon(etat);
   rendreImmediat(etat);
 }
 
+/**
+ * Retire l'élément d'indice donné d'un tableau d'un praticien.
+ * @param {string} praticienId
+ * @param {string} champTableau
+ * @param {number} index
+ */
 export function supprimerLignePraticien(praticienId, champTableau, index) {
-  const p = etat.praticiens.find(x => x.id === praticienId);
+  const p = etat.praticiens.find((x) => x.id === praticienId);
   if (!p) return;
   p[champTableau].splice(index, 1);
   sauvegarderBrouillon(etat);
   rendreImmediat(etat);
 }
 
+/**
+ * Affiche l'écran demandé du parcours.
+ * @param {number} numero  0 = accueil, 1 à 7 = étapes (voir ETAPES dans ui/commun.js).
+ */
 export function allerEcran(numero) {
   etat.ecranActuel = numero;
   rendreImmediat(etat);
 }
 
-export function calculerEtEnregistrer() {
-  const immobilisationsParPraticien = {};
-  for (const p of etat.praticiens) immobilisationsParPraticien[p.id] = collecterLignesImmobilisationParPraticien(p);
-  const immobilisationsAdmin = collecterLignesImmobilisationAdmin(etat.staffAdmin);
-  const lignesMaterielPartage = etat.postesMutualises.materielPartage.map(m => ({
-    quantite: m.valeurAchat, facteurUnitaireBrut: FE_GROS_MATERIEL_STANDARD, dureeDetentionAns: m.dureeDetention
-  }));
-
-  const resultat = calculBilanMSP(etat.structureMSP, etat.praticiens, etat.staffAdmin, etat.postesMutualises, immobilisationsParPraticien, immobilisationsAdmin, lignesMaterielPartage, new Date().getFullYear());
+/**
+ * Calcule le bilan à partir de l'état, l'ajoute à l'historique et redessine.
+ * Avertit si le chiffre d'affaires médicaments déclaré est inférieur à la part
+ * estimée des prescriptions honorées dans l'officine (valeur ramenée à 0).
+ * Charge d'abord, si besoin, les données du calcul (communes, APL).
+ * @returns {Promise<object|null>} Résultat de calculBilanMSP, ou null si les
+ *   données n'ont pas pu être chargées (message affiché).
+ */
+export async function calculerEtEnregistrer() {
+  try {
+    await chargerDonneesCalcul();
+  } catch (erreur) {
+    console.error("Chargement des données de calcul impossible", erreur);
+    afficherBulle(
+      "Les données nécessaires au calcul (communes, accès aux soins) n'ont pas pu être chargées. Vérifiez la connexion puis relancez le calcul.",
+    );
+    return null;
+  }
+  const resultat = calculerBilanDepuisEtat(etat, new Date().getFullYear());
   etat.dernierResultat = resultat;
   if (resultat.alerteMedicamentsNegatif) {
-    afficherBulle("💊 Le chiffre d'affaires médicaments déclaré par le pharmacien est inférieur à la part des prescriptions de la structure estimée honorée dans son officine — ramené à 0 plutôt qu'à une valeur négative. Vérifiez le coefficient d'achat renseigné sur sa fiche, ou le montant du CA.");
+    afficherBulle(
+      "💊 Le chiffre d'affaires médicaments déclaré par le pharmacien est inférieur à la part des prescriptions de la structure estimée honorée dans son officine — ramené à 0 plutôt qu'à une valeur négative. Vérifiez le coefficient d'achat renseigné sur sa fiche, ou le montant du CA.",
+    );
   }
   enregistrerBilan({ structureMSP: etat.structureMSP, resultat });
   rendreImmediat(etat);
@@ -326,39 +242,55 @@ export function calculerEtEnregistrer() {
 export function exporterArchive() {
   return {
     exporteLe: new Date().toISOString(),
-    outil: 'Lib&CO2 MSP',
-    bilans: listerBilans()
+    outil: "Lib&CO2 MSP",
+    bilans: listerBilans(),
   };
 }
 
+/**
+ * Ajoute à l'historique les bilans d'une archive JSON, en ignorant ceux déjà
+ * présents (même identifiant).
+ * @param {{bilans: object[]}} archive  Contenu d'un fichier produit par exporterArchive.
+ * @returns {{importes: number, ignores: number}}
+ * @throws {Error} Si le fichier n'a pas le format attendu.
+ */
 export function importerArchive(archive) {
-  if (!archive || !Array.isArray(archive.bilans)) throw new Error('Fichier d\'archive invalide (format inattendu).');
+  if (!archive || !Array.isArray(archive.bilans)) throw new Error("Fichier d'archive invalide (format inattendu).");
   const existants = listerBilans();
-  const idsExistants = new Set(existants.map(b => b.id));
-  const nouveaux = archive.bilans.filter(b => b.id && !idsExistants.has(b.id));
+  const idsExistants = new Set(existants.map((b) => b.id));
+  const nouveaux = archive.bilans.filter((b) => b.id && !idsExistants.has(b.id));
   for (const bilan of nouveaux) enregistrerBilanBrut(bilan);
   return { importes: nouveaux.length, ignores: archive.bilans.length - nouveaux.length };
 }
 
+/**
+ * Historique des bilans enregistrés, du plus récent au plus ancien.
+ * @returns {object[]}
+ */
 export function getHistoriqueBilans() {
-  return listerBilans().slice().sort((a, b) => new Date(b.horodatage) - new Date(a.horodatage));
+  return listerBilans()
+    .slice()
+    .sort((a, b) => new Date(b.horodatage) - new Date(a.horodatage));
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   try {
     rendreImmediat(etat);
+    // Premier écran affiché : on précharge en arrière-plan les données du
+    // calcul (~2 Mo), pour que le bouton « Calculer » réponde sans attente.
+    setTimeout(() => chargerDonneesCalcul().catch(() => {}), 0);
   } catch (erreur) {
-    console.error('Erreur au chargement de Lib&CO2 MSP :', erreur);
-    const app = document.getElementById('app');
+    console.error("Erreur au chargement de Lib&CO2 MSP :", erreur);
+    const app = document.getElementById("app");
     if (app) {
       app.innerHTML = `<section class="ecran">
         <h2>Un problème est survenu au chargement</h2>
         <p class="aide">Cela peut arriver si des données d'un brouillon précédent ne sont plus compatibles avec la version actuelle de l'outil.</p>
-        <p><strong>Détail technique :</strong> ${erreur.message}</p>
+        <p><strong>Détail technique :</strong> ${echapperHtml(erreur.message)}</p>
         <button data-action="reinitialiser" class="bouton-principal">Réinitialiser et recommencer</button>
       </section>`;
-      app.querySelector('[data-action="reinitialiser"]')?.addEventListener('click', () => {
-        localStorage.removeItem('libco2msp_brouillon_v1');
+      app.querySelector('[data-action="reinitialiser"]')?.addEventListener("click", () => {
+        localStorage.removeItem("libco2msp_brouillon_v1");
         location.reload();
       });
     }

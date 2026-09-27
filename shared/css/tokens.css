@@ -1,0 +1,55 @@
+/**
+ * tokens.css — jetons de design communs à tout le site Lib&CO2
+ * ---------------------------------------------------------------------------
+ * Rôle : définir UNE FOIS la charte graphique (couleurs du logo, neutres,
+ * typographie). Chaque partie du site charge ce fichier en premier, puis sa
+ * propre feuille de variables qui associe ses noms internes à ces jetons :
+ *   cab/css/variables.css, msp/css/variables.css, iso/css/variables.css,
+ *   blog/css/blog.css, et le bloc :root des pages de l'accueil.
+ * Changer une couleur de marque ici la change donc partout.
+ *
+ * Convention : préfixe --lc- (Lib&CO2) pour ne jamais entrer en conflit avec
+ * les noms internes des outils. Ne pas utiliser ces jetons pour des couleurs
+ * fonctionnelles propres à un outil (ex. couleurs des zones de la carte
+ * isochrone) : elles restent dans la feuille de l'outil concerné.
+ *
+ * Accessibilité : les teintes de texte ont été vérifiées au seuil WCAG AA
+ * (contraste ≥ 4,5:1 sur blanc) lors de l'audit du 22/09/2026, sauf
+ * --lc-tres-discret (4,1:1), réservé au texte large (≥ 18 px, ou ≥ 14 px gras).
+ * Deuxième audit (26/09/2026, tests/navigateur/accessibilite.cjs) : texte
+ * ambre, bleu d’information et aides vertes passés au seuil AA.
+ */
+:root {
+  /* Couleurs du logo */
+  --lc-vert: #2e673e;
+  --lc-vert-fonce: #1f4a2c;
+  --lc-vert-fond: #2e673e14; /* vert à 8 % d'opacité, pour les fonds teintés */
+  --lc-bleu: #0071c1;
+  --lc-bleu-fonce: #005490;
+  --lc-bleu-fond: #0071c114;
+
+  /* Accents */
+  --lc-ambre: #c98a2c; /* coût, action ; pas pour du petit texte */
+  --lc-ambre-fond: #c98a2c14;
+  --lc-ambre-texte: #946620; /* variante lisible de l'ambre pour du texte (5,02:1 sur blanc, 4,61:1 sur papier) */
+  --lc-vert-info: #467060; /* aide contextuelle verte (5,6:1 sur blanc) ; remplace #5c8a7a (3,9:1) */
+  --lc-rouge: #b04d4d; /* erreur, investissement (5,23:1 sur blanc) */
+  --lc-bleu-info: #3d6f80; /* information discrète (5,55:1 sur blanc, 5,09:1 sur papier) */
+
+  /* Neutres */
+  --lc-fond: #f7f5f0; /* fond « papier » des pages */
+  --lc-carte: #ffffff;
+  --lc-bordure: #e4e0d6;
+  --lc-bordure-legere: #f0ede4;
+  --lc-encre: #1b2b26; /* titres */
+  --lc-texte: #3e4a45; /* texte courant */
+  --lc-discret: #5c665f; /* texte secondaire (5,96:1) */
+  --lc-tres-discret: #75807a; /* texte large uniquement (4,1:1) */
+
+  /* Typographie : polices système natives, aucune requête externe (RGPD,
+     affichage immédiat). */
+  --lc-police-titres: Georgia, "Iowan Old Style", "Palatino Linotype", "URW Palladio L", serif;
+  --lc-police-texte: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --lc-police-mono:
+    ui-monospace, "SF Mono", "Cascadia Code", "Segoe UI Mono", "Roboto Mono", Consolas, "Courier New", monospace;
+}

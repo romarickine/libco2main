@@ -7,42 +7,13 @@
  * ni accès au stockage ne se fait directement ici.
  * ----------------------------------------------------------------------
  */
-import { FAMILLES } from "./data/facteurs-emission.js";
-import { ZONES } from "./data/zonage-insee.js";
+import { FAMILLES } from "../../shared/js/data/facteurs-emission.js";
+import { ZONES } from "../../shared/js/data/zonage-insee.js";
+import { relierLibelles } from "../../shared/js/accessibilite.js";
 import { calculerBilan, calculerActions, totalReductionPlan } from "./calcul.js";
 import { lireBrouillon, sauvegarderBrouillon, supprimerBrouillon, enregistrerBilan, listerBilans } from "./stockage.js";
 import * as ui from "./ui.js";
-
-// --- État initial du formulaire (une "saisie" complète) ---
-export function etatInitial() {
-  return {
-    profil: {
-      familleId: "sante", metierId: FAMILLES[0].metiers[0],
-      mode: "seul", nbPraticiens: 1, nbSalaries: 0,
-      zoneId: "moyen_pole", villeLabel: "",
-      nbActesAn: 3000, partCabinet: 70, recoitPublic: true,
-    },
-    deplacements: {
-      modeDomTrav: "voiture_thermique", kmAllerJour: 8, joursSemaine: 4.5, semainesAn: 45,
-      kmVisitesAn: 1500, modeVisites: "voiture_thermique",
-      nbCongresAn: 2, modeCongres: "train_tgv", kmCongresAR: 400,
-    },
-    local: {
-      aLocal: true, surface: 40, energieChauffage: "gaz",
-      consoElecConnue: false, consoElecKwh: 0,
-      consoChauffageConnue: false, consoChauffageKwh: 0,
-      localDeporte: false, surfaceDeportee: 15,
-    },
-    numerique: { nbOrdisFixes: 0, nbOrdisPortables: 1, nbEcransSuppl: 1, usage: "moyen" },
-    materiel: {},
-    investissements: { actif: false, mobilier: 0, gros: {} },
-    dechets: { plastique: 0, metal: 0, papier: 0, carton: 0, aluminium: 0, verre: 0, menagers: 0, electronique: 0, dasri: 0 },
-    alimentation: { repasParSemaine: 2, partVegetarienne: 30 },
-    services: { servicesAn: 3000, sousTraitanceAn: 1000, nbColisAn: 20 },
-    pharmacien: { caMedicaments: 0, caParapharmacie: 0 },
-    prescriptions: { active: false, depenseMedicaments: 0, depenseActes: 0 },
-  };
-}
+import { etatInitial, fusionnerAvecDefauts } from "./etat-initial.js";
 
 const ETAPES = ["profil", "deplacements", "local", "numerique", "materiel", "dechets", "alimentation", "services"];
 
@@ -63,8 +34,12 @@ const etat = {
   nomCabinet: "",
 };
 
-function familleActuelle() { return FAMILLES.find((f) => f.id === etat.data.profil.familleId) || FAMILLES[0]; }
-function zoneActuelle() { return ZONES.find((z) => z.id === etat.data.profil.zoneId) || ZONES[0]; }
+function familleActuelle() {
+  return FAMILLES.find((f) => f.id === etat.data.profil.familleId) || FAMILLES[0];
+}
+function zoneActuelle() {
+  return ZONES.find((z) => z.id === etat.data.profil.zoneId) || ZONES[0];
+}
 
 // Recalcule le bilan courant à partir de l'état de saisie.
 function resultatsCourants() {
@@ -88,13 +63,28 @@ function majLive() {
 // investissements.gros) quand la section n'est pas directement à la racine
 // de etat.data.
 function creerCallbacksChamp(getSection) {
-  const appliquer = (f, v) => { getSection()[f] = v; sauvegarderBrouillon(etat.data); };
+  const appliquer = (f, v) => {
+    getSection()[f] = v;
+    sauvegarderBrouillon(etat.data);
+  };
   return {
-    complet: (f, v) => { appliquer(f, v); render(); },
-    live: (f, v) => { appliquer(f, v); majLive(); },
+    complet: (f, v) => {
+      appliquer(f, v);
+      render();
+    },
+    live: (f, v) => {
+      appliquer(f, v);
+      majLive();
+    },
   };
 }
 
+/**
+ * Redessine l'écran courant (accueil, questionnaire, résultats ou historique)
+ * en fournissant à ui.js les données et les fonctions de rappel, puis
+ * restaure le focus et la position du curseur dans le champ en cours de
+ * saisie. Les libellés sont reliés à leurs champs (accessibilité).
+ */
 export function render() {
   const actif = document.activeElement;
   const champActif = actif && actif.dataset ? actif.dataset.field : null;
@@ -117,44 +107,82 @@ export function render() {
     const prescriptions = creerCallbacksChamp(() => etat.data.prescriptions);
 
     ui.renderWizard(racine, {
-      data: etat.data, etapes: ETAPES, etapeIndex: etat.etapeIndex,
-      famille: familleActuelle(), zone: zoneActuelle(), resultats: resultatsCourants(),
-      onChangeProfil: profil.complet, onChangeProfilLive: profil.live,
+      data: etat.data,
+      etapes: ETAPES,
+      etapeIndex: etat.etapeIndex,
+      famille: familleActuelle(),
+      zone: zoneActuelle(),
+      resultats: resultatsCourants(),
+      onChangeProfil: profil.complet,
+      onChangeProfilLive: profil.live,
       onChangeFamille: (fid) => {
         const f = FAMILLES.find((x) => x.id === fid);
-        etat.data.profil.familleId = fid; etat.data.profil.metierId = f.metiers[0];
-        etat.data.materiel = {}; sauvegarderBrouillon(etat.data); render();
+        etat.data.profil.familleId = fid;
+        etat.data.profil.metierId = f.metiers[0];
+        etat.data.materiel = {};
+        sauvegarderBrouillon(etat.data);
+        render();
       },
-      onChangeDeplacements: deplacements.complet, onChangeDeplacementsLive: deplacements.live,
-      onChangeLocal: local.complet, onChangeLocalLive: local.live,
-      onChangeNumerique: numerique.complet, onChangeNumeriqueLive: numerique.live,
-      onChangeMateriel: materiel.complet, onChangeMaterielLive: materiel.live,
-      onChangeInvestissements: investissements.complet, onChangeInvestissementsLive: investissements.live,
-      onChangeGrosMateriel: grosMateriel.complet, onChangeGrosMaterielLive: grosMateriel.live,
-      onChangeAlimentation: alimentation.complet, onChangeAlimentationLive: alimentation.live,
-      onChangeDechets: dechets.complet, onChangeDechetsLive: dechets.live,
-      onChangeServices: services.complet, onChangeServicesLive: services.live,
+      onChangeDeplacements: deplacements.complet,
+      onChangeDeplacementsLive: deplacements.live,
+      onChangeLocal: local.complet,
+      onChangeLocalLive: local.live,
+      onChangeNumerique: numerique.complet,
+      onChangeNumeriqueLive: numerique.live,
+      onChangeMateriel: materiel.complet,
+      onChangeMaterielLive: materiel.live,
+      onChangeInvestissements: investissements.complet,
+      onChangeInvestissementsLive: investissements.live,
+      onChangeGrosMateriel: grosMateriel.complet,
+      onChangeGrosMaterielLive: grosMateriel.live,
+      onChangeAlimentation: alimentation.complet,
+      onChangeAlimentationLive: alimentation.live,
+      onChangeDechets: dechets.complet,
+      onChangeDechetsLive: dechets.live,
+      onChangeServices: services.complet,
+      onChangeServicesLive: services.live,
       onChangePharmacienLive: pharmacien.live,
-      onChangePrescriptions: prescriptions.complet, onChangePrescriptionsLive: prescriptions.live,
-      onPrev: () => { if (etat.etapeIndex > 0) { etat.etapeIndex--; sauvegarderBrouillon(etat.data); render(); } },
+      onChangePrescriptions: prescriptions.complet,
+      onChangePrescriptionsLive: prescriptions.live,
+      onPrev: () => {
+        if (etat.etapeIndex > 0) {
+          etat.etapeIndex--;
+          sauvegarderBrouillon(etat.data);
+          render();
+        }
+      },
       onNext: () => {
-        if (etat.etapeIndex < ETAPES.length - 1) { etat.etapeIndex++; sauvegarderBrouillon(etat.data); render(); }
-        else { etat.ecran = "resultats"; render(); }
+        if (etat.etapeIndex < ETAPES.length - 1) {
+          etat.etapeIndex++;
+          sauvegarderBrouillon(etat.data);
+          render();
+        } else {
+          etat.ecran = "resultats";
+          render();
+        }
       },
     });
   } else if (etat.ecran === "resultats") {
     const resultats = resultatsCourants();
     ui.renderResultats(racine, {
-      famille: familleActuelle(), data: etat.data, resultats,
+      famille: familleActuelle(),
+      data: etat.data,
+      resultats,
       typeGraphique: etat.typeGraphique,
       inclurePrescriptions: etat.inclurePrescriptions,
-      onToggleInclurePrescriptions: () => { etat.inclurePrescriptions = !etat.inclurePrescriptions; render(); },
+      onToggleInclurePrescriptions: () => {
+        etat.inclurePrescriptions = !etat.inclurePrescriptions;
+        render();
+      },
       actionsCalculees: calculerActions(resultats, etat.actionsSelectionnees),
       afficherPlusActions: etat.afficherPlusActions,
       totalReductionPlan: totalReductionPlan(calculerActions(resultats, etat.actionsSelectionnees)),
       typeCertificat: etat.typeCertificat,
       nomCabinet: etat.nomCabinet,
-      onChangeTypeGraphique: (t) => { etat.typeGraphique = t; render(); },
+      onChangeTypeGraphique: (t) => {
+        etat.typeGraphique = t;
+        render();
+      },
       onToggleAction: (id, defaultPct) => {
         const cur = etat.actionsSelectionnees[id] || { checked: false, pct: defaultPct };
         etat.actionsSelectionnees[id] = { ...cur, checked: !cur.checked };
@@ -168,10 +196,16 @@ export function render() {
         etat.actionsSelectionnees[id] = { ...(etat.actionsSelectionnees[id] || {}), checked: true, degres };
         render();
       },
-      onToggleAfficherPlus: () => { etat.afficherPlusActions = !etat.afficherPlusActions; render(); },
-      onChangeNomCabinet: (v) => { etat.nomCabinet = v; },
+      onToggleAfficherPlus: () => {
+        etat.afficherPlusActions = !etat.afficherPlusActions;
+        render();
+      },
+      onChangeNomCabinet: (v) => {
+        etat.nomCabinet = v;
+      },
       onExporterCertificat: async () => {
-        etat.typeCertificat = "loading"; render();
+        etat.typeCertificat = "loading";
+        render();
         try {
           const { exporterCertificat } = await import("./certificat.js");
           // Le certificat doit refléter le même "kgCO2e/acte" que celui
@@ -180,10 +214,15 @@ export function render() {
           // recalculé, le reste du résultat (empreinte totale, etc.) suit
           // sa propre logique déjà existante côté certificat.
           const aDesPrescriptions = etat.data.prescriptions.active && resultats.parPoste.prescriptions > 0;
-          const parActePourCertificat = (!aDesPrescriptions || etat.inclurePrescriptions) ? resultats.parActe
-            : (etat.data.profil.nbActesAn > 0 ? resultats.totalKgHorsPrescriptions / etat.data.profil.nbActesAn : 0);
+          const parActePourCertificat =
+            !aDesPrescriptions || etat.inclurePrescriptions
+              ? resultats.parActe
+              : etat.data.profil.nbActesAn > 0
+                ? resultats.totalKgHorsPrescriptions / etat.data.profil.nbActesAn
+                : 0;
           await exporterCertificat(document.getElementById("canvas-certificat"), {
-            famille: familleActuelle(), profil: etat.data.profil,
+            famille: familleActuelle(),
+            profil: etat.data.profil,
             results: { ...resultats, parActe: parActePourCertificat },
             nomCabinet: etat.nomCabinet,
           });
@@ -196,27 +235,49 @@ export function render() {
       },
       onEnregistrerBilan: () => {
         enregistrerBilan({ data: etat.data, resultats, nomCabinet: etat.nomCabinet });
-        etat.ecran = "historique"; render();
+        etat.ecran = "historique";
+        render();
       },
-      onVoirHistorique: () => { etat.ecran = "historique"; render(); },
-      onBack: () => { etat.ecran = "wizard"; etat.etapeIndex = 0; render(); },
+      onVoirHistorique: () => {
+        etat.ecran = "historique";
+        render();
+      },
+      onBack: () => {
+        etat.ecran = "wizard";
+        etat.etapeIndex = 0;
+        render();
+      },
       onRestart: reinitialiser,
     });
   } else if (etat.ecran === "historique") {
     ui.renderHistorique(racine, {
       bilans: listerBilans(),
-      onSupprimer: (id) => { import("./stockage.js").then((m) => { m.supprimerBilan(id); render(); }); },
-      onBack: () => { etat.ecran = "resultats"; render(); },
+      onSupprimer: (id) => {
+        import("./stockage.js").then((m) => {
+          m.supprimerBilan(id);
+          render();
+        });
+      },
+      onBack: () => {
+        etat.ecran = "resultats";
+        render();
+      },
       onNouveauBilan: reinitialiser,
     });
   }
+
+  relierLibelles(racine);
 
   if (champActif) {
     const nouvelElement = document.querySelector(`[data-field="${champActif}"]`);
     if (nouvelElement) {
       nouvelElement.focus();
       if (selStart !== null && "setSelectionRange" in nouvelElement) {
-        try { nouvelElement.setSelectionRange(selStart, selStart); } catch (e) { /* type d'input sans sélection, ignorer */ }
+        try {
+          nouvelElement.setSelectionRange(selStart, selStart);
+        } catch (e) {
+          /* type d'input sans sélection, ignorer */
+        }
       }
     }
   }
@@ -241,31 +302,22 @@ function reinitialiser() {
   render();
 }
 
-// Fusionne un état sauvegardé (brouillon ou bilan historique) avec les
-// valeurs par défaut actuelles, section par section. Indispensable pour
-// rester compatible avec des données enregistrées par une version
-// antérieure de l'outil : si un nouveau champ ou une nouvelle section est
-// ajoutée au formulaire plus tard, un ancien brouillon ne doit jamais faire
-// planter le rendu faute de cette clé — il doit simplement récupérer sa
-// valeur par défaut. Sans cette fusion, l'écran correspondant reste blanc
-// (erreur JS silencieuse en production).
-function fusionnerAvecDefauts(donneesSauvegardees) {
-  const defauts = etatInitial();
-  const fusion = {};
-  for (const section of Object.keys(defauts)) {
-    fusion[section] = { ...defauts[section], ...(donneesSauvegardees[section] || {}) };
-  }
-  return fusion;
-}
-
 // --- Démarrage : propose de reprendre un brouillon de saisie s'il en existe un ---
 function initialiser() {
   const brouillon = lireBrouillon();
   if (brouillon && brouillon.data) {
     ui.renderPropositionBrouillon(racine, {
       date: brouillon.sauvegardeLe,
-      onReprendre: () => { etat.data = fusionnerAvecDefauts(brouillon.data); etat.ecran = "wizard"; etat.etapeIndex = 0; render(); },
-      onIgnorer: () => { supprimerBrouillon(); render(); },
+      onReprendre: () => {
+        etat.data = fusionnerAvecDefauts(brouillon.data);
+        etat.ecran = "wizard";
+        etat.etapeIndex = 0;
+        render();
+      },
+      onIgnorer: () => {
+        supprimerBrouillon();
+        render();
+      },
     });
   } else {
     render();

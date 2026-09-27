@@ -15,17 +15,24 @@
   <meta property="og:site_name" content="Lib&CO2" />
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="favicon.ico" sizes="any" />
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon/favicon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon/favicon-16x16.png" />
-  <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="shared/assets/favicon/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="shared/assets/favicon/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="shared/assets/favicon/apple-touch-icon.png" />
   <link rel="manifest" href="site.webmanifest" />
+  <link rel="stylesheet" href="shared/css/tokens.css" />
   <style>
     :root {
-      --vert: #2E673E; --vert-fond: #2E673E14; --ambre: #C98A2C;
-      --fond: #F7F5F0; --bordure: #E4E0D6; --encre: #1B2B26;
-      --texte: #3E4A45; --discret: #5C665F;
-      --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
-      --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      /* Noms locaux reliés aux jetons communs (shared/css/tokens.css). */
+      --vert: var(--lc-vert);
+      --vert-fond: var(--lc-vert-fond);
+      --ambre: var(--lc-ambre);
+      --fond: var(--lc-fond);
+      --bordure: var(--lc-bordure);
+      --encre: var(--lc-encre);
+      --texte: var(--lc-texte);
+      --discret: var(--lc-discret);
+      --serif: var(--lc-police-titres);
+      --sans: var(--lc-police-texte);
     }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: var(--sans); background: var(--fond); color: var(--encre); line-height: 1.65; }
@@ -51,7 +58,7 @@
 <body>
   <div class="page-legale">
     <a href="index.html" class="retour">‹ Retour à l'accueil</a>
-    <img src="assets/logo/logo-libco2.png" alt="Lib&CO2" class="logo" />
+    <img src="shared/assets/logo/logo-libco2.png" alt="Lib&CO2" class="logo" />
     <h1>Mentions légales & confidentialité</h1>
     <p class="maj">Dernière mise à jour : septembre 2026. Cette page couvre l'ensemble du site libco2.fr : la page d'accueil, les outils Lib&CO2 Cab, Lib&CO2 MSP et La carte du sans-voiture, et le blog.</p>
 

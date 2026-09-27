@@ -1,11 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Plan du site pour les moteurs de recherche.
+  À tenir à jour à chaque ajout de page publique (notamment chaque nouvel
+  article du blog) : le script `npm run verifier` signale toute page HTML
+  publique absente de ce fichier.
+-->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://libco2.fr/</loc><changefreq>monthly</changefreq><priority>1.0</priority></url>
+
+  <!-- Outils -->
   <url><loc>https://libco2.fr/cab/</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
   <url><loc>https://libco2.fr/msp/</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
   <url><loc>https://libco2.fr/iso/</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
   <url><loc>https://libco2.fr/cab/pourquoi-compter-le-carbone.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://libco2.fr/cab/les-autres-enjeux.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://libco2.fr/mentions-legales.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+
+  <!-- Blog -->
   <url><loc>https://libco2.fr/blog/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://libco2.fr/blog/pareto-priorisation-decarbonation.html</loc><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://libco2.fr/blog/depassement-equilibre-systemes-vivants.html</loc><changefreq>yearly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://libco2.fr/blog/priorisation-dechets-mobilite.html</loc><changefreq>yearly</changefreq><priority>0.7</priority></url>
+
+  <!-- Informations légales -->
+  <url><loc>https://libco2.fr/mentions-legales.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
 </urlset>

@@ -32,7 +32,7 @@
  *   id: string,          // identifiant unique (timestamp + aléatoire)
  *   dateCalcul: string,  // date ISO 8601 du moment où le bilan a été enregistré
  *   nomCabinet: string,  // nom donné par l'utilisateur (facultatif)
- *   data: {...},         // état complet du formulaire (voir main.js: etatInitial)
+ *   data: {...},         // état complet du formulaire (voir etat-initial.js : etatInitial)
  *   resultats: {         // résumé des résultats, pour affichage rapide dans
  *     totalT: number,    // l'historique sans avoir à tout recalculer
  *     parActe: number,
@@ -132,6 +132,10 @@ export function sauvegarderBrouillon(data) {
   }
 }
 
+/**
+ * Relit la saisie en cours, s'il y en a une.
+ * @returns {{data: object, sauvegardeLe: string}|null}
+ */
 export function lireBrouillon() {
   if (!STOCKAGE_OK) return null;
   try {
@@ -142,6 +146,9 @@ export function lireBrouillon() {
   }
 }
 
+/**
+ * Supprime la saisie en cours (après enregistrement du bilan ou sur demande).
+ */
 export function supprimerBrouillon() {
   if (!STOCKAGE_OK) return;
   window.localStorage.removeItem(CLE_BROUILLON);

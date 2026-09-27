@@ -7,8 +7,9 @@
  * renvoie du HTML/des données de graphique en sortie.
  * ----------------------------------------------------------------------
  */
-import { CATEGORIES_META } from "./data/facteurs-emission.js";
+import { CATEGORIES_META } from "../../shared/js/data/facteurs-emission.js";
 import { dessinerGraphiqueEvolution } from "./graphiques.js";
+import { echapperHtml } from "../../shared/js/echappement.js";
 
 // Construit le tableau récapitulatif de l'historique des bilans.
 // Entrée : bilans (tableau trié du plus ancien au plus récent, voir stockage.js)
@@ -30,7 +31,11 @@ export function construireTableauEvolution(bilans) {
   bilans.forEach((b, i) => {
     const precedent = i > 0 ? bilans[i - 1] : null;
     const tr = document.createElement("tr");
-    const date = new Date(b.dateCalcul).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+    const date = new Date(b.dateCalcul).toLocaleDateString("fr-FR", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
 
     let evolutionHtml = "—";
     if (precedent && precedent.resultats.totalT > 0) {
@@ -42,11 +47,11 @@ export function construireTableauEvolution(bilans) {
 
     tr.innerHTML = `
       <td>${date}</td>
-      <td>${b.nomCabinet || "—"}</td>
+      <td>${b.nomCabinet ? echapperHtml(b.nomCabinet) : "—"}</td>
       <td>${b.resultats.totalT.toFixed(2)}</td>
       <td>${b.resultats.parActe.toFixed(1)}</td>
       <td>${evolutionHtml}</td>
-      <td><button class="bouton-lien" data-supprimer-bilan="${b.id}">Supprimer</button></td>
+      <td><button class="bouton-lien" data-supprimer-bilan="${echapperHtml(b.id)}">Supprimer</button></td>
     `;
     tbody.appendChild(tr);
   });
@@ -60,12 +65,14 @@ export function construireTableauEvolution(bilans) {
 // Entrée : bilans, élément <canvas> cible
 export function afficherGraphiqueEvolution(bilans, canvas) {
   if (bilans.length < 2) return false;
-  const labels = bilans.map((b) => new Date(b.dateCalcul).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "2-digit" }));
+  const labels = bilans.map((b) =>
+    new Date(b.dateCalcul).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "2-digit" }),
+  );
   const postes = Object.keys(CATEGORIES_META);
   const series = postes.map((poste) => ({
     label: CATEGORIES_META[poste].label,
     color: CATEGORIES_META[poste].color,
-    data: bilans.map((b) => Math.round((b.resultats.parPoste[poste] || 0) / 1000 * 100) / 100), // en tCO2e
+    data: bilans.map((b) => Math.round(((b.resultats.parPoste[poste] || 0) / 1000) * 100) / 100), // en tCO2e
   }));
   dessinerGraphiqueEvolution(canvas, labels, series);
   return true;

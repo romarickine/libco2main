@@ -4,7 +4,9 @@
 
 // Tobler (1993) : W = 6*exp(-3.5*|pente+0.05|) km/h — référence quasi universelle
 // pour la vitesse de marche en fonction de la pente (ArcGIS, GRASS GIS r.walk).
-export function toblerWalkingSpeed(grade) { return 6 * Math.exp(-3.5 * Math.abs(grade + 0.05)); }
+export function toblerWalkingSpeed(grade) {
+  return 6 * Math.exp(-3.5 * Math.abs(grade + 0.05));
+}
 
 // Modèle hybride, calibré sur une vraie donnée de terrain (montée Place Albert
 // Thomas -> la Métare à Saint-Étienne : ~3.5 km, 150 m D+, ~10.5 km/h à effort
@@ -33,12 +35,26 @@ export function toblerWalkingSpeed(grade) { return 6 * Math.exp(-3.5 * Math.abs(
 // linéaire de Parkin & Rotheram (+1.44 km/h/% pour le vélo classique, +0.48
 // pour le VAE) qui n'a pas été mise en cause.
 function solvePowerSpeed(power, grade) {
-  const mass = 90, g = 9.81, crr = 0.005, cda = 0.4, rho = 1.2;
+  const mass = 90,
+    g = 9.81,
+    crr = 0.005,
+    cda = 0.4,
+    rho = 1.2;
   const linearTerm = crr * mass * g + mass * g * grade;
   const f = (v) => linearTerm * v + 0.5 * rho * cda * v ** 3 - power;
-  let lo = 0, hi = 50;
-  while (f(hi) < 0 && hi < 2000) { hi *= 2; }
-  for (let i = 0; i < 60; i++) { const mid = (lo + hi) / 2; if (f(mid) < 0) { lo = mid; } else { hi = mid; } }
+  let lo = 0,
+    hi = 50;
+  while (f(hi) < 0 && hi < 2000) {
+    hi *= 2;
+  }
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    if (f(mid) < 0) {
+      lo = mid;
+    } else {
+      hi = mid;
+    }
+  }
   return (lo + hi) / 2;
 }
 
@@ -49,8 +65,12 @@ function solvePowerSpeed(power, grade) {
 // cycliste moyen (au-delà, un cycliste réel descend de vélo et le pousse à
 // pied plutôt que de continuer à pédaler à puissance croissante indéfiniment).
 const BIKE_MAX_POWER_CEILING = 250;
-const BIKE_FLAT_POWER = 78.3, BIKE_MAX_POWER = 129.6, BIKE_RAMP_GRADE_REF = 4.3;
-const EBIKE_FLAT_POWER = 111.0, EBIKE_MAX_POWER = 300, EBIKE_RAMP_GRADE_REF = 4.3;
+const BIKE_FLAT_POWER = 78.3,
+  BIKE_MAX_POWER = 129.6,
+  BIKE_RAMP_GRADE_REF = 4.3;
+const EBIKE_FLAT_POWER = 111.0,
+  EBIKE_MAX_POWER = 300,
+  EBIKE_RAMP_GRADE_REF = 4.3;
 
 // Vitesse "vélo à la main" (descendu de vélo, poussé) : reprend la vitesse de
 // marche (Tobler) avec une pénalité modérée pour l'encombrement du vélo poussé.
@@ -58,6 +78,16 @@ function walkingBikeSpeed(grade) {
   return toblerWalkingSpeed(grade) * 0.85;
 }
 
+/**
+ * Vitesse à vélo selon la pente. En montée : modèle physique (roulement,
+ * air, gravité) avec une puissance qui croît avec la pente jusqu'à un
+ * plafond, et bascule sur la marche à côté du vélo si c'est plus rapide ; en
+ * descente : régression de Parkin & Rotheram (2010), plafonnée à 50 km/h.
+ * Calibré à 21,6 km/h sur le plat (25 km/h en VAE) et 10,5 km/h à 4,3 %.
+ * @param {number} grade  Pente (0,05 = 5 %).
+ * @param {boolean} isElectric  true pour un vélo à assistance électrique.
+ * @returns {number} km/h.
+ */
 export function parkinRotheramCyclingSpeed(grade, isElectric) {
   const gradePercent = grade * 100;
   if (gradePercent >= 0) {
@@ -89,9 +119,14 @@ export function parkinRotheramCyclingSpeed(grade, isElectric) {
 // normalement une vitesse déjà calculée par l'IGN tronçon par tronçon, plus
 // fiable qu'une table générique par type de voie).
 export const BDTOPO_DEFAULT_SPEED = {
-  'Type autoroutier': 110, 'Route à 2 chaussées': 90, 'Route à 1 chaussée': 70,
-  'Route empierrée': 30, 'Chemin': 10, 'Bretelle': 50, 'Rond-point': 30,
+  "Type autoroutier": 110,
+  "Route à 2 chaussées": 90,
+  "Route à 1 chaussée": 70,
+  "Route empierrée": 30,
+  Chemin: 10,
+  Bretelle: 50,
+  "Rond-point": 30,
 };
 export const BDTOPO_DEFAULT_SPEED_FALLBACK = 50;
 // Natures exclues pour la voiture (chemins, sentiers, pistes cyclables...)
-export const BDTOPO_CAR_EXCLUDED_NATURES = new Set(['Chemin', 'Sentier', 'Escalier', 'Piste cyclable']);
+export const BDTOPO_CAR_EXCLUDED_NATURES = new Set(["Chemin", "Sentier", "Escalier", "Piste cyclable"]);

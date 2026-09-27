@@ -20,17 +20,26 @@
   <meta name="twitter:description" content="Lib&CO2 conçoit des outils gratuits et open source pour aider les professionnels libéraux à mesurer et réduire leur empreinte carbone." />
   <meta name="twitter:image" content="https://libco2.fr/assets/og-image.png" />
   <link rel="icon" href="favicon.ico" sizes="any" />
-  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon/favicon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon/favicon-16x16.png" />
-  <link rel="apple-touch-icon" href="assets/favicon/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="shared/assets/favicon/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="shared/assets/favicon/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="shared/assets/favicon/apple-touch-icon.png" />
   <link rel="manifest" href="site.webmanifest" />
+  <link rel="stylesheet" href="shared/css/tokens.css" />
   <style>
     :root {
-      --vert: #2E673E; --vert-fond: #2E673E14; --bleu: #0071C1; --ambre: #C98A2C;
-      --fond: #F7F5F0; --carte: #FFFFFF; --bordure: #E4E0D6; --encre: #1B2B26;
-      --texte: #3E4A45; --discret: #5C665F;
-      --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
-      --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      /* Noms locaux reliés aux jetons communs (shared/css/tokens.css). */
+      --vert: var(--lc-vert);
+      --vert-fond: var(--lc-vert-fond);
+      --bleu: var(--lc-bleu);
+      --ambre: var(--lc-ambre);
+      --fond: var(--lc-fond);
+      --carte: var(--lc-carte);
+      --bordure: var(--lc-bordure);
+      --encre: var(--lc-encre);
+      --texte: var(--lc-texte);
+      --discret: var(--lc-discret);
+      --serif: var(--lc-police-titres);
+      --sans: var(--lc-police-texte);
     }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: var(--sans); background: var(--fond); color: var(--encre); line-height: 1.6; }
@@ -67,10 +76,10 @@
     .carte-outil h3 { font-family: var(--serif); font-size: 20px; margin: 0 0 8px; }
     .carte-outil .statut { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; padding: 3px 10px; border-radius: 999px; margin-bottom: 12px; width: fit-content; }
     .statut.dispo { background: var(--vert-fond); color: var(--vert); }
-    .statut.bientot { background: #C98A2C1F; color: var(--ambre); }
+    .statut.bientot { background: #C98A2C1F; color: var(--lc-ambre-texte); }
     .carte-outil p { font-size: 14px; color: var(--texte); flex: 1; margin: 0 0 18px; }
     .carte-outil .lien-outil { font-weight: 700; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
-    .carte-outil.desactive .lien-outil { color: var(--ambre); }
+    .carte-outil.desactive .lien-outil { color: var(--lc-ambre-texte); }
     .disclaimer-co2 { font-size: 12.5px; color: var(--discret); text-align: center; max-width: 640px; margin: 28px auto 0; line-height: 1.55; padding-top: 18px; border-top: 1px solid var(--bordure); }
     .disclaimer-co2 strong { color: var(--texte); }
     .carte-outil img.apercu { width: 100%; border-radius: 10px; border: 1px solid var(--bordure); margin-bottom: 16px; display: block; }
@@ -88,7 +97,7 @@
     /* Portfolio / historique */
     .pf-item { display: grid; grid-template-columns: 110px 1fr; gap: 20px; align-items: start; padding: 22px 0; border-top: 1px solid var(--bordure); }
     .pf-item:first-child { border-top: none; }
-    .pf-annee { font-family: var(--serif); font-size: 20px; color: var(--ambre); font-weight: 700; }
+    .pf-annee { font-family: var(--serif); font-size: 20px; color: var(--lc-ambre-texte); font-weight: 700; }
     .pf-item h3 { margin: 0 0 6px; font-size: 16.5px; }
     .pf-item p { margin: 0 0 8px; font-size: 14px; color: var(--texte); }
     .pf-item a { font-size: 13px; font-weight: 700; }
@@ -126,7 +135,7 @@
   </div>
 
   <div class="hero conteneur">
-    <img src="assets/logo/logo-libco2.png" alt="Lib&CO2" />
+    <img src="shared/assets/logo/logo-libco2.png" alt="Lib&CO2" />
     <div class="badge">🌿 Décarbonation des professions libérales</div>
     <h1>Rendre la mesure carbone accessible à tous les professionnels libéraux</h1>
     <p>Lib&CO2 conçoit des outils gratuits, open source et entièrement sourcés pour aider les cabinets et structures de santé, juridiques, de conseil ou d'architecture à comprendre et réduire leur empreinte environnementale — sans jargon, sans coût, en quelques minutes.</p>

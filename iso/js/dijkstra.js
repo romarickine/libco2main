@@ -5,14 +5,20 @@
 // ==========================================================================
 
 class MinHeap {
-  constructor() { this.items = []; }
-  get size() { return this.items.length; }
+  constructor() {
+    this.items = [];
+  }
+  get size() {
+    return this.items.length;
+  }
   push(priority, value) {
     this.items.push([priority, value]);
     let i = this.items.length - 1;
     while (i > 0) {
       const parent = (i - 1) >> 1;
-      if (this.items[parent][0] <= this.items[i][0]) { break; }
+      if (this.items[parent][0] <= this.items[i][0]) {
+        break;
+      }
       [this.items[parent], this.items[i]] = [this.items[i], this.items[parent]];
       i = parent;
     }
@@ -24,11 +30,18 @@ class MinHeap {
       this.items[0] = last;
       let i = 0;
       for (;;) {
-        const l = 2 * i + 1, r = 2 * i + 2;
+        const l = 2 * i + 1,
+          r = 2 * i + 2;
         let smallest = i;
-        if (l < this.items.length && this.items[l][0] < this.items[smallest][0]) { smallest = l; }
-        if (r < this.items.length && this.items[r][0] < this.items[smallest][0]) { smallest = r; }
-        if (smallest === i) { break; }
+        if (l < this.items.length && this.items[l][0] < this.items[smallest][0]) {
+          smallest = l;
+        }
+        if (r < this.items.length && this.items[r][0] < this.items[smallest][0]) {
+          smallest = r;
+        }
+        if (smallest === i) {
+          break;
+        }
         [this.items[i], this.items[smallest]] = [this.items[smallest], this.items[i]];
         i = smallest;
       }
@@ -54,21 +67,35 @@ export function dijkstra(adjacency, originId, maxCost, distanceOut, delayOut) {
   const dist = new Map();
   const heap = new MinHeap();
   dist.set(originId, 0);
-  if (distanceOut) { distanceOut.set(originId, 0); }
-  if (delayOut) { delayOut.set(originId, 0); }
+  if (distanceOut) {
+    distanceOut.set(originId, 0);
+  }
+  if (delayOut) {
+    delayOut.set(originId, 0);
+  }
   heap.push(0, originId);
   while (heap.size > 0) {
     const [d, u] = heap.pop();
-    if (d > (dist.get(u) ?? Infinity)) { continue; }
-    if (d > maxCost) { continue; }
+    if (d > (dist.get(u) ?? Infinity)) {
+      continue;
+    }
+    if (d > maxCost) {
+      continue;
+    }
     const neighbors = adjacency.get(u) || [];
     for (const { to, cost, length, delay } of neighbors) {
       const nd = d + cost;
-      if (nd > maxCost) { continue; }
+      if (nd > maxCost) {
+        continue;
+      }
       if (nd < (dist.get(to) ?? Infinity)) {
         dist.set(to, nd);
-        if (distanceOut) { distanceOut.set(to, (distanceOut.get(u) ?? 0) + (length ?? 0)); }
-        if (delayOut) { delayOut.set(to, (delayOut.get(u) ?? 0) + (delay ?? 0)); }
+        if (distanceOut) {
+          distanceOut.set(to, (distanceOut.get(u) ?? 0) + (length ?? 0));
+        }
+        if (delayOut) {
+          delayOut.set(to, (delayOut.get(u) ?? 0) + (delay ?? 0));
+        }
         heap.push(nd, to);
       }
     }
