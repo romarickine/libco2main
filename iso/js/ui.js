@@ -478,8 +478,7 @@ export function initUI() {
       }
     } catch (e) {
       console.error(e);
-      statusEl.className = "error";
-      statusEl.textContent = "Erreur pendant le calcul (" + e.message + ").";
+      afficherErreurCalcul(statusEl, e);
     } finally {
       btn.disabled = false;
       progressWrapper.classList.remove("active");
@@ -699,4 +698,32 @@ export function initUI() {
     out.style.display = "block";
     out.innerHTML = html;
   });
+}
+
+// Erreurs dues aux services de l'IGN (réseau coupé, saturation, limite de
+// débit) plutôt qu'au calcul lui-même : message compréhensible pour
+// l'utilisateur, détail technique replié en dessous (utile pour un
+// signalement), et rien d'inséré en HTML brut.
+const MOTIF_ERREUR_SERVICE =
+  /Failed to fetch|NetworkError|Load failed|réseau|saturé|pool error|Unable to obtain connection|HTTP (429|5\d\d)|délai dépassé/i;
+
+/**
+ * Affiche l'échec d'un calcul dans la zone d'état.
+ * @param {HTMLElement} statusEl  Zone d'état (#status).
+ * @param {Error} erreur
+ */
+function afficherErreurCalcul(statusEl, erreur) {
+  statusEl.className = "error";
+  statusEl.textContent = "";
+  const message = document.createElement("p");
+  message.textContent = MOTIF_ERREUR_SERVICE.test(erreur.message)
+    ? "Les services de l\u2019IGN (réseau routier, altitudes) ne répondent pas correctement en ce moment : ils sont probablement saturés. Réessayez dans quelques minutes."
+    : "Erreur pendant le calcul.";
+  const details = document.createElement("details");
+  const resume = document.createElement("summary");
+  resume.textContent = "Détail technique";
+  const texte = document.createElement("p");
+  texte.textContent = erreur.message;
+  details.append(resume, texte);
+  statusEl.append(message, details);
 }

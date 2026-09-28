@@ -54,7 +54,11 @@ const wfsRateLimiter = (() => {
   };
 })();
 
-async function fetchWithRetry(url, options, maxAttempts = 3) {
+// Nouvel essai en cas d'échec réseau (« Failed to fetch »), de limite de
+// débit (429) ou d'erreur serveur (5xx) : les services de la Géoplateforme
+// connaissent des saturations passagères (constatées le 28/09/2026), qui se
+// résorbent en quelques secondes. Attente croissante : 0,5 s, 1 s, 2 s, 4 s.
+async function fetchWithRetry(url, options, maxAttempts = 5) {
   let lastError;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await rateLimiter.wait();
@@ -62,7 +66,7 @@ async function fetchWithRetry(url, options, maxAttempts = 3) {
       const res = await fetch(url, options);
       if (res.status === 429 || res.status === 403) {
         lastError = new Error("HTTP " + res.status);
-        await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+        await new Promise((r) => setTimeout(r, 500 * Math.pow(2, attempt)));
         continue;
       }
       if (!res.ok) {
@@ -71,7 +75,7 @@ async function fetchWithRetry(url, options, maxAttempts = 3) {
       return await res.json();
     } catch (e) {
       lastError = e;
-      await new Promise((r) => setTimeout(r, 300 * (attempt + 1)));
+      await new Promise((r) => setTimeout(r, 500 * Math.pow(2, attempt)));
     }
   }
   throw lastError;
@@ -123,6 +127,19 @@ async function fetchIGNRoadsPage(bbox, pageSize, startIndex, maxAttempts = 6) {
       // intensif prolongé depuis la même IP), il faut attendre nettement
       // plus longtemps avant de retenter, pas juste quelques centaines de ms.
       lastError = new Error("Le WFS IGN a répondu HTTP " + res.status + " (limite de débit). URL : " + url);
+      await new Promise((r) => setTimeout(r, 800 * Math.pow(2, attempt)));
+      continue;
+    }
+    // Saturation passagère du serveur IGN : erreur 5xx, ou erreur 400 dont le
+    // texte trahit un manque de connexions côté serveur (« Unable to obtain
+    // connection … pool error Timeout », constaté le 28/09/2026). Ce n'est
+    // pas une requête invalide : on réessaie avec une attente croissante.
+    const saturationServeur =
+      res.status >= 500 || /Unable to obtain connection|pool error|Timeout waiting/i.test(rawText);
+    if (!res.ok && saturationServeur) {
+      lastError = new Error(
+        "Le WFS IGN est saturé (HTTP " + res.status + "). URL : " + url + " — réponse : " + rawText.slice(0, 300),
+      );
       await new Promise((r) => setTimeout(r, 800 * Math.pow(2, attempt)));
       continue;
     }
