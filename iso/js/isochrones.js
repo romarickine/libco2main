@@ -27,7 +27,20 @@ import { DELAY_BIKE_MIN, DELAY_CAR_MIN_URBAN, DELAY_CAR_MIN_RURAL } from "./conf
 // navigateur ne peint qu'entre deux tâches JS, pas au milieu d'un script en
 // cours d'exécution — seule la dernière valeur posée juste avant une vraie
 // pause asynchrone est visible.
+//
+// Onglet masqué : les navigateurs suspendent requestAnimationFrame et
+// ralentissent fortement les minuteries (setTimeout) des onglets en arrière-
+// plan. Le calcul restait alors figé tant que l'utilisateur ne revenait pas
+// sur l'onglet (constaté le 28/09/2026). Dans ce cas, on rend la main par un
+// MessageChannel, qui n'est pas ralenti : rien à repeindre de toute façon.
 function yieldToBrowser() {
+  if (document.hidden) {
+    return new Promise((resolve) => {
+      const canal = new MessageChannel();
+      canal.port1.onmessage = () => resolve();
+      canal.port2.postMessage(null);
+    });
+  }
   return new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
 }
 
@@ -66,7 +79,7 @@ export async function computeIsochronesNetwork(opts) {
     networkRadiusMeters,
     elevationGridSpacingMeters = 200,
     nodeSnapToleranceMeters = 8,
-    wfsPageSize = 1000,
+    wfsPageSize = 4800,
     onProgress,
   } = opts;
   const bufferRadiusMeters = 40;

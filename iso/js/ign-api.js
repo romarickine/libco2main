@@ -163,59 +163,71 @@ async function fetchIGNRoadsPage(bbox, pageSize, startIndex, maxAttempts = 6) {
     if (json.exceptionText || json.exceptionReport || json.code) {
       throw new Error("Le WFS IGN a renvoyé une exception : " + JSON.stringify(json).slice(0, 500) + ". URL : " + url);
     }
-    return { features: json.features || [], url, rawText };
+    // numberMatched : nombre total de tronçons de l'emprise, annoncé par le
+    // serveur (WFS 2.0) ; permet de ne demander que les pages nécessaires.
+    return { features: json.features || [], numberMatched: json.numberMatched, url, rawText };
   }
   throw new Error(
     lastError ? lastError.message + " (après " + maxAttempts + " tentatives)" : "Échec inconnu du WFS IGN.",
   );
 }
 
-// Récupère le réseau pour une emprise BBOX donnée, par pages parallélisées
-// (par vagues) plutôt qu'enchaînées une par une en série. La taille de page
-// (wfsPageSize, figée dans config.js — WFS_PAGE_SIZE, non réglable depuis
-// l'interface) : la documentation officielle de l'IGN annonce une limite de
-// 30 requêtes/seconde sur le WFS, mais le nombre maximum d'objets par requête
-// ("count") n'est pas documenté précisément et varie selon les couches —
-// 1000 est la valeur sûre la plus couramment documentée pour les flux WFS
-// Géoportail/Géoplateforme.
+// Récupère le réseau pour une emprise BBOX donnée, par pages de wfsPageSize
+// tronçons (WFS_PAGE_SIZE dans config.js : 4 800, sous le maximum de 5 000
+// par requête annoncé par le serveur, contrainte CountDefault de son
+// GetCapabilities, relevée le 28/09/2026).
+// 1) Une première page donne le nombre total de tronçons (numberMatched) :
+//    on ne demande ensuite QUE les pages restantes, par vagues parallèles de
+//    20 au plus (sous la limite documentée de 30 requêtes/s par IP, le débit
+//    étant de plus plafonné par wfsRateLimiter).
+// 2) Si le serveur n'annonce pas ce total, on revient à l'ancienne méthode :
+//    des vagues de 20 pages jusqu'à la première page incomplète.
 async function fetchAllIGNRoadPages(bbox, wfsPageSize, onWaveDone) {
-  const waveSize = 20; // sous la limite documentée de 30 req/s, avec marge de sécurité
-  const maxWaves = 100; // jusqu'à 100 * 20 * wfsPageSize tronçons au total
-  const allFeatures = [];
-  let last = null;
-  let truncated = false;
+  const waveSize = 20;
+  const maxPages = 2000; // garde-fou : 2 000 pages de wfsPageSize tronçons
+  const first = await fetchIGNRoadsPage(bbox, wfsPageSize, 0);
+  const allFeatures = [...first.features];
+  let last = first;
 
-  outer: for (let wave = 0; wave < maxWaves; wave++) {
-    const startIndexes = [];
-    for (let i = 0; i < waveSize; i++) {
-      startIndexes.push((wave * waveSize + i) * wfsPageSize);
-    }
-    const pages = await Promise.all(startIndexes.map((startIndex) => fetchIGNRoadsPage(bbox, wfsPageSize, startIndex)));
-    let waveIncomplete = false;
-    for (const page of pages) {
-      last = page;
-      for (const f of page.features) {
-        allFeatures.push(f);
+  const total = Number(first.numberMatched);
+  if (Number.isFinite(total) && total >= 0) {
+    const pagesNeeded = Math.min(Math.ceil(total / wfsPageSize), maxPages);
+    const truncated = Math.ceil(total / wfsPageSize) > maxPages;
+    for (let start = 1; start < pagesNeeded; start += waveSize) {
+      const indexes = [];
+      for (let p = start; p < Math.min(start + waveSize, pagesNeeded); p++) indexes.push(p * wfsPageSize);
+      const pages = await Promise.all(indexes.map((i) => fetchIGNRoadsPage(bbox, wfsPageSize, i)));
+      for (const page of pages) {
+        last = page;
+        for (const f of page.features) allFeatures.push(f);
       }
-      if (page.features.length < wfsPageSize) {
-        waveIncomplete = true;
-      }
+      if (onWaveDone) onWaveDone(Math.min(1, (start + indexes.length) / pagesNeeded));
     }
-    // Progression estimée (asymptotique) : le nombre total de vagues n'est pas
-    // connu tant que le téléchargement n'est pas fini, donc on approche 100%
-    // sans jamais l'atteindre avant la fin réelle — ça donne un mouvement
-    // continu plutôt qu'une barre figée pendant tout le téléchargement.
-    if (onWaveDone) {
-      onWaveDone(1 - 1 / (1 + (wave + 1) * 0.6));
-    }
-    if (waveIncomplete) {
-      break;
-    }
-    if (wave === maxWaves - 1) {
-      truncated = true;
-    }
+    if (onWaveDone) onWaveDone(1);
+    return { features: allFeatures, last, truncated };
   }
 
+  // Repli : total inconnu.
+  if (first.features.length < wfsPageSize) return { features: allFeatures, last, truncated: false };
+  let truncated = false;
+  for (let wave = 0; ; wave++) {
+    const indexes = [];
+    for (let i = 0; i < waveSize; i++) indexes.push((1 + wave * waveSize + i) * wfsPageSize);
+    const pages = await Promise.all(indexes.map((i) => fetchIGNRoadsPage(bbox, wfsPageSize, i)));
+    let incomplete = false;
+    for (const page of pages) {
+      last = page;
+      for (const f of page.features) allFeatures.push(f);
+      if (page.features.length < wfsPageSize) incomplete = true;
+    }
+    // Progression asymptotique : le total n'est pas connu.
+    if (onWaveDone) onWaveDone(1 - 1 / (1 + (wave + 1) * 0.6));
+    if (incomplete) break;
+    if ((wave + 2) * waveSize >= maxPages) {
+      truncated = true;
+      break;
+    }
+  }
   return { features: allFeatures, last, truncated };
 }
 

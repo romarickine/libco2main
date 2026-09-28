@@ -66,5 +66,8 @@ export const NETWORK_RADIUS_MAX_M = 15000;
 // paramètres WFS.
 export const ELEVATION_GRID_SPACING_M = 70;
 export const NODE_SNAP_TOLERANCE_M = 12;
-export const WFS_PAGE_SIZE = 1000;
+// 4 800 tronçons par requête : sous le maximum de 5 000 annoncé par le
+// serveur WFS de l'IGN (CountDefault, relevé le 28/09/2026). Avec 1 000, un
+// calcul à Saint-Étienne demandait 120 requêtes.
+export const WFS_PAGE_SIZE = 4800;
 export const WFS_MAX_REQUESTS_PER_SECOND = 29;
