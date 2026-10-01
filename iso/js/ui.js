@@ -3,37 +3,12 @@
 // (Leaflet est chargé globalement via <script> dans index.html — pas un
 // module ES6, d'où l'usage direct de la variable globale L.)
 // ==========================================================================
-import { computeIsochronesNetwork, probeJunctionDensity } from "./isochrones.js";
-import { geocodeAddress, fetchAddressSuggestions, setWfsMaxRequestsPerSecond } from "./ign-api.js";
+import { calculerCarte } from "./calcul-carte.js";
+import { geocodeAddress, fetchAddressSuggestions } from "./ign-api.js";
 import { exportMapImage } from "./export-image.js";
 import { echapperHtml } from "../../shared/js/echappement.js";
 import { getModeColors } from "./colors.js";
 import { URBAN_CLASSIFICATION_RADIUS_M, findNearestNode, haversineMeters, estimateCarTime } from "./graph.js";
-import {
-  NETWORK_RADIUS_PROBE_M,
-  RADIUS_TIER_DENSE_MIN_JUNCTIONS,
-  RADIUS_TIER_DENSE_M,
-  RADIUS_TIER_INTERMEDIATE_MIN_JUNCTIONS,
-  RADIUS_TIER_INTERMEDIATE_M,
-  RADIUS_TIER_SPARSE_M,
-  NETWORK_RADIUS_MAX_M,
-  ELEVATION_GRID_SPACING_M,
-  NODE_SNAP_TOLERANCE_M,
-  WFS_PAGE_SIZE,
-  WFS_MAX_REQUESTS_PER_SECOND,
-} from "./config.js";
-
-// Choisit le rayon de réseau initial d'après la densité de carrefours mesurée
-// par la sonde (voir config.js pour la justification des seuils et rayons).
-function pickInitialRadius(junctionCount) {
-  if (junctionCount >= RADIUS_TIER_DENSE_MIN_JUNCTIONS) {
-    return RADIUS_TIER_DENSE_M;
-  }
-  if (junctionCount >= RADIUS_TIER_INTERMEDIATE_MIN_JUNCTIONS) {
-    return RADIUS_TIER_INTERMEDIATE_M;
-  }
-  return RADIUS_TIER_SPARSE_M;
-}
 
 /**
  * Démarre l'interface : carte Leaflet (fonds IGN), formulaire d'adresse avec
@@ -253,15 +228,6 @@ export function initUI() {
       return;
     }
 
-    const opts = {
-      lon,
-      lat,
-      elevationGridSpacingMeters: ELEVATION_GRID_SPACING_M,
-      nodeSnapToleranceMeters: NODE_SNAP_TOLERANCE_M,
-      wfsPageSize: WFS_PAGE_SIZE,
-    };
-    setWfsMaxRequestsPerSecond(WFS_MAX_REQUESTS_PER_SECOND);
-
     btn.disabled = true;
     statusEl.className = "";
     statusEl.textContent = "Démarrage…";
@@ -275,61 +241,17 @@ export function initUI() {
     });
 
     try {
-      const makeOnProgress = (prefix) => (label, fraction) => {
-        statusEl.textContent = prefix + label;
-        const pct = Math.round(fraction * 100);
-        progressInner.style.width = pct + "%";
-        progressPercent.textContent = pct + "%";
-      };
-      const isTruncated = (c) =>
-        c.roadsTruncated || ["Walk", "Bike", "Ebike"].some((k) => c.results[k].possiblyTruncated);
-
-      // Sonde légère (1 km) pour choisir un rayon de départ adapté au
-      // contexte, avant de lancer le téléchargement principal, coûteux.
-      statusEl.textContent = "Analyse du contexte local (sonde " + NETWORK_RADIUS_PROBE_M / 1000 + " km)…";
-      progressInner.style.width = "2%";
-      progressPercent.textContent = "2%";
-      const probeJunctionCount = await probeJunctionDensity(
-        lon,
-        lat,
-        NETWORK_RADIUS_PROBE_M,
-        opts.nodeSnapToleranceMeters,
-        opts.wfsPageSize,
-      );
-      const probeChosenRadiusMeters = pickInitialRadius(probeJunctionCount);
-      let usedRadiusMeters = probeChosenRadiusMeters;
-      let computation = await computeIsochronesNetwork({
-        ...opts,
-        networkRadiusMeters: usedRadiusMeters,
-        onProgress: makeOnProgress(
-          "Contexte : " +
-            probeJunctionCount +
-            " carrefours détectés en 1 km, rayon choisi " +
-            usedRadiusMeters / 1000 +
-            " km — ",
-        ),
-      });
-
-      // Filet de sécurité : si ce rayon adapté au contexte ne suffit
-      // finalement pas (voir config.js — la relation carrefours/distance
-      // n'est pas monotone, un hypercentre ou un rural très épars peuvent
-      // dépasser toutes les estimations), on relance au rayon maximal.
-      let radiusRetried = false;
-      if (isTruncated(computation)) {
-        radiusRetried = true;
-        usedRadiusMeters = NETWORK_RADIUS_MAX_M;
-        computation = await computeIsochronesNetwork({
-          ...opts,
-          networkRadiusMeters: usedRadiusMeters,
-          onProgress: makeOnProgress(
-            "Rayon de " +
-              probeChosenRadiusMeters / 1000 +
-              " km insuffisant, nouvel essai à " +
-              NETWORK_RADIUS_MAX_M / 1000 +
-              " km — ",
-          ),
+      const { computation, probeJunctionCount, probeChosenRadiusMeters, usedRadiusMeters, radiusRetried } =
+        await calculerCarte({
+          lon,
+          lat,
+          onEtat: ({ message, fraction }) => {
+            statusEl.textContent = message;
+            const pct = Math.round(fraction * 100);
+            progressInner.style.width = pct + "%";
+            progressPercent.textContent = pct + "%";
+          },
         });
-      }
 
       const {
         results,

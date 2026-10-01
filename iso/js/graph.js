@@ -8,6 +8,7 @@ import {
   BDTOPO_DEFAULT_SPEED,
   BDTOPO_DEFAULT_SPEED_FALLBACK,
   BDTOPO_CAR_EXCLUDED_NATURES,
+  BDTOPO_WALK_BIKE_EXCLUDED_NATURES,
 } from "./speed-models.js";
 
 const EARTH_RADIUS = 6371000;
@@ -190,13 +191,18 @@ export function isEdgeUsable(edge, mode) {
     }
     return true;
   }
-  // Marche et vélo : autorisés partout, seule limite = vitesse de la voie.
-  // Au-delà de 110 km/h, c'est une voie à caractère autoroutier où la
-  // circulation à pied/vélo est en pratique interdite ou dangereuse ; en
-  // dessous, on suppose un accès possible (bas-côté, trottoir, ou simple
-  // tolérance) plutôt que d'exclure par nature, ce qui coupait parfois le
-  // réseau cyclable à tort (ex. bretelles ou voies rapides urbaines à vitesse
-  // modérée) et bornait artificiellement les zones vélo/VAE au même endroit.
+  // Marche et vélo : voies de type autoroutier exclues par leur NATURE (la
+  // circulation des piétons et des cycles y est interdite d'après le code de la
+  // route ; BD TOPO® les code à 95-100 km/h, donc la seule vitesse ne suffit
+  // pas, voir BDTOPO_WALK_BIKE_EXCLUDED_NATURES). Pour le reste : autorisés
+  // partout, seule limite = vitesse de la voie. Au-delà de 110 km/h, voie à
+  // caractère autoroutier ; en dessous, on suppose un accès possible (bas-côté,
+  // trottoir, ou simple tolérance) plutôt que d'exclure par nature, ce qui
+  // coupait parfois le réseau cyclable à tort (ex. voies rapides urbaines à
+  // vitesse modérée) et bornait artificiellement les zones vélo/VAE.
+  if (BDTOPO_WALK_BIKE_EXCLUDED_NATURES.has(edge.nature)) {
+    return false;
+  }
   const speedKmh = edge.vitesse || BDTOPO_DEFAULT_SPEED[edge.nature] || BDTOPO_DEFAULT_SPEED_FALLBACK;
   return speedKmh <= 110;
 }

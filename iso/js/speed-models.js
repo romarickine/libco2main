@@ -129,4 +129,11 @@ export const BDTOPO_DEFAULT_SPEED = {
 };
 export const BDTOPO_DEFAULT_SPEED_FALLBACK = 50;
 // Natures exclues pour la voiture (chemins, sentiers, pistes cyclables...)
+// Natures interdites à la marche et au vélo : les voies de type autoroutier.
+// Relevé IGN du 01/10/2026 (WFS BDTOPO_V3:troncon_de_route, secteur de
+// Vourles) : ces tronçons sont codés à 95-100 km/h, donc SOUS l'ancien seuil de
+// 110 km/h, et leur attribut acces_pieton est vide (il n'est renseigné, à
+// « Libre », que sur des routes ordinaires) : ni la vitesse ni cet attribut ne
+// permettent de les écarter, seule la nature le fait.
+export const BDTOPO_WALK_BIKE_EXCLUDED_NATURES = new Set(["Type autoroutier"]);
 export const BDTOPO_CAR_EXCLUDED_NATURES = new Set(["Chemin", "Sentier", "Escalier", "Piste cyclable"]);

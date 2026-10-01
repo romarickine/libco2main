@@ -80,6 +80,7 @@ export async function computeIsochronesNetwork(opts) {
     elevationGridSpacingMeters = 200,
     nodeSnapToleranceMeters = 8,
     wfsPageSize = 4800,
+    modes = ["Walk", "Bike", "Ebike"],
     onProgress,
   } = opts;
   const bufferRadiusMeters = 40;
@@ -100,11 +101,22 @@ export async function computeIsochronesNetwork(opts) {
   const delayBike = DELAY_BIKE_MIN;
   const delayCar = urbanContext.isUrban ? DELAY_CAR_MIN_URBAN : DELAY_CAR_MIN_RURAL;
 
-  const modeDefs = [
+  // Plafond de recherche par mode (20/40/60 min) : choix technique pour limiter
+  // la taille du calcul, PAS une définition des zones (une zone = là où le mode
+  // bat la voiture). Hypothèse posée par le porteur du projet (29/09/2026), non
+  // vérifiée sur données réelles : chaque mode perd contre la voiture avant son
+  // plafond, donc le plafond ne coupe aucune zone. Documenté dans la
+  // méthodologie de la page (index.html) et dans README.md.
+  const toutesDefs = [
     { key: "Walk", mode: "walk", maxTime: 20 * 60, carPenalty: delayCar * 60 },
     { key: "Bike", mode: "bike", maxTime: 40 * 60, carPenalty: (delayCar - delayBike) * 60 },
     { key: "Ebike", mode: "ebike", maxTime: 60 * 60, carPenalty: (delayCar - delayBike) * 60 },
   ];
+  // Chaque mode est tracé comme l'anneau qu'il ajoute au précédent : on calcule
+  // donc tous les modes jusqu'au plus lointain demandé (marche, puis vélo, puis
+  // VAE), jamais un mode isolé ; les modes au-delà de celui-là sont évités.
+  const dernier = Math.max(0, ...modes.map((m) => toutesDefs.findIndex((d) => d.key === m)));
+  const modeDefs = toutesDefs.slice(0, dernier + 1);
 
   onProgress("Récupération de l\u2019altimétrie…", 0.22);
   const elevGrid = buildElevationGrid(graph.nodeCoords, elevationGridSpacingMeters);
@@ -149,6 +161,7 @@ export async function computeIsochronesNetwork(opts) {
   const modeTimesByKey = {}; // conservé pour l'outil de diagnostic (inspection d'un point)
   const hexGrid = new HexGrid(lon, lat, bufferRadiusMeters * 1.6, 6);
   const progressPerMode = { Walk: 0.65, Bike: 0.78, Ebike: 0.9 };
+  const zonesVides = () => ({ polygons: [], hexagonCount: 0, possiblyTruncated: false, frontierDiagnosis: null });
 
   for (const mode of modeDefs) {
     onProgress("Calcul — " + mode.key + "…", progressPerMode[mode.key]);
@@ -236,6 +249,11 @@ export async function computeIsochronesNetwork(opts) {
       possiblyTruncated: hexagonsByMode[mode.key + "_truncated"],
       frontierDiagnosis: hexagonsByMode[mode.key + "_frontier"],
     };
+  }
+
+  // Modes non calculés : présents mais vides, pour que l'appelant lise toujours les trois clés.
+  for (const def of toutesDefs) {
+    results[def.key] ??= zonesVides();
   }
 
   onProgress("Terminé.", 1);
