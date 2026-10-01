@@ -25,6 +25,21 @@ function loadTileImage(url) {
   });
 }
 
+// Libellés selon le sens du trajet (computation.direction ; « depart » par défaut).
+const LIBELLES_DIRECTION = {
+  depart: { suffixeTitre: "", legende: "Point de départ", phrase: "" },
+  arrivee: {
+    suffixeTitre: " (j\u2019y vais)",
+    legende: "Destination",
+    phrase: "Ici, les temps sont ceux des trajets VERS l\u2019adresse (j\u2019y vais). ",
+  },
+  "aller-retour": {
+    suffixeTitre: " (aller-retour)",
+    legende: "Adresse (aller-retour)",
+    phrase: "Ici, chaque mode est comparé à la voiture sur l\u2019aller ET le retour cumulés. ",
+  },
+};
+
 // Renvoie l'emprise (ouest, sud, est, nord) à afficher : la plus grande zone
 // calculée (VAE si présente, sinon vélo, sinon marche) et le point de départ,
 // avec une marge pour que le contour de la zone ne touche pas le bord.
@@ -332,7 +347,8 @@ export async function rendreImageCarte(computation, options = {}) {
   ctx.fillStyle = "#1b2420";
   ctx.font = "700 " + S(34) + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   ctx.textBaseline = "middle";
-  const texteTitre = titre || "Carte Isochrone de l\u2019adresse : " + addressLabel;
+  const libelleDirection = LIBELLES_DIRECTION[computation.direction] || LIBELLES_DIRECTION.depart;
+  const texteTitre = titre || "Carte Isochrone de l\u2019adresse : " + addressLabel + libelleDirection.suffixeTitre;
   const logoH = logo ? Math.round(TITLE_H * 0.72) : 0;
   const logoW = logo
     ? Math.round((logoH * (logo.naturalWidth || logo.width)) / (logo.naturalHeight || logo.height))
@@ -384,7 +400,7 @@ export async function rendreImageCarte(computation, options = {}) {
   ctx.arc(legendX + S(22), legendYTop + legendH - S(14), S(6), 0, 2 * Math.PI);
   ctx.fill();
   ctx.font = S(12) + "px -apple-system, sans-serif";
-  ctx.fillText("Point de départ", legendX + S(42), legendYTop + legendH - S(14));
+  ctx.fillText(libelleDirection.legende, legendX + S(42), legendYTop + legendH - S(14));
 
   // --- Encart explicatif (haut droit de la carte) ---
   const infoW = S(420),
@@ -398,7 +414,9 @@ export async function rendreImageCarte(computation, options = {}) {
   ctx.font = S(13) + "px -apple-system, sans-serif";
   ctx.fillStyle = "#3a423c";
   const infoText =
-    "Une carte isochrone montre les zones atteignables plus vite en marchant, à vélo ou à vélo électrique qu\u2019en voiture, depuis un même point de départ. Le calcul suit le vrai réseau de rues (pas à vol d\u2019oiseau) et tient compte du relief réel. Chaque couleur représente ce que ce mode ajoute par rapport au précédent (le vélo électrique inclut généralement le vélo, qui inclut généralement la marche).";
+    "Une carte isochrone montre les zones atteignables plus vite en marchant, à vélo ou à vélo électrique qu\u2019en voiture, depuis un même point de départ. " +
+    libelleDirection.phrase +
+    "Le calcul suit le vrai réseau de rues (pas à vol d\u2019oiseau) et tient compte du relief réel. Chaque couleur représente ce que ce mode ajoute par rapport au précédent (le vélo électrique inclut généralement le vélo, qui inclut généralement la marche).";
   wrapText(ctx, infoText, infoX + S(18), infoYTop + S(52), infoW - S(36), S(19));
 
   onStatus("Génération du fichier…");

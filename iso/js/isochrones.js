@@ -5,6 +5,7 @@ import { dijkstra } from "./dijkstra.js";
 import {
   parseIGNRoadsToGraph,
   buildAdjacency,
+  transposeAdjacency,
   isEdgeUsable,
   findNearestNode,
   computeNodeDegrees,
@@ -61,6 +62,51 @@ export async function probeJunctionDensity(lon, lat, probeRadiusMeters, nodeSnap
   return junctionCount;
 }
 
+export const DIRECTION_DEPART = "depart"; // « j'en pars » : trajets adresse → lieu
+export const DIRECTION_ARRIVEE = "arrivee"; // « j'y vais » : trajets lieu → adresse
+export const DIRECTION_ALLER_RETOUR = "aller-retour"; // somme des deux trajets
+
+/**
+ * Temps de trajet par nœud selon la direction : départ (Dijkstra depuis
+ * l'adresse), arrivée (Dijkstra depuis l'adresse sur le graphe inverse) ou
+ * aller-retour (somme des deux, pour les nœuds atteints dans les deux sens).
+ * Sens uniques, pentes et carrefours sont ceux de chaque trajet.
+ * @param {Map} adjacency @param {*} origine @param {number} plafond  Secondes, par trajet.
+ * @param {string} direction
+ * @param {Map} [distancesOut] @param {Map} [delaysOut]  Diagnostic (cumulés sur l'aller-retour).
+ * @returns {Map}
+ */
+export function tempsSelonDirection(adjacency, origine, plafond, direction, distancesOut, delaysOut) {
+  if (direction === DIRECTION_DEPART) {
+    return dijkstra(adjacency, origine, plafond, distancesOut, delaysOut);
+  }
+  const inverse = transposeAdjacency(adjacency);
+  if (direction === DIRECTION_ARRIVEE) {
+    return dijkstra(inverse, origine, plafond, distancesOut, delaysOut);
+  }
+  const dA = distancesOut ? new Map() : undefined;
+  const eA = delaysOut ? new Map() : undefined;
+  const dR = distancesOut ? new Map() : undefined;
+  const eR = delaysOut ? new Map() : undefined;
+  const aller = dijkstra(adjacency, origine, plafond, dA, eA);
+  const retour = dijkstra(inverse, origine, plafond, dR, eR);
+  const somme = new Map();
+  for (const [n, t] of aller) {
+    const r = retour.get(n);
+    if (r === undefined) {
+      continue;
+    }
+    somme.set(n, t + r);
+    if (distancesOut) {
+      distancesOut.set(n, (dA.get(n) ?? 0) + (dR.get(n) ?? 0));
+    }
+    if (delaysOut) {
+      delaysOut.set(n, (eA.get(n) ?? 0) + (eR.get(n) ?? 0));
+    }
+  }
+  return somme;
+}
+
 /**
  * Calcul complet des zones « plus rapide que la voiture » autour d'un point :
  * réseau routier et relief IGN, plus courts chemins (Dijkstra) pour la
@@ -73,6 +119,9 @@ export async function probeJunctionDensity(lon, lat, probeRadiusMeters, nodeSnap
  *   appliquée, et données de diagnostic.
  */
 export async function computeIsochronesNetwork(opts) {
+  if (![DIRECTION_DEPART, DIRECTION_ARRIVEE, DIRECTION_ALLER_RETOUR].includes(opts.direction ?? DIRECTION_DEPART)) {
+    throw new Error("Direction inconnue : " + opts.direction);
+  }
   const {
     lon,
     lat,
@@ -81,6 +130,7 @@ export async function computeIsochronesNetwork(opts) {
     nodeSnapToleranceMeters = 8,
     wfsPageSize = 4800,
     modes = ["Walk", "Bike", "Ebike"],
+    direction = DIRECTION_DEPART,
     onProgress,
   } = opts;
   const bufferRadiusMeters = 40;
@@ -147,10 +197,13 @@ export async function computeIsochronesNetwork(opts) {
   onProgress("Calcul des temps de trajet voiture (référence)…", 0.55);
   await yieldToBrowser();
   const maxCarCutoff = Math.max(...modeDefs.map((m) => m.maxTime + m.carPenalty));
-  const carAdjacency = buildAdjacency(graph, elevations, "car", nodeDegrees, nodeIncidentEdges);
+  const carAdjacency = buildAdjacency(graph, elevations, "car", nodeDegrees, nodeIncidentEdges, { urbain: urbanContext.isUrban });
   const carDistances = new Map();
   const carJunctionDelays = new Map();
-  const carTimes = dijkstra(carAdjacency, originNode, maxCarCutoff, carDistances, carJunctionDelays);
+  const carTimes = tempsSelonDirection(carAdjacency, originNode, maxCarCutoff, direction, carDistances, carJunctionDelays);
+  // Aller-retour : deux trajets, donc deux fois la pénalité d'accès voiture et
+  // deux fois le comblement à pied jusqu'au réseau voiture (voir estimateCarTime).
+  const facteurTrajets = direction === DIRECTION_ALLER_RETOUR ? 2 : 1;
   // Cellules de 200m : assez fines pour bien localiser le nœud voiture le
   // plus proche d'un chemin/sentier isolé, sans exploser le nombre de
   // compartiments sur un réseau de 6 à 15 km de rayon (voir les paliers RADIUS_TIER_* et NETWORK_RADIUS_MAX_M dans config.js).
@@ -166,17 +219,21 @@ export async function computeIsochronesNetwork(opts) {
   for (const mode of modeDefs) {
     onProgress("Calcul — " + mode.key + "…", progressPerMode[mode.key]);
     await yieldToBrowser();
-    const adjacency = buildAdjacency(graph, elevations, mode.mode, nodeDegrees, nodeIncidentEdges);
-    const modeTimes = dijkstra(adjacency, originNode, mode.maxTime);
+    const adjacency = buildAdjacency(graph, elevations, mode.mode, nodeDegrees, nodeIncidentEdges, { urbain: urbanContext.isUrban });
+    const modeTimes = tempsSelonDirection(adjacency, originNode, mode.maxTime, direction);
     modeTimesByKey[mode.key] = modeTimes;
+    // Parcours de connexité dans le sens de la carte : « j'y vais » remonte le
+    // réseau depuis la destination ; départ et aller-retour partent de l'adresse.
+    const adjacenceParcours = direction === DIRECTION_ARRIVEE ? transposeAdjacency(adjacency) : adjacency;
     const winningNodes = connectedWinningNodes(
-      adjacency,
+      adjacenceParcours,
       modeTimes,
       carTimes,
       carIndex,
       graph.nodeCoords,
       originNode,
-      mode.carPenalty,
+      mode.carPenalty * facteurTrajets,
+      facteurTrajets,
     );
 
     // Détecte si la zone touche le bord du rayon réseau interrogé : signe
@@ -199,7 +256,8 @@ export async function computeIsochronesNetwork(opts) {
       carTimes,
       carIndex,
       graph.nodeCoords,
-      mode.carPenalty,
+      mode.carPenalty * facteurTrajets,
+      facteurTrajets,
     );
 
     const hexagons = {};
@@ -267,6 +325,7 @@ export async function computeIsochronesNetwork(opts) {
     rawFeatureCount: roadsGeoJson.rawFeatureCount,
     urbanContext,
     delayCarApplied: delayCar,
+    direction,
     // Conservé pour l'outil de diagnostic (inspection d'un point) : permet de
     // comparer directement, pour n'importe quel point cliqué, le temps
     // voiture et le temps de chaque mode tels que calculés par le modèle —
@@ -284,6 +343,7 @@ export async function computeIsochronesNetwork(opts) {
       modeTimesByKey,
       modeDefs,
       nodeDegrees,
+      direction,
     },
   };
 }

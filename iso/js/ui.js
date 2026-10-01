@@ -228,6 +228,7 @@ export function initUI() {
       return;
     }
 
+    const direction = document.querySelector('input[name="direction"]:checked')?.value || "depart";
     btn.disabled = true;
     statusEl.className = "";
     statusEl.textContent = "Démarrage…";
@@ -245,6 +246,7 @@ export function initUI() {
         await calculerCarte({
           lon,
           lat,
+          direction,
           onEtat: ({ message, fraction }) => {
             statusEl.textContent = message;
             const pct = Math.round(fraction * 100);
@@ -289,6 +291,7 @@ export function initUI() {
         address: document.getElementById("address").value.trim(),
         diagnostics,
         delayCarApplied,
+        direction,
       };
       document.getElementById("exportSection").classList.add("active");
       document.getElementById("diagnosticSection").classList.add("active");

@@ -12,6 +12,11 @@ import {
 } from "./speed-models.js";
 
 const EARTH_RADIUS = 6371000;
+// Vitesse (km/h) en deçà de laquelle une rue est considérée « calme » : le vélo
+// peut y circuler à contresens du sens unique (hypothèse, voir sensUniqueApplique).
+const SEUIL_RUE_CALME_KMH = 30;
+// En contexte urbain : au-delà de cette vitesse, voie rapide, sens unique maintenu pour le vélo (seuil de cadrage, non sourcé).
+const SEUIL_VOIE_RAPIDE_URBAINE_KMH = 50;
 /**
  * Distance à vol d'oiseau entre deux points (formule de haversine, Terre
  * sphérique de rayon 6 371 km).
@@ -368,6 +373,39 @@ function surfaceFactor(nature, mode) {
 }
 
 /**
+ * Le sens unique d'un tronçon s'impose-t-il à ce mode ? Voiture : toujours.
+ * Marche : jamais. Vélo et VAE : oui sur les ronds-points ; ailleurs, oui
+ * seulement au-delà d'un seuil de vitesse : SEUIL_RUE_CALME_KMH (30) hors
+ * contexte urbain, SEUIL_VOIE_RAPIDE_URBAINE_KMH (50) en contexte urbain, où le
+ * vélo est supposé pouvoir prendre les sens uniques du centre-ville (choix du
+ * porteur du projet, 01/10/2026 ; le contexte urbain est celui détecté autour
+ * de l'adresse, appliqué à toute la carte). Cette
+ * tolérance est une HYPOTHÈSE de cadrage (choix du porteur du projet, 01/10/2026) :
+ * la BD TOPO® n'a pas d'attribut « double sens cyclable » dans les données
+ * utilisées, et vitesse_moyenne_vl est une vitesse moyenne, pas une limitation.
+ * @param {object} edge @param {string} mode
+ * @returns {boolean}
+ */
+export function sensUniqueApplique(edge, mode, urbain = false) {
+  if (edge.sens !== "Sens direct" && edge.sens !== "Sens inverse") {
+    return false;
+  }
+  if (mode === "car") {
+    return true;
+  }
+  if (mode !== "bike" && mode !== "ebike") {
+    return false;
+  }
+  if (edge.nature === "Rond-point") {
+    return true;
+  }
+  const vitesse = edge.vitesse || BDTOPO_DEFAULT_SPEED[edge.nature] || BDTOPO_DEFAULT_SPEED_FALLBACK;
+  // Contexte urbain : le vélo peut prendre les sens uniques, sauf voies rapides.
+  const seuil = urbain ? SEUIL_VOIE_RAPIDE_URBAINE_KMH : SEUIL_RUE_CALME_KMH;
+  return vitesse > seuil;
+}
+
+/**
  * Construit la liste d'adjacence d'un mode : coût de chaque tronçon en
  * secondes (vitesse selon la pente et le revêtement), sens de circulation,
  * pénalités de carrefour.
@@ -375,7 +413,7 @@ function surfaceFactor(nature, mode) {
  * @param {string} mode @param {Map} nodeDegrees @param {Map} nodeIncidentEdges
  * @returns {Map<number, Array<{to: number, cost: number, length: number, delay: number}>>}
  */
-export function buildAdjacency(graph, elevations, mode, nodeDegrees, nodeIncidentEdges) {
+export function buildAdjacency(graph, elevations, mode, nodeDegrees, nodeIncidentEdges, { urbain = false } = {}) {
   const adjacency = new Map();
   const junctionDelay = JUNCTION_DELAY_SECONDS[mode] || 0;
   const otherEndpoint = (e, nodeId) => (e.from === nodeId ? e.to : e.from);
@@ -447,10 +485,12 @@ export function buildAdjacency(graph, elevations, mode, nodeDegrees, nodeInciden
     }
 
     // Le sens de circulation (SENS) de la BD TOPO® est défini pour les
-    // véhicules légers uniquement — on ne l'applique donc qu'à la voiture ;
-    // la marche et le vélo restent supposés bidirectionnels sur chaque tronçon.
-    const forwardOnly = mode === "car" && edge.sens === "Sens direct";
-    const backwardOnly = mode === "car" && edge.sens === "Sens inverse";
+    // véhicules légers. Il s'applique à la voiture et, depuis le 01/10/2026,
+    // au vélo et au VAE (voir sensUniqueApplique) ; la marche reste
+    // bidirectionnelle sur chaque tronçon.
+    const oneWay = sensUniqueApplique(edge, mode, urbain);
+    const forwardOnly = oneWay && edge.sens === "Sens direct";
+    const backwardOnly = oneWay && edge.sens === "Sens inverse";
     if (!backwardOnly) {
       addDirected(edge.from, edge.to, costForward, edge.length, edge);
     }
@@ -459,6 +499,26 @@ export function buildAdjacency(graph, elevations, mode, nodeDegrees, nodeInciden
     }
   }
   return adjacency;
+}
+
+/**
+ * Graphe inverse : chaque arc u→v devient v→u, avec le même coût. Un Dijkstra
+ * lancé depuis la destination sur ce graphe donne, pour chaque nœud, le temps
+ * du trajet nœud→destination (pénalités de carrefour et sens uniques inclus).
+ * @param {Map} adjacency
+ * @returns {Map}
+ */
+export function transposeAdjacency(adjacency) {
+  const inverse = new Map();
+  for (const [from, voisins] of adjacency) {
+    for (const { to, cost, length, delay } of voisins) {
+      if (!inverse.has(to)) {
+        inverse.set(to, []);
+      }
+      inverse.get(to).push({ to: from, cost, length, delay });
+    }
+  }
+  return inverse;
 }
 
 /**
@@ -592,7 +652,7 @@ const CAR_GAP_MAX_SEARCH_RING = 25; // ~5 km avec des cellules de 200 m
  * revient à l'infini : au-delà de cette distance, l'hypothèse "garé tout
  * près" cesse d'être raisonnable.
  */
-export function estimateCarTime(carTimes, carIndex, nodeId, nodeCoords) {
+export function estimateCarTime(carTimes, carIndex, nodeId, nodeCoords, gapFactor = 1) {
   const direct = carTimes.get(nodeId);
   if (direct !== undefined) {
     return direct;
@@ -602,7 +662,7 @@ export function estimateCarTime(carTimes, carIndex, nodeId, nodeCoords) {
   if (!nearest) {
     return Infinity;
   }
-  return nearest.time + nearest.distanceMeters / CAR_GAP_FALLBACK_SPEED_MS;
+  return nearest.time + (gapFactor * nearest.distanceMeters) / CAR_GAP_FALLBACK_SPEED_MS;
 }
 
 /**
@@ -621,13 +681,14 @@ export function connectedWinningNodes(
   nodeCoords,
   originNode,
   carPenalty,
+  gapFactor = 1,
 ) {
   const nodeWins = (n) => {
     const mt = modeTimes.get(n);
     if (mt === undefined) {
       return false;
     }
-    const carTime = estimateCarTime(carTimes, carIndex, n, nodeCoords) + carPenalty;
+    const carTime = estimateCarTime(carTimes, carIndex, n, nodeCoords, gapFactor) + carPenalty;
     return mt < carTime;
   };
   const visited = new Set([originNode]);
@@ -657,7 +718,17 @@ export function connectedWinningNodes(
  * partir de là. Permet de distinguer une vraie limite face à la voiture d'une
  * simple coupure du réseau disponible.
  */
-export function analyzeFrontier(graph, mode, winningNodes, modeTimes, carTimes, carIndex, nodeCoords, carPenalty) {
+export function analyzeFrontier(
+  graph,
+  mode,
+  winningNodes,
+  modeTimes,
+  carTimes,
+  carIndex,
+  nodeCoords,
+  carPenalty,
+  gapFactor = 1,
+) {
   const counts = { excludedByFilter: 0, beyondTimeBudget: 0, carWins: 0, other: 0 };
   const seenPairs = new Set();
   for (const edge of graph.edges) {
@@ -683,7 +754,7 @@ export function analyzeFrontier(graph, mode, winningNodes, modeTimes, carTimes, 
       counts.beyondTimeBudget++;
       continue;
     }
-    const carTime = estimateCarTime(carTimes, carIndex, outsideNode, nodeCoords) + carPenalty;
+    const carTime = estimateCarTime(carTimes, carIndex, outsideNode, nodeCoords, gapFactor) + carPenalty;
     if (mt >= carTime) {
       counts.carWins++;
     } else {
