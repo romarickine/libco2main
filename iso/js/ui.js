@@ -462,7 +462,12 @@ export function initUI() {
 
     const straightLineFromOrigin = haversineMeters(lastComputation.lon, lastComputation.lat, nodeLon, nodeLat);
     const carDirect = carTimes.get(nearestNode);
-    const carEffective = estimateCarTime(carTimes, carIndex, nearestNode, graph.nodeCoords);
+    // Aller-retour : deux trajets, donc deux accès (vélo ou stationnement) et
+    // deux comblements à pied jusqu'au réseau voiture, comme dans le calcul
+    // des zones (facteurTrajets, isochrones.js).
+    const allerRetour = lastComputation.direction === "aller-retour";
+    const facteurTrajets = allerRetour ? 2 : 1;
+    const carEffective = estimateCarTime(carTimes, carIndex, nearestNode, graph.nodeCoords, facteurTrajets);
     const carIsFallback = carDirect === undefined && carEffective !== Infinity;
     const carIsUnreachable = carEffective === Infinity;
     const carNetworkDistance = carDistances.get(nearestNode); // distance réellement parcourue par la voiture (le long du chemin le plus rapide trouvé), pas à vol d'oiseau
@@ -476,14 +481,29 @@ export function initUI() {
     // délai_mode = délai_voiture - carPenalty. Pour la marche, carPenalty =
     // délai_voiture (pas de délai propre) ; pour vélo/VAE, carPenalty =
     // délai_voiture - délai_vélo.
-    const delayCarSeconds = lastComputation.delayCarApplied * 60;
-    let html = "<strong>Temps jusqu’à ce point</strong> (" + snapDistance.toFixed(0) + " m du point cliqué)<br>";
+    const delayCarSeconds = lastComputation.delayCarApplied * 60 * facteurTrajets;
+    const titres = {
+      depart: "Temps de l’adresse jusqu’à ce point",
+      arrivee: "Temps de ce point jusqu’à l’adresse",
+      "aller-retour": "Temps aller + retour (adresse → ce point → adresse)",
+    };
+    let html =
+      "<strong>" +
+      (titres[lastComputation.direction] || titres.depart) +
+      "</strong> (" +
+      snapDistance.toFixed(0) +
+      " m du point cliqué)<br>";
+    const enTete = allerRetour
+      ? ["Trajets aller + retour", "+ Accès (×2)", "Total aller-retour"]
+      : ["Trajet", "+ Accès", "Total porte-à-porte"];
     html +=
-      '<table data-style="width:100%; margin-top:4px;"><tr><th data-style="text-align:left;">Mode</th><th data-style="text-align:left;">Trajet</th><th data-style="text-align:left;">+ Accès</th><th data-style="text-align:left;">Total porte-à-porte</th></tr>';
+      '<table data-style="width:100%; margin-top:4px;"><tr><th data-style="text-align:left;">Mode</th>' +
+      enTete.map((t) => '<th data-style="text-align:left;">' + t + "</th>").join("") +
+      "</tr>";
     const carTotalSeconds = carIsUnreachable ? null : carEffective + delayCarSeconds;
     for (const mode of modeDefs) {
       const mt = modeTimesByKey[mode.key].get(nearestNode);
-      const ownDelaySeconds = delayCarSeconds - mode.carPenalty;
+      const ownDelaySeconds = delayCarSeconds - mode.carPenalty * facteurTrajets;
       if (mt === undefined) {
         html += "<tr><td>" + (MODE_LABELS[mode.key] || mode.key) + '</td><td colspan="3">hors budget-temps</td></tr>';
         continue;
@@ -513,14 +533,18 @@ export function initUI() {
         " min" +
         (carIsFallback ? " (estimé)" : "") +
         "</td><td>+" +
-        lastComputation.delayCarApplied.toFixed(1) +
+        (delayCarSeconds / 60).toFixed(1) +
         " min</td><td><strong>" +
         (carTotalSeconds / 60).toFixed(1) +
         " min</strong></td></tr>";
     }
     html += "</table>";
     html +=
-      '<p class="hint" data-style="margin-top:4px;">« Accès » = temps pour détacher/rattacher son vélo, ou trouver une place et se garer (plus long en ville). ✅ = ce mode arrive plus vite que la voiture porte-à-porte à ce point précis.</p>';
+      '<p class="hint" data-style="margin-top:4px;">« Accès » = temps pour détacher/rattacher son vélo, ou trouver une place et se garer (plus long en ville)' +
+      (allerRetour ? ", compté une fois à l’aller et une fois au retour" : "") +
+      ". ✅ = ce mode " +
+      (allerRetour ? "fait l’aller-retour plus vite" : "arrive plus vite") +
+      " que la voiture porte-à-porte à ce point précis.</p>";
 
     // --- Détails techniques : repliés par défaut (usage interne, comparaison
     // à une source externe type Google Maps, diagnostic d'un détour ou d'une
@@ -606,7 +630,7 @@ export function initUI() {
       '<br><br><table data-style="width:100%;"><tr><th data-style="text-align:left;">Mode</th><th data-style="text-align:left;">Temps</th><th data-style="text-align:left;">Seuil à battre</th><th data-style="text-align:left;">Résultat</th></tr>';
     for (const mode of modeDefs) {
       const mt = modeTimesByKey[mode.key].get(nearestNode);
-      const seuil = carEffective === Infinity ? Infinity : carEffective + mode.carPenalty;
+      const seuil = carEffective === Infinity ? Infinity : carEffective + mode.carPenalty * facteurTrajets;
       const label = mt === undefined ? "hors budget-temps" : (mt / 60).toFixed(1) + " min";
       const seuilLabel = seuil === Infinity ? "—" : (seuil / 60).toFixed(1) + " min";
       const verdict = mt === undefined ? "—" : mt < seuil ? "✅ gagne" : "❌ perd";
