@@ -154,7 +154,9 @@ async function fetchWithTimeout(url, options, timeoutMs) {
 // Seuls les attributs lus par graph.js (parseIGNRoadsToGraph), plus la
 // géométrie (3D : elle porte l'altitude de chaque sommet, voir isochrones.js).
 // Relevé du 06/10/2026 sur 50 tronçons : 22,5 Ko au lieu de 147,6 Ko (-85 %).
-const WFS_ATTRIBUTS = "nature,sens_de_circulation,vitesse_moyenne_vl,acces_vehicule_leger,importance,prive,geometrie";
+// cleabs : identifiant unique du tronçon BD TOPO®, pour reconnaître un même
+// tronçon renvoyé par deux emprises voisines (voir etendreIGNRoads).
+const WFS_ATTRIBUTS = "cleabs,nature,sens_de_circulation,vitesse_moyenne_vl,acces_vehicule_leger,importance,prive,geometrie";
 
 // Cache de session des pages WFS (même URL = même réponse) : une nouvelle
 // tentative ou un second calcul à la même adresse ne retélécharge rien.
@@ -311,60 +313,140 @@ async function fetchAllIGNRoadPages(bbox, wfsPageSize, onWaveDone) {
   return { features: allFeatures, last, truncated };
 }
 
+/** Emprise carrée (degrés) d'un rayon autour d'un point. */
+export function empriseCarree(lon, lat, radiusMeters) {
+  const dLat = radiusMeters / 111320;
+  const dLon = radiusMeters / (111320 * Math.cos((lat * Math.PI) / 180));
+  return { minLon: lon - dLon, minLat: lat - dLat, maxLon: lon + dLon, maxLat: lat + dLat };
+}
+
+function texteBbox(e, ordreAxes) {
+  return ordreAxes === "latlon"
+    ? e.minLat + "," + e.minLon + "," + e.maxLat + "," + e.maxLon
+    : e.minLon + "," + e.minLat + "," + e.maxLon + "," + e.maxLat;
+}
+
+/** Identifiant d'un tronçon : cleabs BD TOPO®, à défaut l'identifiant WFS. */
+function identifiantTroncon(f) {
+  return (f.properties && f.properties.cleabs) || f.id || null;
+}
+
+/**
+ * Supprime les doublons (même tronçon renvoyé par deux emprises) et range les
+ * tronçons par identifiant. Le rangement rend le graphe indépendant de l'ordre
+ * de téléchargement (la fusion des carrefours garde le premier point vu) :
+ * réseau complet ou réseau étendu par anneau donnent exactement le même graphe.
+ * Tronçons sans identifiant : gardés tels quels, en fin de liste.
+ */
+export function fusionnerTroncons(...listes) {
+  const parId = new Map();
+  const sansId = [];
+  for (const liste of listes) {
+    for (const f of liste) {
+      const id = identifiantTroncon(f);
+      if (id == null) sansId.push(f);
+      else if (!parId.has(id)) parId.set(id, f);
+    }
+  }
+  const ids = [...parId.keys()].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  return [...ids.map((id) => parId.get(id)), ...sansId];
+}
+
 /**
  * Télécharge les tronçons BD TOPO® dans un carré autour d'un point (WFS IGN,
  * par pages), en essayant les deux ordres d'axes possibles du service.
  * @param {number} lon @param {number} lat @param {number} radiusMeters
  * @param {number} wfsPageSize  Tronçons par requête.
  * @param {(fraction: number) => void} [onWaveDone]  Progression, de 0 à 1.
- * @returns {Promise<{type: string, features: object[], truncated: boolean, rawFeatureCount: number}>}
+ * @returns {Promise<{type: string, features: object[], truncated: boolean, rawFeatureCount: number,
+ *   emprise: object, ordreAxes: string}>}  emprise et ordreAxes servent à étendre ce réseau (etendreIGNRoads).
  * @throws {Error} Si le service ne renvoie aucun tronçon.
  */
 export async function fetchIGNRoads(lon, lat, radiusMeters, wfsPageSize, onWaveDone) {
-  const dLat = radiusMeters / 111320;
-  const dLon = radiusMeters / (111320 * Math.cos((lat * Math.PI) / 180));
-  const minLon = lon - dLon,
-    maxLon = lon + dLon,
-    minLat = lat - dLat,
-    maxLat = lat + dLat;
+  const emprise = empriseCarree(lon, lat, radiusMeters);
 
   // L'ordre des axes attendu par BBOX avec SRSNAME=EPSG:4326 varie selon les
   // implémentations WFS (lon,lat "GIS classique" vs lat,lon "ISO strict") —
   // on essaie les deux avant d'abandonner, plutôt que de deviner à l'aveugle.
-  const bboxLonLat = minLon + "," + minLat + "," + maxLon + "," + maxLat;
-  const bboxLatLon = minLat + "," + minLon + "," + maxLat + "," + maxLon;
-
-  const attemptLonLat = await fetchAllIGNRoadPages(bboxLonLat, wfsPageSize, onWaveDone);
-  if (attemptLonLat.features.length > 0) {
-    return {
-      type: "FeatureCollection",
-      features: attemptLonLat.features,
-      truncated: attemptLonLat.truncated,
-      rawFeatureCount: attemptLonLat.features.length,
-    };
-  }
-
-  const attemptLatLon = await fetchAllIGNRoadPages(bboxLatLon, wfsPageSize, onWaveDone);
-  if (attemptLatLon.features.length > 0) {
-    return {
-      type: "FeatureCollection",
-      features: attemptLatLon.features,
-      truncated: attemptLatLon.truncated,
-      rawFeatureCount: attemptLatLon.features.length,
-    };
+  const essais = [];
+  for (const ordreAxes of ["lonlat", "latlon"]) {
+    const essai = await fetchAllIGNRoadPages(texteBbox(emprise, ordreAxes), wfsPageSize, onWaveDone);
+    essais.push(essai);
+    if (essai.features.length > 0) {
+      const features = fusionnerTroncons(essai.features);
+      return {
+        type: "FeatureCollection",
+        features,
+        truncated: essai.truncated,
+        rawFeatureCount: features.length,
+        emprise,
+        ordreAxes,
+      };
+    }
   }
 
   throw new Error(
     "Le WFS IGN a répondu sans erreur mais sans aucun tronçon, avec les deux ordres d\u2019axes testés. " +
       "Essai 1 (lon,lat) : " +
-      attemptLonLat.last.url +
+      essais[0].last.url +
       " → " +
-      attemptLonLat.last.extrait +
+      essais[0].last.extrait +
       " | Essai 2 (lat,lon) : " +
-      attemptLatLon.last.url +
+      essais[1].last.url +
       " → " +
-      attemptLatLon.last.extrait,
+      essais[1].last.extrait,
   );
+}
+
+/**
+ * Étend un réseau déjà téléchargé à un rayon plus grand, en ne demandant que
+ * l'anneau manquant : 4 rectangles (bandes nord et sud sur toute la largeur,
+ * bandes ouest et est sur la hauteur de l'ancien carré). Le WFS renvoie tout
+ * tronçon qui touche l'emprise demandée ; l'ancien carré et les 4 bandes
+ * couvrent exactement le nouveau carré, donc on obtient les mêmes tronçons
+ * qu'un téléchargement complet, les tronçons à cheval sur une limite
+ * revenant deux fois (doublons supprimés par fusionnerTroncons).
+ * Gain [Estimé, densité de rues uniforme] : de 11,5 à 15 km, l'anneau fait
+ * 41 % du nouveau carré, soit environ 59 % de pages en moins sur la relance.
+ * Repli sur un téléchargement complet si le réseau précédent est tronqué,
+ * sans emprise connue, ou si le nouveau carré ne le contient pas.
+ * @param {object|null} precedent  Résultat de fetchIGNRoads / etendreIGNRoads.
+ * @param {number} lon @param {number} lat @param {number} radiusMeters
+ * @param {number} wfsPageSize @param {(fraction: number) => void} [onWaveDone]
+ * @returns {Promise<object>} même forme que fetchIGNRoads, plus `etendu` (true si l'anneau seul a été demandé).
+ */
+export async function etendreIGNRoads(precedent, lon, lat, radiusMeters, wfsPageSize, onWaveDone) {
+  const a = empriseCarree(lon, lat, radiusMeters);
+  const p = precedent && precedent.emprise;
+  const contenu = p && a.minLon <= p.minLon && a.minLat <= p.minLat && a.maxLon >= p.maxLon && a.maxLat >= p.maxLat;
+  if (!precedent || precedent.truncated || !precedent.ordreAxes || !contenu) {
+    return { ...(await fetchIGNRoads(lon, lat, radiusMeters, wfsPageSize, onWaveDone)), etendu: false };
+  }
+  const bandes = [
+    { minLon: a.minLon, minLat: p.maxLat, maxLon: a.maxLon, maxLat: a.maxLat }, // nord
+    { minLon: a.minLon, minLat: a.minLat, maxLon: a.maxLon, maxLat: p.minLat }, // sud
+    { minLon: a.minLon, minLat: p.minLat, maxLon: p.minLon, maxLat: p.maxLat }, // ouest
+    { minLon: p.maxLon, minLat: p.minLat, maxLon: a.maxLon, maxLat: p.maxLat }, // est
+  ].filter((b) => b.maxLon > b.minLon && b.maxLat > b.minLat);
+  const listes = [precedent.features];
+  let truncated = false;
+  for (let i = 0; i < bandes.length; i++) {
+    const r = await fetchAllIGNRoadPages(texteBbox(bandes[i], precedent.ordreAxes), wfsPageSize, (f) => {
+      if (onWaveDone) onWaveDone((i + f) / bandes.length);
+    });
+    listes.push(r.features);
+    truncated = truncated || r.truncated;
+  }
+  const features = fusionnerTroncons(...listes);
+  return {
+    type: "FeatureCollection",
+    features,
+    truncated,
+    rawFeatureCount: features.length,
+    emprise: a,
+    ordreAxes: precedent.ordreAxes,
+    etendu: true,
+  };
 }
 
 // ==========================================================================
@@ -439,8 +521,21 @@ export function bilinearElevation(grid, gridElevations, lon, lat) {
  * @param {(fraction: number) => void} [onChunkDone]
  * @returns {Promise<Map<number, number>>} Altitude (m) par identifiant de point ; 0 si la valeur renvoyée est aberrante.
  */
-export async function fetchElevations(points, onChunkDone) {
+// Cache de session des altitudes, par point arrondi comme dans la requête
+// (5 décimales) : une relance au rayon maximal ne redemande pas les points
+// déjà obtenus. Borné pour la mémoire.
+const cacheAltitudes = new Map();
+const CACHE_ALTITUDES_MAX = 500000;
+const clePoint = (p) => p.lon.toFixed(5) + "," + p.lat.toFixed(5);
+
+export async function fetchElevations(pointsDemandes, onChunkDone) {
   const elevations = new Map();
+  const points = [];
+  for (const p of pointsDemandes) {
+    const z = cacheAltitudes.get(clePoint(p));
+    if (z === undefined) points.push(p);
+    else elevations.set(p.id, z);
+  }
   // Lots proches de la limite documentée de l'API IGN (5000 points/requête,
   // https://geoservices.ign.fr/node/1439) plutôt que les petits lots de 150
   // utilisés jusqu'ici : la contrainte réelle du service est le DÉBIT (5
@@ -491,6 +586,8 @@ export async function fetchElevations(points, onChunkDone) {
         // la lettre et de fausser toutes les pentes voisines.
         const plausible = typeof z === "number" && Number.isFinite(z) && z > -500 && z < 5000;
         elevations.set(chunk[idx].id, plausible ? z : 0);
+        if (cacheAltitudes.size >= CACHE_ALTITUDES_MAX) cacheAltitudes.delete(cacheAltitudes.keys().next().value);
+        cacheAltitudes.set(clePoint(chunk[idx]), plausible ? z : 0);
       });
     } catch (e) {
       throw new Error(

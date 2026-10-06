@@ -77,6 +77,7 @@ export async function calculerCarte({ lon, lat, modes, direction, onEtat = () =>
   let computation = await computeIsochronesNetwork({
     ...opts,
     networkRadiusMeters: usedRadiusMeters,
+    garderReseau: true,
     onProgress: suivi(
       "calcul",
       "Contexte : " +
@@ -89,13 +90,18 @@ export async function calculerCarte({ lon, lat, modes, direction, onEtat = () =>
 
   // Filet de sécurité : si ce rayon adapté au contexte ne suffit finalement
   // pas (voir config.js), on relance au rayon maximal.
+  // Le réseau déjà téléchargé est réutilisé : seul l'anneau entre l'ancien et
+  // le nouveau rayon est demandé à l'IGN (etendreIGNRoads dans ign-api.js).
   let radiusRetried = false;
+  const reseauPrecedent = computation.reseau;
+  delete computation.reseau;
   if (estTronque(computation)) {
     radiusRetried = true;
     usedRadiusMeters = NETWORK_RADIUS_MAX_M;
     computation = await computeIsochronesNetwork({
       ...opts,
       networkRadiusMeters: usedRadiusMeters,
+      reseauPrecedent,
       onProgress: suivi(
         "nouvel-essai",
         "Rayon de " +

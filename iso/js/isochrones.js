@@ -20,7 +20,7 @@ import {
   lisserAltitudes,
 } from "./graph.js";
 import { HexGrid, traceOuterBoundaries, buildPolygonsWithHoles, smoothPolygonsWithHoles } from "./hexgrid.js";
-import { fetchIGNRoads, fetchElevations } from "./ign-api.js";
+import { fetchIGNRoads, etendreIGNRoads, fetchElevations } from "./ign-api.js";
 import { DELAY_BIKE_MIN, DELAY_CAR_MIN_URBAN, DELAY_CAR_MIN_RURAL } from "./config.js";
 
 // Rend la main au navigateur le temps d'une image, pour qu'il ait l'occasion
@@ -40,7 +40,10 @@ function yieldToBrowser() {
   if (document.hidden) {
     return new Promise((resolve) => {
       const canal = new MessageChannel();
-      canal.port1.onmessage = () => resolve();
+      canal.port1.onmessage = () => {
+        canal.port1.close(); // libère le canal (sinon il reste ouvert indéfiniment)
+        resolve();
+      };
       canal.port2.postMessage(null);
     });
   }
@@ -132,14 +135,22 @@ export async function computeIsochronesNetwork(opts) {
     wfsPageSize = 4800,
     modes = ["Walk", "Bike", "Ebike"],
     direction = DIRECTION_DEPART,
+    reseauPrecedent = null,
+    garderReseau = false,
     onProgress,
   } = opts;
   const bufferRadiusMeters = 40;
 
-  onProgress("Téléchargement du réseau routier (BD TOPO® IGN)…", 0.05);
-  const roadsGeoJson = await fetchIGNRoads(lon, lat, networkRadiusMeters, wfsPageSize, (fraction) => {
-    onProgress("Téléchargement du réseau routier (BD TOPO® IGN)…", 0.05 + fraction * 0.15);
-  });
+  // Réseau précédent fourni (relance à un rayon plus grand, voir
+  // calcul-carte.js) : seul l'anneau manquant est téléchargé.
+  const libelleReseau = reseauPrecedent
+    ? "Téléchargement de l\u2019anneau manquant du réseau routier (BD TOPO® IGN)…"
+    : "Téléchargement du réseau routier (BD TOPO® IGN)…";
+  onProgress(libelleReseau, 0.05);
+  const suiviReseau = (fraction) => onProgress(libelleReseau, 0.05 + fraction * 0.15);
+  const roadsGeoJson = reseauPrecedent
+    ? await etendreIGNRoads(reseauPrecedent, lon, lat, networkRadiusMeters, wfsPageSize, suiviReseau)
+    : await fetchIGNRoads(lon, lat, networkRadiusMeters, wfsPageSize, suiviReseau);
   const graph = parseIGNRoadsToGraph(roadsGeoJson, nodeSnapToleranceMeters);
   const nodeDegrees = computeNodeDegrees(graph);
   const nodeIncidentEdges = computeNodeIncidentEdges(graph);
@@ -329,6 +340,9 @@ export async function computeIsochronesNetwork(opts) {
     edgeCount: graph.edges.length,
     rawConnectivity,
     roadsTruncated: roadsGeoJson.truncated,
+    // Réseau brut, seulement sur demande (relance par anneau) : il pèse lourd en mémoire.
+    reseau: garderReseau ? roadsGeoJson : undefined,
+    reseauEtendu: roadsGeoJson.etendu === true,
     rawFeatureCount: roadsGeoJson.rawFeatureCount,
     urbanContext,
     delayCarApplied: delayCar,
