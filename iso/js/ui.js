@@ -180,9 +180,11 @@ export function initUI() {
 
   // --- Fenêtre méthodologie ---
   const methodologyOverlay = document.getElementById("methodologyOverlay");
-  document.getElementById("openMethodology").addEventListener("click", () => {
-    methodologyOverlay.classList.add("active");
-  });
+  for (const id of ["openMethodology", "openMethodologyBis"]) {
+    document.getElementById(id)?.addEventListener("click", () => {
+      methodologyOverlay.classList.add("active");
+    });
+  }
   document.getElementById("closeMethodology").addEventListener("click", () => {
     methodologyOverlay.classList.remove("active");
   });

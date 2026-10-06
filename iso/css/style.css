@@ -352,6 +352,69 @@ button.geo-btn:hover {
 .address-suggestion-item.highlighted {
   background: var(--paper);
 }
+/* Bloc « Méthode » replié sous le bouton Calculer (06/10/2026 : le bouton était
+   repoussé sous la ligne de flottaison par le texte de méthode). */
+.method-details {
+  margin: 14px 0 16px;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.6;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 12px;
+}
+.method-details summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--moss-dark);
+  padding: 9px 0;
+  min-height: 24px;
+}
+.method-details[open] summary {
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 4px;
+}
+.method-details p {
+  margin: 8px 0;
+}
+.lien-bouton {
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  min-height: 24px;
+  color: var(--moss-dark);
+  text-decoration: underline;
+  font: inherit;
+  cursor: pointer;
+}
+/* Sens du trajet : trois choix sur une ligne. */
+.sens-choix {
+  border: 0;
+  padding: 0;
+  margin: 4px 0 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.sens-choix legend {
+  /* même aspect que .section-title */
+  width: 100%;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--moss-dark);
+  margin: 14px 0 8px;
+  padding: 0 0 5px;
+  border-bottom: 1px solid var(--line);
+}
+.sens-choix label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 24px;
+  font-weight: 400;
+  cursor: pointer;
+}
 .method-note {
   font-size: 12px;
   color: var(--muted);

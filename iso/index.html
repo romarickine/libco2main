@@ -142,13 +142,6 @@
 <main id="layout" class="show-sidebar">
   <div id="sidebar">
 
-    <div class="method-note">
-      Méthode : graphe du réseau routier (BD TOPO® IGN) parcouru par un algorithme de plus court chemin
-      (Dijkstra), avec vitesse ajustée à la pente réelle selon la fonction de randonnée de
-      <a href="https://en.wikipedia.org/wiki/Tobler%27s_hiking_function" target="_blank" rel="noopener">Tobler (1993)</a> pour la marche
-      et le modèle empirique de Parkin &amp; Rotheram (2010) pour le vélo/VAE. Aucun service isochrone tiers n'est utilisé.
-    </div>
-
     <div class="section-title">Point de départ</div>
     <div class="field st-48031c">
       <label for="address">Adresse</label>
@@ -160,15 +153,13 @@
     </div>
     <input type="hidden" id="lat" />
     <input type="hidden" id="lon" />
-    <p class="hint">Autocomplétion en direct sur l'ensemble des adresses françaises (Base Adresse Nationale, via l'IGN) — tapez au moins 3 caractères.</p>
 
-    <div class="section-title">Sens du trajet</div>
-    <div class="field" id="directionChoice" role="radiogroup" aria-label="Sens du trajet">
-      <label class="st-0e9103"><input type="radio" name="direction" value="depart" checked /> J'en pars <span class="hint">(trajets depuis l'adresse)</span></label>
-      <label class="st-0e9103"><input type="radio" name="direction" value="arrivee" /> J'y vais <span class="hint">(trajets vers l'adresse)</span></label>
-      <label class="st-0e9103"><input type="radio" name="direction" value="aller-retour" /> Aller-retour <span class="hint">(aller + retour cumulés)</span></label>
-    </div>
-    <p class="hint">Sens uniques, pentes et carrefours comptent dans chaque sens : la carte « j'y vais » peut différer de « j'en pars ». En aller-retour, un mode gagne si l'aller + le retour à vélo ou à pied durent moins que l'aller + le retour en voiture (délai d'accès voiture compté deux fois).</p>
+    <fieldset class="sens-choix" id="directionChoice">
+      <legend>Sens du trajet</legend>
+      <label><input type="radio" name="direction" value="depart" checked /> J'en pars</label>
+      <label><input type="radio" name="direction" value="arrivee" /> J'y vais</label>
+      <label><input type="radio" name="direction" value="aller-retour" /> Aller-retour</label>
+    </fieldset>
 
     <button id="compute">Calculer les isochrones</button>
     <div class="progress-wrapper" id="progressWrapper">
@@ -176,6 +167,17 @@
       <div class="progress-percent" id="progressPercent">0%</div>
     </div>
     <div id="status"></div>
+
+    <details class="method-details">
+      <summary>Méthode</summary>
+      <p>Graphe du réseau routier (BD TOPO® IGN) parcouru par un algorithme de plus court chemin
+      (Dijkstra), avec vitesse ajustée à la pente réelle selon la fonction de randonnée de
+      <a href="https://en.wikipedia.org/wiki/Tobler%27s_hiking_function" target="_blank" rel="noopener">Tobler (1993)</a> pour la marche
+      et le modèle empirique de Parkin &amp; Rotheram (2010) pour le vélo/VAE. Aucun service isochrone tiers n'est utilisé.</p>
+      <p><strong>Adresse</strong> : autocomplétion sur l'ensemble des adresses françaises (Base Adresse Nationale, via l'IGN), dès 3 caractères.</p>
+      <p><strong>Sens du trajet</strong> : « j'en pars » = trajets depuis l'adresse ; « j'y vais » = trajets vers l'adresse ; « aller-retour » = aller et retour cumulés. Sens uniques, pentes et carrefours comptent dans chaque sens : la carte « j'y vais » peut différer de « j'en pars ». En aller-retour, un mode gagne si l'aller + le retour à vélo ou à pied durent moins que l'aller + le retour en voiture (délai d'accès voiture compté deux fois).</p>
+      <p><button type="button" class="lien-bouton" id="openMethodologyBis">Méthodologie complète et hypothèses</button></p>
+    </details>
 
     <div class="section-title">Légende</div>
     <div class="legend">
