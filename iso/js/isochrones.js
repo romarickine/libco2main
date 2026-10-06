@@ -16,9 +16,11 @@ import {
   classifyUrbanContext,
   buildCarReachabilityIndex,
   computeNodeIncidentEdges,
+  completerAltitudes,
+  lisserAltitudes,
 } from "./graph.js";
 import { HexGrid, traceOuterBoundaries, buildPolygonsWithHoles, smoothPolygonsWithHoles } from "./hexgrid.js";
-import { fetchIGNRoads, buildElevationGrid, bilinearElevation, fetchElevations } from "./ign-api.js";
+import { fetchIGNRoads, fetchElevations } from "./ign-api.js";
 import { DELAY_BIKE_MIN, DELAY_CAR_MIN_URBAN, DELAY_CAR_MIN_RURAL } from "./config.js";
 
 // Rend la main au navigateur le temps d'une image, pour qu'il ait l'occasion
@@ -112,7 +114,7 @@ export function tempsSelonDirection(adjacency, origine, plafond, direction, dist
  * réseau routier et relief IGN, plus courts chemins (Dijkstra) pour la
  * voiture et chaque mode actif, comparaison nœud par nœud, puis polygones
  * lissés. Étapes et progression signalées par onProgress.
- * @param {object} opts  { lon, lat, networkRadiusMeters, elevationGridSpacingMeters?,
+ * @param {object} opts  { lon, lat, networkRadiusMeters, (elevationGridSpacingMeters : ignoré depuis le 06/10/2026),
  *   nodeSnapToleranceMeters?, wfsPageSize?, onProgress(message, fraction) }
  * @returns {Promise<object>} results (zones par mode), taille du réseau, connexité,
  *   troncature éventuelle du téléchargement, contexte urbain, pénalité voiture
@@ -126,7 +128,6 @@ export async function computeIsochronesNetwork(opts) {
     lon,
     lat,
     networkRadiusMeters,
-    elevationGridSpacingMeters = 200,
     nodeSnapToleranceMeters = 8,
     wfsPageSize = 4800,
     modes = ["Walk", "Bike", "Ebike"],
@@ -168,22 +169,28 @@ export async function computeIsochronesNetwork(opts) {
   const dernier = Math.max(0, ...modes.map((m) => toutesDefs.findIndex((d) => d.key === m)));
   const modeDefs = toutesDefs.slice(0, dernier + 1);
 
-  onProgress("Récupération de l\u2019altimétrie…", 0.22);
-  const elevGrid = buildElevationGrid(graph.nodeCoords, elevationGridSpacingMeters);
-  const gridElevations = await fetchElevations(elevGrid.points, (fraction) => {
-    onProgress(
-      "Récupération de l\u2019altimétrie (grille de " +
-        elevGrid.points.length +
-        " points, contre " +
-        graph.nodeCoords.size +
-        " nœuds)…",
-      0.22 + fraction * 0.3,
-    );
-  });
-  const elevations = new Map();
-  for (const [id, [nlon, nlat]] of graph.nodeCoords) {
-    elevations.set(id, bilinearElevation(elevGrid, gridElevations, nlon, nlat));
+  // Altitudes : lues dans la géométrie 3D des tronçons BD TOPO® (déjà
+  // téléchargée), au lieu d'interroger l'API d'altimétrie sur une grille de
+  // 70 m (jusqu'à 205 650 points et 52 requêtes à 15 km, source de refus 429
+  // en série : essai réel du 06/10/2026). Relevé du même jour sur 400 sommets
+  // à Vourles : écart avec le RGE ALTI® médian 0,65 m, 90 % sous 1,5 m, 99 %
+  // sous 2,7 m [mesure ponctuelle, un seul secteur]. Avantage en plus : sur un
+  // pont ou un viaduc, le Z est celui de la chaussée, pas celui du fond de
+  // vallée. Sommets sans Z : complétés par leurs voisins, puis, s'il en reste,
+  // par l'API d'altimétrie (quelques points seulement). Enfin, lissage le long
+  // du réseau (1 passe, voir lisserAltitudes dans graph.js).
+  onProgress("Altitudes des rues (BD TOPO®)…", 0.22);
+  const elevations = new Map(graph.nodeElev || []);
+  const restants = completerAltitudes(graph, elevations);
+  if (restants > 0) {
+    const points = [];
+    for (const [id, [nlon, nlat]] of graph.nodeCoords) if (!elevations.has(id)) points.push({ id, lon: nlon, lat: nlat });
+    const altitudes = await fetchElevations(points, (fraction) => {
+      onProgress("Altitudes manquantes (" + points.length + " points, API IGN)…", 0.22 + fraction * 0.3);
+    });
+    for (const [id, z] of altitudes) elevations.set(id, z);
   }
+  lisserAltitudes(graph, elevations);
   await yieldToBrowser();
 
   const originNode = findNearestNode(graph, lon, lat);

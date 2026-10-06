@@ -107,24 +107,24 @@ export function renderStepProfil(el, { data, famille, ctx }) {
     ${
       p.mode !== "seul"
         ? `
-      <div style="display:flex; gap:18px;">
+      <div data-style="display:flex; gap:18px;">
         <div class="champ"><label class="libelle">Praticiens (ETP) dans la structure</label>${champNombreHtml("nbPraticiens", p.nbPraticiens, { min: 1 })}</div>
         ${p.mode === "employeur" ? `<div class="champ"><label class="libelle">Salariés (ETP)</label>${champNombreHtml("nbSalaries", p.nbSalaries, { min: 0 })}</div>` : ""}
       </div>`
-        : `<div class="texte-discret" style="margin-top:-12px; margin-bottom:22px; display:flex; gap:5px;">ℹ️ Vous exercez seul(e) : la structure compte 1 praticien (vous-même).</div>`
+        : `<div class="texte-discret" data-style="margin-top:-12px; margin-bottom:22px; display:flex; gap:5px;">ℹ️ Vous exercez seul(e) : la structure compte 1 praticien (vous-même).</div>`
     }
 
     <hr class="separateur" />
     <div class="groupe-champs-titre">Votre zone géographique</div>
     <div class="champ" id="zone-finder">
       <label class="libelle">Ville de votre activité</label>
-      <div class="aide" style="margin-bottom:8px;">Utilisée pour estimer les déplacements de votre patientèle/clientèle, à partir du zonage INSEE en aires urbaines 2010 (le même que celui utilisé par l'Enquête Mobilité des Personnes 2019) — recherche 100% locale, sans connexion requise.</div>
+      <div class="aide" data-style="margin-bottom:8px;">Utilisée pour estimer les déplacements de votre patientèle/clientèle, à partir du zonage INSEE en aires urbaines 2010 (le même que celui utilisé par l'Enquête Mobilité des Personnes 2019) — recherche 100% locale, sans connexion requise.</div>
       <div class="zone-suggestions">
         <input type="text" id="input-ville" placeholder="Tapez le nom de votre ville (ex : Saint-Étienne)" value="${echapperHtml(p.villeLabel)}" autocomplete="off" />
-        <div class="liste-suggestions" id="liste-suggestions-ville" style="display:none;"></div>
+        <div class="liste-suggestions" id="liste-suggestions-ville" data-style="display:none;"></div>
       </div>
       <div id="ville-confirmee"></div>
-      <div class="texte-discret" style="margin-top:10px; margin-bottom:6px;">Vous pouvez ajuster manuellement si nécessaire :</div>
+      <div class="texte-discret" data-style="margin-top:10px; margin-bottom:6px;">Vous pouvez ajuster manuellement si nécessaire :</div>
       <select class="champ-select" data-champ-select="zoneId" aria-label="Zone géographique (ajustement manuel)">
         ${ZONES.map((z) => `<option value="${z.id}" ${z.id === p.zoneId ? "selected" : ""}>${z.label}</option>`).join("")}
       </select>
@@ -172,7 +172,7 @@ export function renderStepProfil(el, { data, famille, ctx }) {
   const zoneActuelleObj = ZONES.find((z) => z.id === p.zoneId);
   if (p.villeLabel && zoneActuelleObj) {
     el.querySelector("#ville-confirmee").innerHTML =
-      `<div style="font-size:12.5px; color:var(--couleur-primaire); background:var(--couleur-primaire-fond); border-radius:8px; padding:8px 12px; margin-top:10px;"><strong>${echapperHtml(p.villeLabel)}</strong> → zone associée : <strong>${echapperHtml(zoneActuelleObj.label)}</strong></div>`;
+      `<div data-style="font-size:12.5px; color:var(--couleur-primaire); background:var(--couleur-primaire-fond); border-radius:8px; padding:8px 12px; margin-top:10px;"><strong>${echapperHtml(p.villeLabel)}</strong> → zone associée : <strong>${echapperHtml(zoneActuelleObj.label)}</strong></div>`;
   }
   // La liste des communes se charge dès l'affichage de l'étape, pour que les
   // suggestions soient immédiates à la première frappe.
@@ -226,30 +226,30 @@ export function renderStepDeplacements(el, { data, resultats, ctx }) {
       .join("");
 
   el.innerHTML = `
-    <p class="texte-discret" style="margin-top:-8px; margin-bottom:14px;">Trajets domicile-travail, visites professionnelles (domicile client/patient, EHPAD, chantiers…) et déplacements pour congrès ou représentations.</p>
+    <p class="texte-discret" data-style="margin-top:-8px; margin-bottom:14px;">Trajets domicile-travail, visites professionnelles (domicile client/patient, EHPAD, chantiers…) et déplacements pour congrès ou représentations.</p>
     ${
       nbEquipe > 1
         ? `
-      <div class="encadre-info" style="margin-bottom:20px;">
+      <div class="encadre-info" data-style="margin-bottom:20px;">
         <strong>⚠️ Vous avez indiqué ${nbEquipe} personnes dans la structure (praticiens + salariés).</strong>
-        <div style="font-size:12.5px; color:var(--lc-vert-info); margin-top:4px; line-height:1.5;">Ce poste doit couvrir <strong>l'ensemble de l'équipe</strong>, pas seulement vos propres trajets : additionnez (ou estimez en moyenne × ${nbEquipe}) les distances domicile-travail, les visites et les déplacements pour congrès de tous les praticiens et salariés de la structure.</div>
+        <div data-style="font-size:12.5px; color:var(--lc-vert-info); margin-top:4px; line-height:1.5;">Ce poste doit couvrir <strong>l'ensemble de l'équipe</strong>, pas seulement vos propres trajets : additionnez (ou estimez en moyenne × ${nbEquipe}) les distances domicile-travail, les visites et les déplacements pour congrès de tous les praticiens et salariés de la structure.</div>
       </div>
     `
-        : `<p class="texte-discret" style="margin-top:-10px; margin-bottom:20px;">Si la structure compte plusieurs praticiens ou salariés, ces champs doivent couvrir l'ensemble de l'équipe, pas seulement vos propres trajets.</p>`
+        : `<p class="texte-discret" data-style="margin-top:-10px; margin-bottom:20px;">Si la structure compte plusieurs praticiens ou salariés, ces champs doivent couvrir l'ensemble de l'équipe, pas seulement vos propres trajets.</p>`
     }
-    <div style="display:flex; gap:18px; flex-wrap:wrap;">
+    <div data-style="display:flex; gap:18px; flex-wrap:wrap;">
       <div class="champ"><label class="libelle">Mode de transport principal domicile-travail</label><select class="champ-select" data-champ-select="modeDomTrav">${optionsMode(true)}</select></div>
       <div class="champ"><label class="libelle">Distance aller (km)</label>${champNombreHtml("kmAllerJour", d.kmAllerJour)}</div>
       <div class="champ"><label class="libelle">Jours travaillés / semaine</label>${champNombreHtml("joursSemaine", d.joursSemaine, { step: 0.5 })}</div>
       <div class="champ"><label class="libelle">Semaines travaillées / an${badgeLive(det.domTrav, "domTrav")}</label>${champNombreHtml("semainesAn", d.semainesAn, { max: 52 })}</div>
     </div>
     <hr class="separateur" />
-    <div style="display:flex; gap:18px; flex-wrap:wrap;">
+    <div data-style="display:flex; gap:18px; flex-wrap:wrap;">
       <div class="champ"><label class="libelle">Km parcourus par an en visites professionnelles</label><div class="aide">Domicile de patients/clients, EHPAD, chantiers, rendez-vous extérieurs — pour l'ensemble de la structure.</div>${champNombreHtml("kmVisitesAn", d.kmVisitesAn)}</div>
       <div class="champ"><label class="libelle">Mode de transport principal pour ces visites${badgeLive(det.visites, "visites")}</label><select class="champ-select" data-champ-select="modeVisites">${optionsMode(true)}</select></div>
     </div>
     <hr class="separateur" />
-    <div style="display:flex; gap:18px; flex-wrap:wrap;">
+    <div data-style="display:flex; gap:18px; flex-wrap:wrap;">
       <div class="champ"><label class="libelle">Congrès / formations / représentations par an</label>${champNombreHtml("nbCongresAn", d.nbCongresAn)}</div>
       <div class="champ"><label class="libelle">Mode de transport principal</label>
         <select class="champ-select" data-champ-select="modeCongres">
@@ -287,7 +287,7 @@ export function renderStepLocal(el, { data, famille, zone, resultats, ctx }) {
     ${
       l.aLocal
         ? `
-      <div style="display:flex; gap:18px; flex-wrap:wrap;">
+      <div data-style="display:flex; gap:18px; flex-wrap:wrap;">
         <div class="champ"><label class="libelle">Surface du ${famille.lieuLabel} (m²)</label>${champNombreHtml("surface", l.surface)}</div>
         <div class="champ"><label class="libelle">Énergie principale de chauffage</label>
           <select class="champ-select" data-champ-select="energieChauffage">
@@ -297,25 +297,25 @@ export function renderStepLocal(el, { data, famille, zone, resultats, ctx }) {
           </select>
         </div>
       </div>
-      <p class="texte-discret" style="margin-top:-8px; margin-bottom:16px;">Par défaut, la consommation est estimée à partir de ratios ADEME adaptés à votre activité (Bâtiment - Chiffres clés). Vous pouvez saisir vos consommations réelles si vous les connaissez.</p>
-      <div style="display:flex; gap:14px; margin-bottom:8px;">${badgeLive(det.localElec, "localElec")}${badgeLive(det.localChauffage, "localChauffage")}</div>
+      <p class="texte-discret" data-style="margin-top:-8px; margin-bottom:16px;">Par défaut, la consommation est estimée à partir de ratios ADEME adaptés à votre activité (Bâtiment - Chiffres clés). Vous pouvez saisir vos consommations réelles si vous les connaissez.</p>
+      <div data-style="display:flex; gap:14px; margin-bottom:8px;">${badgeLive(det.localElec, "localElec")}${badgeLive(det.localChauffage, "localChauffage")}</div>
 
-      <div class="champ"><label class="libelle"><input type="checkbox" data-champ-case="consoElecConnue" ${l.consoElecConnue ? "checked" : ""} style="margin-right:8px;" />Je connais ma consommation réelle d'électricité (factures)</label>
+      <div class="champ"><label class="libelle"><input type="checkbox" data-champ-case="consoElecConnue" ${l.consoElecConnue ? "checked" : ""} data-style="margin-right:8px;" />Je connais ma consommation réelle d'électricité (factures)</label>
         ${l.consoElecConnue ? champNombreHtml("consoElecKwh", l.consoElecKwh, { suffix: "kWh/an" }) : ""}
       </div>
-      <div class="champ"><label class="libelle"><input type="checkbox" data-champ-case="consoChauffageConnue" ${l.consoChauffageConnue ? "checked" : ""} style="margin-right:8px;" />Je connais ma consommation réelle de chauffage (factures)</label>
+      <div class="champ"><label class="libelle"><input type="checkbox" data-champ-case="consoChauffageConnue" ${l.consoChauffageConnue ? "checked" : ""} data-style="margin-right:8px;" />Je connais ma consommation réelle de chauffage (factures)</label>
         ${l.consoChauffageConnue ? champNombreHtml("consoChauffageKwh", l.consoChauffageKwh, { suffix: "kWh/an" }) : ""}
       </div>
       <hr class="separateur" />
-      <div class="champ"><label class="libelle"><input type="checkbox" data-champ-case="localDeporte" ${l.localDeporte ? "checked" : ""} style="margin-right:8px;" />Utilisez-vous un local déporté (ex : EHPAD, antenne secondaire) ?${badgeLive(det.localDeporte, "localDeporte")}</label>
+      <div class="champ"><label class="libelle"><input type="checkbox" data-champ-case="localDeporte" ${l.localDeporte ? "checked" : ""} data-style="margin-right:8px;" />Utilisez-vous un local déporté (ex : EHPAD, antenne secondaire) ?${badgeLive(det.localDeporte, "localDeporte")}</label>
         ${l.localDeporte ? champNombreHtml("surfaceDeportee", l.surfaceDeportee, { suffix: "m² approx." }) : ""}
       </div>
       ${
         p.recoitPublic
           ? `
         <div class="encadre-info">
-          <div style="font-weight:600; font-size:13.5px;">Déplacements de votre ${famille.publicLabel} vers ${famille.lieuArticleLe}${badgeLive(det.patientele, "patientele")}</div>
-          <div style="font-size:12px; color:var(--lc-vert-info); margin-top:6px; line-height:1.5;">
+          <div data-style="font-weight:600; font-size:13.5px;">Déplacements de votre ${famille.publicLabel} vers ${famille.lieuArticleLe}${badgeLive(det.patientele, "patientele")}</div>
+          <div data-style="font-size:12px; color:var(--lc-vert-info); margin-top:6px; line-height:1.5;">
             Calculés automatiquement à partir de la zone choisie à l'étape précédente (<strong>${zone.label}</strong>), selon la répartition modale de cette zone, ajustée au motif de déplacement le plus proche de votre activité (Enquête Mobilité des Personnes 2019, SDES) — zone géographique déterminée via le zonage INSEE en aires urbaines 2010.
             Base : ${Math.round(resultats.nbActesLieuFixe)} ${famille.acteLabel} réalisé(e)s ${famille.lieuArticleLe}, sur environ ${kmModalTotal(zone).toFixed(1)} km aller-retour par ${famille.uniteActe} en moyenne (tous modes confondus).
           </div>
@@ -339,7 +339,7 @@ export function renderStepNumerique(el, { data, resultats, ctx }) {
   const n = data.numerique;
   const det = resultats.detail;
   el.innerHTML = `
-    <div style="display:flex; gap:18px; flex-wrap:wrap;">
+    <div data-style="display:flex; gap:18px; flex-wrap:wrap;">
       <div class="champ"><label class="libelle">Ordinateurs fixes${badgeLive(det.numOrdisFixes, "numOrdisFixes")}</label>${champNombreHtml("nbOrdisFixes", n.nbOrdisFixes)}</div>
       <div class="champ"><label class="libelle">Ordinateurs portables${badgeLive(det.numOrdisPortables, "numOrdisPortables")}</label>${champNombreHtml("nbOrdisPortables", n.nbOrdisPortables)}</div>
       <div class="champ"><label class="libelle">Écrans supplémentaires${badgeLive(det.numEcrans, "numEcrans")}</label>${champNombreHtml("nbEcransSuppl", n.nbEcransSuppl)}</div>
@@ -371,7 +371,7 @@ export function renderStepMateriel(el, { data, famille, resultats, ctx }) {
   const presc = data.prescriptions || { active: false, depenseMedicaments: 0, depenseActes: 0 };
   data.pharmacien = data.pharmacien || { caMedicaments: 0, caParapharmacie: 0 };
   el.innerHTML = `
-    <p class="texte-discret" style="margin-top:-8px; margin-bottom:20px;">Postes adaptés à votre famille de métier (<strong>${famille.label}</strong>). Une estimation en euros dépensés par an suffit.</p>
+    <p class="texte-discret" data-style="margin-top:-8px; margin-bottom:20px;">Postes adaptés à votre famille de métier (<strong>${famille.label}</strong>). Une estimation en euros dépensés par an suffit.</p>
     ${famille.consommables
       .map(
         (c) => `
@@ -384,7 +384,7 @@ export function renderStepMateriel(el, { data, famille, resultats, ctx }) {
         ? `
       <hr class="separateur" />
       <div class="groupe-champs-titre">Médicaments et parapharmacie vendus</div>
-      <p class="texte-discret" style="margin-top:-6px; margin-bottom:16px;">Poste spécifique à l'officine : votre chiffre d'affaires HT, réparti entre médicaments et parapharmacie, chacun avec un facteur d'émission propre.</p>
+      <p class="texte-discret" data-style="margin-top:-6px; margin-bottom:16px;">Poste spécifique à l'officine : votre chiffre d'affaires HT, réparti entre médicaments et parapharmacie, chacun avec un facteur d'émission propre.</p>
       <div class="champ"><label class="libelle">Chiffre d'affaires médicaments (€ HT / an)${badgeLive(det.medicamentsVendus, "medicamentsVendus")}</label>${champNombreHtml("ca_medicaments", data.pharmacien.caMedicaments || 0, { suffix: "€ HT / an" })}</div>
       <div class="champ"><label class="libelle">Chiffre d'affaires parapharmacie (€ HT / an)${badgeLive(det.parapharmacie, "parapharmacie")}</label>${champNombreHtml("ca_parapharmacie", data.pharmacien.caParapharmacie || 0, { suffix: "€ HT / an" })}</div>
     `
@@ -396,20 +396,20 @@ export function renderStepMateriel(el, { data, famille, resultats, ctx }) {
       <hr class="separateur" />
       <div class="groupe-champs-titre">Prescriptions</div>
       <div class="encadre-info">
-        <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer;">
-          <input type="checkbox" data-champ-case="prescriptionActive" ${presc.active ? "checked" : ""} style="margin-top:3px;" />
+        <label data-style="display:flex; align-items:flex-start; gap:10px; cursor:pointer;">
+          <input type="checkbox" data-champ-case="prescriptionActive" ${presc.active ? "checked" : ""} data-style="margin-top:3px;" />
           <span>
-            <span style="font-weight:700; font-size:14px;">Des praticiens de la structure prescrivent des médicaments et/ou des actes médicaux (examens, dispositifs)</span>
-            <div style="font-size:12px; color:var(--lc-vert-info); margin-top:4px; line-height:1.5;">En tant que prescripteurs, vous avez un levier de décarbonation propre (éco-prescription, déprescription). Ce poste est affiché séparément du reste du bilan, pour rester comparable avec les structures qui ne prescrivent pas.</div>
+            <span data-style="font-weight:700; font-size:14px;">Des praticiens de la structure prescrivent des médicaments et/ou des actes médicaux (examens, dispositifs)</span>
+            <div data-style="font-size:12px; color:var(--lc-vert-info); margin-top:4px; line-height:1.5;">En tant que prescripteurs, vous avez un levier de décarbonation propre (éco-prescription, déprescription). Ce poste est affiché séparément du reste du bilan, pour rester comparable avec les structures qui ne prescrivent pas.</div>
           </span>
         </label>
         ${
           presc.active
             ? `
-          <div style="margin-top:18px;">
+          <div data-style="margin-top:18px;">
             <div class="champ"><label class="libelle">Dépense totale de médicaments prescrits, pour l'ensemble de la patientèle de la structure (€ / an)${badgeLive(det.prescriptionsMedicaments, "prescriptionsMedicaments")}</label>${champNombreHtml("presc_medicaments", presc.depenseMedicaments || 0, { suffix: "€ / an" })}</div>
             <div class="champ"><label class="libelle">Dépense totale d'actes prescrits — examens complémentaires, dispositifs (€ / an)${badgeLive(det.prescriptionsActes, "prescriptionsActes")}</label>${champNombreHtml("presc_actes", presc.depenseActes || 0, { suffix: "€ / an" })}</div>
-            <p class="texte-discret" style="margin-top:-6px;">Cumulez tous les praticiens prescripteurs de la structure, pas un seul. Une première approche à affiner : utilisez les montants que vous connaissez le mieux (ex. volume de prescriptions habituel), même approximatifs.</p>
+            <p class="texte-discret" data-style="margin-top:-6px;">Cumulez tous les praticiens prescripteurs de la structure, pas un seul. Une première approche à affiner : utilisez les montants que vous connaissez le mieux (ex. volume de prescriptions habituel), même approximatifs.</p>
           </div>`
             : ""
         }
@@ -419,18 +419,18 @@ export function renderStepMateriel(el, { data, famille, resultats, ctx }) {
     }
     <hr class="separateur" />
     <div class="encadre-info">
-      <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer;">
-        <input type="checkbox" data-champ-case="actif" ${inv.actif ? "checked" : ""} style="margin-top:3px;" />
+      <label data-style="display:flex; align-items:flex-start; gap:10px; cursor:pointer;">
+        <input type="checkbox" data-champ-case="actif" ${inv.actif ? "checked" : ""} data-style="margin-top:3px;" />
         <span>
-          <span style="font-weight:700; font-size:14px;">J'ai fait des investissements en gros matériel (&gt; 60 kg) ou en mobilier il y a moins de 5 ans</span>
-          <div style="font-size:12px; color:var(--lc-vert-info); margin-top:4px; line-height:1.5;">Les équipements lourds et le mobilier professionnel sont comptabilisés au prorata de leur amortissement, par défaut sur 5 ans.</div>
+          <span data-style="font-weight:700; font-size:14px;">J'ai fait des investissements en gros matériel (&gt; 60 kg) ou en mobilier il y a moins de 5 ans</span>
+          <div data-style="font-size:12px; color:var(--lc-vert-info); margin-top:4px; line-height:1.5;">Les équipements lourds et le mobilier professionnel sont comptabilisés au prorata de leur amortissement, par défaut sur 5 ans.</div>
         </span>
       </label>
       ${
         inv.actif
           ? `
-        <div style="margin-top:18px;">
-          <div style="font-weight:600; font-size:13.5px; margin-bottom:10px;">Gros matériel (valeur d'achat totale, en euros)</div>
+        <div data-style="margin-top:18px;">
+          <div data-style="font-weight:600; font-size:13.5px; margin-bottom:10px;">Gros matériel (valeur d'achat totale, en euros)</div>
           ${(famille.grosMateriel || [])
             .map(
               (g) => `
@@ -438,7 +438,7 @@ export function renderStepMateriel(el, { data, famille, resultats, ctx }) {
           `,
             )
             .join("")}
-          <div style="font-weight:600; font-size:13.5px; margin-top:8px; margin-bottom:10px;">Mobilier professionnel (bureau, tables, chaises…)</div>
+          <div data-style="font-weight:600; font-size:13.5px; margin-top:8px; margin-bottom:10px;">Mobilier professionnel (bureau, tables, chaises…)</div>
           <div class="champ"><label class="libelle">Valeur d'achat totale du mobilier récent${badgeLive(det.mobilier, "mobilier")}</label>${champNombreHtml("mobilier", inv.mobilier || 0, { suffix: "€ (valeur d'achat)" })}</div>
         </div>`
           : ""
@@ -478,18 +478,18 @@ export function renderStepDechets(el, { data, famille, resultats, ctx }) {
     </div>`;
 
   el.innerHTML = `
-    <p class="texte-discret" style="margin-top:-8px; margin-bottom:6px;">Déchets courants générés par l'activité (emballages, consommables usagés, papier...) — le <strong>traitement en fin de vie</strong> uniquement. La fabrication de ces produits est déjà comptée dans le poste "Matériel et consommables" : ne recomptez pas la même chose ici.</p>
+    <p class="texte-discret" data-style="margin-top:-8px; margin-bottom:6px;">Déchets courants générés par l'activité (emballages, consommables usagés, papier...) — le <strong>traitement en fin de vie</strong> uniquement. La fabrication de ces produits est déjà comptée dans le poste "Matériel et consommables" : ne recomptez pas la même chose ici.</p>
     ${
       nbEquipe > 1
         ? `
-      <div class="encadre-info" style="margin-bottom:18px;">
+      <div class="encadre-info" data-style="margin-bottom:18px;">
         <strong>⚠️ ${nbEquipe} personnes dans la structure.</strong>
-        <div style="font-size:12.5px; color:var(--lc-vert-info); margin-top:4px; line-height:1.5;">Estimez le volume de déchets pour <strong>l'ensemble de la structure</strong>, pas seulement le vôtre.</div>
+        <div data-style="font-size:12.5px; color:var(--lc-vert-info); margin-top:4px; line-height:1.5;">Estimez le volume de déchets pour <strong>l'ensemble de la structure</strong>, pas seulement le vôtre.</div>
       </div>
     `
         : ""
     }
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 18px;">
+    <div data-style="display:grid; grid-template-columns:1fr 1fr; gap:0 18px;">
       ${champDechet("plastique", "Plastique")}
       ${champDechet("metal", "Métal (hors aluminium)")}
       ${champDechet("papier", "Papier")}
@@ -504,11 +504,11 @@ export function renderStepDechets(el, { data, famille, resultats, ctx }) {
         ? `
       <hr class="separateur" />
       <div class="encadre-info">
-        <div class="champ" style="margin-bottom:0;">
+        <div class="champ" data-style="margin-bottom:0;">
           <label class="libelle">DASRI — déchets d'activité de soins à risques infectieux (kg/semaine)${badgeLive(detailDechets.dasri, "dasri")}</label>
           ${champNombreHtml("dasri", d.dasri || 0, { step: 0.1 })}
         </div>
-        <p class="aide" style="margin-top:8px; margin-bottom:0;">Matériel piquant/coupant, produits biologiques — incinération à haute température obligatoire (code de la santé publique), bien plus émissive que les déchets courants ci-dessus. Ne comptez ici que le DASRI, pas les déchets ménagers déjà saisis plus haut.</p>
+        <p class="aide" data-style="margin-top:8px; margin-bottom:0;">Matériel piquant/coupant, produits biologiques — incinération à haute température obligatoire (code de la santé publique), bien plus émissive que les déchets courants ci-dessus. Ne comptez ici que le DASRI, pas les déchets ménagers déjà saisis plus haut.</p>
       </div>
     `
         : ""
@@ -532,15 +532,15 @@ export function renderStepAlimentation(el, { data, resultats, ctx }) {
     ${
       nbEquipe > 1
         ? `
-      <div class="encadre-info" style="margin-bottom:18px;">
+      <div class="encadre-info" data-style="margin-bottom:18px;">
         <strong>⚠️ ${nbEquipe} personnes dans la structure.</strong>
-        <div style="font-size:12.5px; color:var(--lc-vert-info); margin-top:4px; line-height:1.5;">Comptez le nombre de repas professionnels pour <strong>l'ensemble de l'équipe</strong> (tous les praticiens et salariés cumulés), pas seulement les vôtres.</div>
+        <div data-style="font-size:12.5px; color:var(--lc-vert-info); margin-top:4px; line-height:1.5;">Comptez le nombre de repas professionnels pour <strong>l'ensemble de l'équipe</strong> (tous les praticiens et salariés cumulés), pas seulement les vôtres.</div>
       </div>
     `
-        : `<p class="texte-discret" style="margin-top:-6px; margin-bottom:16px;">Si la structure compte plusieurs praticiens ou salariés, ce total doit couvrir toute l'équipe.</p>`
+        : `<p class="texte-discret" data-style="margin-top:-6px; margin-bottom:16px;">Si la structure compte plusieurs praticiens ou salariés, ce total doit couvrir toute l'équipe.</p>`
     }
     <div class="champ">
-      <label class="libelle">Repas professionnels (déjeuners sur site ou au restaurant) par semaine, pour l'ensemble de la structure : <span id="valeur-repas">${a.repasParSemaine}</span> <span class="texte-discret" style="font-weight:400;">/ ${maxRepas} max</span>${badgeLive(resultats.detail.alimentation, "alimentation")}</label>
+      <label class="libelle">Repas professionnels (déjeuners sur site ou au restaurant) par semaine, pour l'ensemble de la structure : <span id="valeur-repas">${a.repasParSemaine}</span> <span class="texte-discret" data-style="font-weight:400;">/ ${maxRepas} max</span>${badgeLive(resultats.detail.alimentation, "alimentation")}</label>
       <input type="range" min="0" max="${maxRepas}" value="${Math.min(a.repasParSemaine, maxRepas)}" data-champ-range="repasParSemaine" id="range-repas" />
     </div>
     <div class="champ">

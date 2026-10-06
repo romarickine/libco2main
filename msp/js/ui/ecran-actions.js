@@ -140,7 +140,7 @@ export function rendreSolutions(etat) {
       <h3 class="carte-titre">Document de suivi éditable</h3>
       <p class="aide">Reprend les actions cochées ci-dessous avec un objectif à 1 an, prêt à imprimer ou à modifier directement dans Word/LibreOffice — pour un point d'avancement en réunion, à remplir au fil du temps (dates, statuts, notes).</p>
       <button data-action="telecharger-plan-actions" class="bouton-principal" ${!r || actionsCochees.length === 0 ? "disabled" : ""}>Télécharger le plan de décarbonation</button>
-      ${actionsCochees.length === 0 ? '<p class="aide" style="margin-top:0.6rem">Cochez au moins une action ci-dessous pour activer le téléchargement.</p>' : ""}
+      ${actionsCochees.length === 0 ? '<p class="aide" data-style="margin-top:0.6rem">Cochez au moins une action ci-dessous pour activer le téléchargement.</p>' : ""}
     </div>
 
     ${Object.entries(groupes)
@@ -155,7 +155,7 @@ function rendreGroupeActions(etat, posteId, actions, r) {
   const valeurPoste = valeurPosteMSP(r, posteId);
   return `
   <div class="carte">
-    <h3 class="carte-titre" style="color:color-mix(in srgb, ${meta.color} 70%, #000)">${meta.label}</h3>
+    <h3 class="carte-titre" data-style="color:color-mix(in srgb, ${meta.color} 70%, #000)">${meta.label}</h3>
     ${valeurPoste == null ? '<p class="aide">Poste non isolé dans le calcul MSP — potentiel de réduction indicatif uniquement.</p>' : ""}
     ${actions.map((a) => rendreActionCard(etat, a, valeurPoste)).join("")}
   </div>`;

@@ -70,4 +70,7 @@ export const NODE_SNAP_TOLERANCE_M = 12;
 // serveur WFS de l'IGN (CountDefault, relevé le 28/09/2026). Avec 1 000, un
 // calcul à Saint-Étienne demandait 120 requêtes.
 export const WFS_PAGE_SIZE = 4800;
-export const WFS_MAX_REQUESTS_PER_SECOND = 29;
+// Débit WFS : 12 requêtes/s, bien sous la limite IGN de 30/s [Sourcé :
+// cartes.gouv.fr] ; 29 auparavant, sans marge, alors que des refus 429 ont déjà
+// été observés en rafale (voir ign-api.js). [Estimé : marge prudente, 06/10/2026]
+export const WFS_MAX_REQUESTS_PER_SECOND = 12;

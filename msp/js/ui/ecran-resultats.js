@@ -25,7 +25,7 @@ export function rendreRestitution(etat) {
     <h2>6. Résultats</h2>
     ${!pretACalculer ? '<p class="alerte">Complétez d\'abord le profil, le local et au moins un praticien (étapes 1 à 3) avant de calculer.</p>' : ""}
     <button data-action="calculer" class="bouton-principal bouton-large" ${!pretACalculer ? "disabled" : ""}>Calculer le bilan</button>
-    ${r ? rendreResultats(r, etat) : '<p class="aide" style="margin-top: 1rem;">Le résultat s\'affichera ici une fois le calcul lancé.</p>'}
+    ${r ? rendreResultats(r, etat) : '<p class="aide" data-style="margin-top: 1rem;">Le résultat s\'affichera ici une fois le calcul lancé.</p>'}
   </section>`;
 }
 
@@ -35,7 +35,7 @@ function rendreCarteAffiche(r) {
     <h3 class="carte-titre">Affiche pour la salle d'attente</h3>
     <p class="aide">Génère une image de synthèse (empreinte de la MSP, répartition par poste, empreinte de chaque praticien) prête à imprimer ou à afficher à l'accueil.</p>
     <button data-action="exporter-affiche" class="bouton-principal" ${!r ? "disabled" : ""}>Générer l'affiche (image)</button>
-    <p id="affiche-statut" class="aide" style="margin-top: 0.6rem"></p>
+    <p id="affiche-statut" class="aide" data-style="margin-top: 0.6rem"></p>
   </div>`;
 }
 
@@ -146,7 +146,7 @@ function rendreResultats(r, etat) {
     ${
       r.structureIncomplete?.surfaceManquante || r.structureIncomplete?.actesManquants
         ? `
-      <div class="alerte" style="margin-bottom:1rem;">
+      <div class="alerte" data-style="margin-bottom:1rem;">
         ⚠️ ${r.structureIncomplete.surfaceManquante ? `La <strong>surface totale de la structure</strong> n'est pas renseignée (étape "Profil") — ` : ""}${r.structureIncomplete.actesManquants ? `<strong>aucun praticien n'a de nombre d'actes annuel renseigné</strong> — ` : ""}les fiches individuelles ci-dessous ne peuvent pas être réparties tant que ${r.structureIncomplete.surfaceManquante && r.structureIncomplete.actesManquants ? "ces champs ne sont pas complétés" : "ce champ n\u2019est pas complété"}. L'empreinte totale de la structure, elle, reste correcte.
       </div>`
         : ""
@@ -166,7 +166,7 @@ function rendreResultats(r, etat) {
     ${
       aDesMedicaments
         ? `
-      <div class="carte" style="margin-top:1rem;">
+      <div class="carte" data-style="margin-top:1rem;">
         <h3 class="carte-titre">Prescriptions et médicaments — hors comparaison</h3>
         <p class="aide">Ce bloc regroupe deux postes volontairement exclus du total ci-dessus par défaut, pour que l'empreinte de la MSP reste comparable à une structure sans prescripteurs ni pharmacie intégrée.</p>
         <div class="ligne-double">
@@ -181,7 +181,7 @@ function rendreResultats(r, etat) {
             <p class="aide">Chiffre d'affaires du pharmacien de la structure, net de la part déjà comptée dans les prescriptions ci-dessus (pour éviter un double comptage — voir le coefficient d'achat renseigné sur sa fiche praticien).</p>
           </div>
         </div>
-        <label style="display:flex; align-items:center; gap:8px; margin-top:1rem; cursor:pointer;">
+        <label data-style="display:flex; align-items:center; gap:8px; margin-top:1rem; cursor:pointer;">
           <input type="checkbox" data-action="toggle-inclure-medicaments" ${inclureMedicaments ? "checked" : ""} />
           Inclure prescriptions et médicaments dans l'empreinte totale affichée ci-dessus
         </label>
@@ -235,11 +235,11 @@ function rendreResultats(r, etat) {
       ${svgBarresEmpilees(donneesEmpilees, seriesEmpreinte, { unite: parActe ? "kgCO2e/acte" : "kgCO2e", formatteur: parActe ? fmtDecimal : fmt })}
     </details>
 
-    <div class="carte" style="margin-top: 2rem">
+    <div class="carte" data-style="margin-top: 2rem">
       <h3 class="carte-titre">Télécharger le détail des calculs</h3>
       <p class="aide">Fichier Excel complet : résultats par poste, réventilation par praticien, et tous les facteurs d'émission utilisés avec leur source — de quoi comprendre et vérifier chaque chiffre.</p>
       <button data-action="exporter-excel" class="bouton-principal">Télécharger le détail (Excel)</button>
-      <p id="export-statut" class="aide" style="margin-top: 0.8rem"></p>
+      <p id="export-statut" class="aide" data-style="margin-top: 0.8rem"></p>
     </div>
 
     ${rendreCarteAffiche(r)}
@@ -250,23 +250,23 @@ function rendreResultats(r, etat) {
       <div class="ligne-double">
         <button data-action="exporter-archive" class="bouton-secondaire">Exporter l'archive</button>
         <label class="bouton-secondaire bouton-fichier">Importer une archive
-          <input type="file" id="import-archive-fichier" accept="application/json" style="display:none">
+          <input type="file" id="import-archive-fichier" accept="application/json" data-style="display:none">
         </label>
       </div>
-      <p id="archive-statut" class="aide" style="margin-top: 0.6rem"></p>
+      <p id="archive-statut" class="aide" data-style="margin-top: 0.6rem"></p>
       ${rendreHistorique()}
     </div>
 
     <div class="carte">
       <h3 class="carte-titre">Partager pour le tableau de bord comparatif (optionnel)</h3>
       <p class="aide">Un tableau de bord compare les résultats de plusieurs structures participantes. Le partage est entièrement volontaire — rien n'est envoyé sans votre action explicite ci-dessous.</p>
-      <p class="aide" style="background: var(--couleur-fond); border-radius: var(--rayon-bouton); padding: 0.8rem; margin: 0 0 0.9rem;">En cliquant sur "Exporter et partager", vous acceptez que les données de ce fichier — l'empreinte carbone de votre structure, sa répartition par poste, et le détail par praticien sans aucun nom ni donnée personnelle identifiable au-delà du nom de votre structure — soient transmises à libetco2@gmail.com pour construire un tableau de bord comparatif entre structures participantes. Vous pouvez demander la suppression de ces données à tout moment en contactant cette même adresse. Aucune donnée n'est transmise sans cette action explicite de votre part.</p>
-      <label style="display:flex; align-items:flex-start; gap:0.5rem; font-weight:500;">
-        <input type="checkbox" id="consentement-dashboard" style="width:1.1rem;height:1.1rem;margin-top:0.15rem;flex-shrink:0;accent-color:var(--couleur-primaire)">
+      <p class="aide" data-style="background: var(--couleur-fond); border-radius: var(--rayon-bouton); padding: 0.8rem; margin: 0 0 0.9rem;">En cliquant sur "Exporter et partager", vous acceptez que les données de ce fichier — l'empreinte carbone de votre structure, sa répartition par poste, et le détail par praticien sans aucun nom ni donnée personnelle identifiable au-delà du nom de votre structure — soient transmises à libetco2@gmail.com pour construire un tableau de bord comparatif entre structures participantes. Vous pouvez demander la suppression de ces données à tout moment en contactant cette même adresse. Aucune donnée n'est transmise sans cette action explicite de votre part.</p>
+      <label data-style="display:flex; align-items:flex-start; gap:0.5rem; font-weight:500;">
+        <input type="checkbox" id="consentement-dashboard" data-style="width:1.1rem;height:1.1rem;margin-top:0.15rem;flex-shrink:0;accent-color:var(--couleur-primaire)">
         <span>J'ai lu et j'accepte que ces données soient partagées dans les conditions décrites ci-dessus.</span>
       </label>
-      <button data-action="exporter-dashboard" id="bouton-exporter-dashboard" class="bouton-principal" disabled style="margin-top: 0.9rem">Exporter et partager</button>
-      <p id="dashboard-statut" class="aide" style="margin-top: 0.6rem"></p>
+      <button data-action="exporter-dashboard" id="bouton-exporter-dashboard" class="bouton-principal" disabled data-style="margin-top: 0.9rem">Exporter et partager</button>
+      <p id="dashboard-statut" class="aide" data-style="margin-top: 0.6rem"></p>
     </div>
 
     <div class="carte carte-invitation">

@@ -2,10 +2,58 @@
 // Accès réseau : réseau routier BD TOPO IGN (WFS, par lot), altimétrie IGN
 // (par lot), géocodage IGN
 // ==========================================================================
+// ---------------------------------------------------------------------------
+// Ménagement des services de l'IGN (diagnostic du 06/10/2026, essai réel à
+// Vourles dans Chrome) : avec 5 requêtes/s d'altimétrie tirées toutes en même
+// temps, 32 requêtes sur 69 ont reçu un refus 429, et le calcul a duré plus de
+// 3 minutes. D'où, pour tous les appels :
+//   - un débit sous la limite documentée et un nombre de requêtes EN COURS
+//     plafonné (une réponse d'altimétrie prend 3 à 10 s : le serveur voit
+//     s'empiler les requêtes même à débit modéré) ;
+//   - après un 429, une pause commune de 5 s (blocage annoncé par l'IGN) avant
+//     toute nouvelle requête vers ce service, au lieu de réessayer en rafale ;
+//   - une attente croissante avec une part aléatoire (gigue), pour que les
+//     requêtes en échec ne repartent pas toutes au même instant.
+// Limites par IP : cartes.gouv.fr, « Limites d'usage des API » [Sourcé, lu le
+// 03/10/2026] : WFS 30/s, altimétrie 5/s, géocodage 50/s ; 429 + 5 s de blocage.
+// ---------------------------------------------------------------------------
+const PAUSE_APRES_429_MS = 5000; // [Sourcé] durée du blocage annoncée par l'IGN
+const pausesService = { wfs: 0, alti: 0 }; // heure (ms) jusqu'à laquelle attendre
+async function attendrePause(service) {
+  const reste = pausesService[service] - Date.now();
+  if (reste > 0) await new Promise((r) => setTimeout(r, reste));
+}
+function signalerRefus(service) {
+  // Gigue : chaque client repart à un instant légèrement différent.
+  pausesService[service] = Math.max(pausesService[service], Date.now() + PAUSE_APRES_429_MS + Math.random() * 1000);
+}
+/** Attente croissante avec gigue : base × 2^essai, ± 50 %. */
+function attenteGigue(baseMs, essai) {
+  return baseMs * Math.pow(2, essai) * (0.5 + Math.random());
+}
+/** Exécute les tâches avec au plus `max` en cours à la fois ; résultats dans l'ordre. */
+async function enParallele(taches, max) {
+  const resultats = new Array(taches.length);
+  let suivante = 0;
+  const ouvrier = async () => {
+    while (suivante < taches.length) {
+      const i = suivante++;
+      resultats[i] = await taches[i]();
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(max, taches.length) }, ouvrier));
+  return resultats;
+}
+// Requêtes simultanées au plus [Estimé : assez pour ne pas ralentir, assez peu
+// pour ne pas saturer ; à ajuster après mesure en conditions réelles].
+const WFS_EN_COURS_MAX = 4;
+const ALTI_EN_COURS_MAX = 2;
+const ALTI_REQUETES_PAR_SECONDE = 4; // 80 % de la limite de 5/s (marge du cahier carto)
+
 const rateLimiter = (() => {
   let timestamps = [];
   return {
-    async wait(maxPerSec = 5) {
+    async wait(maxPerSec = ALTI_REQUETES_PAR_SECONDE) {
       for (;;) {
         const now = Date.now();
         timestamps = timestamps.filter((t) => now - t < 1000);
@@ -58,24 +106,31 @@ const wfsRateLimiter = (() => {
 // débit (429) ou d'erreur serveur (5xx) : les services de la Géoplateforme
 // connaissent des saturations passagères (constatées le 28/09/2026), qui se
 // résorbent en quelques secondes. Attente croissante : 0,5 s, 1 s, 2 s, 4 s.
-async function fetchWithRetry(url, options, maxAttempts = 5) {
+async function fetchWithRetry(url, options, maxAttempts = 5, service = "alti") {
   let lastError;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await attendrePause(service);
     await rateLimiter.wait();
     try {
       const res = await fetch(url, options);
-      if (res.status === 429 || res.status === 403) {
-        lastError = new Error("HTTP " + res.status);
-        await new Promise((r) => setTimeout(r, 500 * Math.pow(2, attempt)));
+      if (res.status === 429) {
+        lastError = new Error("HTTP 429 (limite de débit de l'IGN)");
+        signalerRefus(service);
         continue;
+      }
+      if (res.status === 403) {
+        // Accès refusé : réessayer ne ferait qu'insister auprès d'un serveur
+        // qui bloque déjà cette adresse IP.
+        throw Object.assign(new Error("HTTP 403 : accès refusé par le service de l'IGN"), { definitif: true });
       }
       if (!res.ok) {
         throw new Error("HTTP " + res.status);
       }
       return await res.json();
     } catch (e) {
+      if (e.definitif) throw e;
       lastError = e;
-      await new Promise((r) => setTimeout(r, 500 * Math.pow(2, attempt)));
+      await new Promise((r) => setTimeout(r, attenteGigue(500, attempt)));
     }
   }
   throw lastError;
@@ -96,10 +151,23 @@ async function fetchWithTimeout(url, options, timeoutMs) {
 // l'altimétrie et le géocodage, déjà accessibles depuis ce réseau (contrairement
 // aux services communautaires OSM/Overpass, souvent filtrés par les pare-feux
 // d'établissement).
+// Seuls les attributs lus par graph.js (parseIGNRoadsToGraph), plus la
+// géométrie (3D : elle porte l'altitude de chaque sommet, voir isochrones.js).
+// Relevé du 06/10/2026 sur 50 tronçons : 22,5 Ko au lieu de 147,6 Ko (-85 %).
+const WFS_ATTRIBUTS = "nature,sens_de_circulation,vitesse_moyenne_vl,acces_vehicule_leger,importance,prive,geometrie";
+
+// Cache de session des pages WFS (même URL = même réponse) : une nouvelle
+// tentative ou un second calcul à la même adresse ne retélécharge rien.
+// Borné pour ne pas garder des centaines de Mo en mémoire.
+const cachePagesWfs = new Map();
+const CACHE_PAGES_MAX = 80;
+
 async function fetchIGNRoadsPage(bbox, pageSize, startIndex, maxAttempts = 6) {
   const url =
     "https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature" +
     "&TYPENAMES=BDTOPO_V3:troncon_de_route&OUTPUTFORMAT=application/json&SRSNAME=EPSG:4326" +
+    "&PROPERTYNAME=" +
+    WFS_ATTRIBUTS +
     "&BBOX=" +
     bbox +
     "&count=" +
@@ -107,8 +175,10 @@ async function fetchIGNRoadsPage(bbox, pageSize, startIndex, maxAttempts = 6) {
     "&startIndex=" +
     startIndex;
 
+  if (cachePagesWfs.has(url)) return cachePagesWfs.get(url);
   let lastError;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await attendrePause("wfs");
     await wfsRateLimiter.wait();
     let res;
     try {
@@ -117,7 +187,7 @@ async function fetchIGNRoadsPage(bbox, pageSize, startIndex, maxAttempts = 6) {
       lastError = new Error(
         "Échec réseau vers le WFS IGN (" + (e.name === "AbortError" ? "délai dépassé" : e.message) + "). URL : " + url,
       );
-      await new Promise((r) => setTimeout(r, 400 * Math.pow(2, attempt)));
+      await new Promise((r) => setTimeout(r, attenteGigue(400, attempt)));
       continue;
     }
     const rawText = await res.text();
@@ -127,7 +197,8 @@ async function fetchIGNRoadsPage(bbox, pageSize, startIndex, maxAttempts = 6) {
       // intensif prolongé depuis la même IP), il faut attendre nettement
       // plus longtemps avant de retenter, pas juste quelques centaines de ms.
       lastError = new Error("Le WFS IGN a répondu HTTP " + res.status + " (limite de débit). URL : " + url);
-      await new Promise((r) => setTimeout(r, 800 * Math.pow(2, attempt)));
+      signalerRefus("wfs");
+      await new Promise((r) => setTimeout(r, attenteGigue(800, attempt)));
       continue;
     }
     // Saturation passagère du serveur IGN : erreur 5xx, ou erreur 400 dont le
@@ -140,7 +211,7 @@ async function fetchIGNRoadsPage(bbox, pageSize, startIndex, maxAttempts = 6) {
       lastError = new Error(
         "Le WFS IGN est saturé (HTTP " + res.status + "). URL : " + url + " — réponse : " + rawText.slice(0, 300),
       );
-      await new Promise((r) => setTimeout(r, 800 * Math.pow(2, attempt)));
+      await new Promise((r) => setTimeout(r, attenteGigue(800, attempt)));
       continue;
     }
     if (!res.ok) {
@@ -165,7 +236,10 @@ async function fetchIGNRoadsPage(bbox, pageSize, startIndex, maxAttempts = 6) {
     }
     // numberMatched : nombre total de tronçons de l'emprise, annoncé par le
     // serveur (WFS 2.0) ; permet de ne demander que les pages nécessaires.
-    return { features: json.features || [], numberMatched: json.numberMatched, url, rawText };
+    const page = { features: json.features || [], numberMatched: json.numberMatched, url, extrait: rawText.slice(0, 300) };
+    if (cachePagesWfs.size >= CACHE_PAGES_MAX) cachePagesWfs.delete(cachePagesWfs.keys().next().value);
+    cachePagesWfs.set(url, page);
+    return page;
   }
   throw new Error(
     lastError ? lastError.message + " (après " + maxAttempts + " tentatives)" : "Échec inconnu du WFS IGN.",
@@ -196,7 +270,10 @@ async function fetchAllIGNRoadPages(bbox, wfsPageSize, onWaveDone) {
     for (let start = 1; start < pagesNeeded; start += waveSize) {
       const indexes = [];
       for (let p = start; p < Math.min(start + waveSize, pagesNeeded); p++) indexes.push(p * wfsPageSize);
-      const pages = await Promise.all(indexes.map((i) => fetchIGNRoadsPage(bbox, wfsPageSize, i)));
+      const pages = await enParallele(
+        indexes.map((i) => () => fetchIGNRoadsPage(bbox, wfsPageSize, i)),
+        WFS_EN_COURS_MAX,
+      );
       for (const page of pages) {
         last = page;
         for (const f of page.features) allFeatures.push(f);
@@ -213,7 +290,10 @@ async function fetchAllIGNRoadPages(bbox, wfsPageSize, onWaveDone) {
   for (let wave = 0; ; wave++) {
     const indexes = [];
     for (let i = 0; i < waveSize; i++) indexes.push((1 + wave * waveSize + i) * wfsPageSize);
-    const pages = await Promise.all(indexes.map((i) => fetchIGNRoadsPage(bbox, wfsPageSize, i)));
+    const pages = await enParallele(
+      indexes.map((i) => () => fetchIGNRoadsPage(bbox, wfsPageSize, i)),
+      WFS_EN_COURS_MAX,
+    );
     let incomplete = false;
     for (const page of pages) {
       last = page;
@@ -279,11 +359,11 @@ export async function fetchIGNRoads(lon, lat, radiusMeters, wfsPageSize, onWaveD
       "Essai 1 (lon,lat) : " +
       attemptLonLat.last.url +
       " → " +
-      attemptLonLat.last.rawText.slice(0, 300) +
+      attemptLonLat.last.extrait +
       " | Essai 2 (lat,lon) : " +
       attemptLatLon.last.url +
       " → " +
-      attemptLatLon.last.rawText.slice(0, 300),
+      attemptLatLon.last.extrait,
   );
 }
 
@@ -430,7 +510,10 @@ export async function fetchElevations(points, onChunkDone) {
     }
   };
 
-  await Promise.all(chunks.map((chunk, i) => fetchChunk(chunk, i)));
+  await enParallele(
+    chunks.map((chunk, i) => () => fetchChunk(chunk, i)),
+    ALTI_EN_COURS_MAX,
+  );
   return elevations;
 }
 

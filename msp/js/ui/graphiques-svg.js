@@ -52,7 +52,7 @@ export function svgCamembertAnneau(items, { taille = 220, epaisseur = 34, unite 
   const legende = items
     .map((item, i) => {
       const couleur = item.couleur || COULEURS_POSTES[i % COULEURS_POSTES.length];
-      return `<span class="legende-item"><span class="legende-puce" style="background:${couleur}"></span>${item.label}<span class="legende-pct">${Math.round((item.valeur / total) * 100)}%</span></span>`;
+      return `<span class="legende-item"><span class="legende-puce" data-style="background:${couleur}"></span>${item.label}<span class="legende-pct">${Math.round((item.valeur / total) * 100)}%</span></span>`;
     })
     .join("");
 
@@ -155,7 +155,7 @@ export function svgBarresEmpilees(
   const legende = series
     .map(
       (ser) =>
-        `<span class="legende-item"><span class="legende-puce" style="background:${ser.couleur}"></span>${ser.label}</span>`,
+        `<span class="legende-item"><span class="legende-puce" data-style="background:${ser.couleur}"></span>${ser.label}</span>`,
     )
     .join("");
 

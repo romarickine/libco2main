@@ -49,7 +49,7 @@ export function fmt(n, dec = 0) {
  */
 export function champNombreHtml(fieldKey, value, { min = 0, max, step, suffix = "", libelle } = {}) {
   const v = value === 0 ? "" : value;
-  return `<span style="display:inline-flex; align-items:center; gap:8px;">
+  return `<span data-style="display:inline-flex; align-items:center; gap:8px;">
     <input type="number" class="champ-nombre" data-field="${fieldKey}" data-champ-nombre="${fieldKey}"${libelle ? ` aria-label="${libelle}"` : ""}
       value="${v}" placeholder="0" ${min !== undefined ? `min="${min}"` : ""} ${max !== undefined ? `max="${max}"` : ""} ${step !== undefined ? `step="${step}"` : ""} />
     ${suffix ? `<span class="texte-discret">${suffix}</span>` : ""}

@@ -509,3 +509,15 @@ a {
   background: var(--paper);
   color: var(--ink);
 }
+
+/* ---- iso/index.html : anciens attributs style="…" (CSP stricte). Une classe st-xxxxxx par déclaration. ---- */
+.st-5e6099 { color: var(--muted); }
+.st-48031c { position: relative; }
+.st-9001ab { display:flex; gap:6px; }
+.st-0e9103 { display:block;font-weight:400; }
+.st-287c6e { background:var(--walk); }
+.st-80c0ec { background:var(--bike); }
+.st-4a152a { background:var(--ebike); }
+.st-d3acf5 { width:100%; margin-top:6px; }
+.st-d2f1a6 { display:none; margin-top:8px; font-size:12.5px; }
+.st-60d36d { margin-top:20px; }

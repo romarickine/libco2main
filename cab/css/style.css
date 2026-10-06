@@ -365,6 +365,8 @@ input[type="text"]:focus {
 input[type="range"] {
   accent-color: var(--couleur-primaire);
   width: 100%;
+  /* Zone cliquable d'au moins 24 px de haut (WCAG 2.2, critère 2.5.8). */
+  min-height: 24px;
 }
 input[type="checkbox"] {
   accent-color: var(--couleur-primaire);

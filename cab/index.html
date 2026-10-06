@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
   <title>Lib&CO2 — Calculateur carbone pour les professions libérales</title>
   <meta name="description" content="Estimez l'ordre de grandeur des émissions de gaz à effet de serre de votre activité indépendante et identifiez vos leviers de décarbonation." />
   <link rel="canonical" href="https://libco2.fr/cab/" />
@@ -49,15 +50,16 @@
   </script>
 </head>
 <body>
+  <a class="lien-evitement" href="#app">Aller au contenu</a>
   <!-- Titre de la page, hors de #app pour survivre aux re-rendus : masqué à
        l'écran (le logo et les titres d'étape h2 suffisent visuellement) mais
        lu par les lecteurs d'écran et les moteurs de recherche. -->
   <h1 class="visuellement-masque">Lib&amp;CO2 Cab — Calculateur carbone pour les professions libérales</h1>
-  <div id="app">
+  <main id="app">
     <!-- Contenu de secours : remplacé par l'application dès que js/main.js
          se charge ; message clair si JavaScript est désactivé. -->
     <noscript><p>Ce calculateur a besoin de JavaScript pour fonctionner. Activez-le dans votre navigateur puis rechargez la page.</p></noscript>
-  </div>
+  </main>
 
   <!-- Point d'entrée de l'application (module ES6) -->
   <script type="module" src="js/main.js"></script>

@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
   <title>Mentions légales & confidentialité — Lib&CO2</title>
   <meta name="description" content="Mentions légales, politique de confidentialité et informations sur le code source ouvert de Lib&CO2 (accueil, Lib&CO2 Cab, Lib&CO2 MSP, La carte du sans-voiture et blog)." />
   <link rel="canonical" href="https://libco2.fr/mentions-legales.html" />
@@ -20,47 +21,15 @@
   <link rel="apple-touch-icon" href="shared/assets/favicon/apple-touch-icon.png" />
   <link rel="manifest" href="site.webmanifest" />
   <link rel="stylesheet" href="shared/css/tokens.css" />
-  <style>
-    :root {
-      /* Noms locaux reliés aux jetons communs (shared/css/tokens.css). */
-      --vert: var(--lc-vert);
-      --vert-fond: var(--lc-vert-fond);
-      --ambre: var(--lc-ambre);
-      --fond: var(--lc-fond);
-      --bordure: var(--lc-bordure);
-      --encre: var(--lc-encre);
-      --texte: var(--lc-texte);
-      --discret: var(--lc-discret);
-      --serif: var(--lc-police-titres);
-      --sans: var(--lc-police-texte);
-    }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: var(--sans); background: var(--fond); color: var(--encre); line-height: 1.65; }
-    .page-legale { max-width: 760px; margin: 0 auto; padding: 44px 20px 90px; }
-    .page-legale .retour { display: inline-block; margin-bottom: 24px; font-size: 14px; font-weight: 600; text-decoration: none; color: var(--vert); }
-    .page-legale img.logo { height: 36px; display: block; margin: 0 auto 24px; }
-    .page-legale h1 { font-family: var(--serif); font-size: 30px; margin-bottom: 6px; }
-    .page-legale .maj { font-size: 13px; color: var(--discret); margin-bottom: 34px; }
-    .page-legale h2 { font-family: var(--serif); font-size: 20px; margin: 38px 0 12px; color: var(--vert); }
-    .page-legale h3 { font-size: 15px; margin: 20px 0 8px; }
-    .page-legale p { font-size: 15px; color: var(--texte); margin: 0 0 14px; }
-    .page-legale ul { font-size: 15px; line-height: 1.65; color: var(--texte); padding-left: 20px; margin: 0 0 14px; }
-    .page-legale li { margin-bottom: 6px; }
-    .page-legale a { color: var(--vert); }
-    .encart-anticipe { background: var(--vert-fond); border-left: 3px solid var(--vert); border-radius: 8px; padding: 14px 16px; font-size: 13.5px; color: var(--texte); margin: 14px 0; }
-    .sommaire { background: #fff; border: 1px solid var(--bordure); border-radius: 12px; padding: 18px 22px; margin-bottom: 8px; }
-    .sommaire p { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: .4px; color: var(--discret); margin-bottom: 10px; }
-    .sommaire ol { margin: 0; padding-left: 20px; font-size: 14px; }
-    .sommaire li { margin-bottom: 6px; }
-    .sommaire a { text-decoration: none; }
-  </style>
+  <link rel="stylesheet" href="assets/css/mentions-legales.css" />
 </head>
 <body>
-  <div class="page-legale">
+  <a class="lien-evitement" href="#contenu">Aller au contenu</a>
+  <main id="contenu" class="page-legale">
     <a href="index.html" class="retour">‹ Retour à l'accueil</a>
-    <img src="shared/assets/logo/logo-libco2.png" alt="Lib&CO2" class="logo" />
+    <img width="600" height="199" src="shared/assets/logo/logo-libco2.png" alt="Lib&CO2" class="logo" />
     <h1>Mentions légales & confidentialité</h1>
-    <p class="maj">Dernière mise à jour : septembre 2026. Cette page couvre l'ensemble du site libco2.fr : la page d'accueil, les outils Lib&CO2 Cab, Lib&CO2 MSP et La carte du sans-voiture, et le blog.</p>
+    <p class="maj">Dernière mise à jour : octobre 2026. Cette page couvre l'ensemble du site libco2.fr : la page d'accueil, les outils Lib&CO2 Cab, Lib&CO2 MSP et La carte du sans-voiture, et le blog.</p>
 
     <div class="sommaire">
       <p>Sommaire</p>
@@ -86,8 +55,10 @@
 
     <h2 id="hebergeur">Hébergement</h2>
     <p>
-      Ce site est hébergé par GitHub, Inc. (GitHub Pages)<br />
-      88 Colin P Kelly Jr St, San Francisco, CA 94107, États-Unis
+      Ce site est hébergé par OVH SAS, société par actions simplifiée au capital de 50 000 000 €<br />
+      RCS Lille Métropole 424 761 419 00045<br />
+      2 rue Kellermann, 59100 Roubaix, France<br />
+      <a href="https://www.ovhcloud.com/fr/" target="_blank" rel="noopener">www.ovhcloud.com</a>
     </p>
 
     <h2 id="propriete">Propriété intellectuelle</h2>
@@ -117,7 +88,14 @@
     <div class="encart-anticipe">
       <strong>Point anticipé, non actif à la date de rédaction :</strong> Lib&CO2 prévoit d'utiliser <strong>Plausible</strong>, un outil de mesure d'audience respectueux de la vie privée, hébergé en Europe. Plausible ne dépose aucun cookie, ne collecte aucune donnée à caractère personnel identifiable, n'effectue aucun suivi entre sites et ne nécessite donc pas de bandeau de consentement. Seules des statistiques agrégées et anonymes (nombre de visites, pages consultées, provenance générale du trafic) seront mesurées, à seule fin d'améliorer le site. Cette section sera mise à jour dès l'activation effective de l'outil.
     </div>
-    <p>En dehors de cet outil de mesure d'audience, aucun cookie publicitaire, aucun outil de suivi intersite et aucun script tiers n'est chargé sur le site.</p>
+    <p>Aucun cookie publicitaire et aucun outil de suivi intersite ne sont utilisés sur le site. Deux contenus tiers sont toutefois chargés, et seulement là où ils servent :</p>
+    <ul>
+      <li><strong>Bibliothèque de carte Leaflet</strong> (page La carte du sans-voiture uniquement) : chargée depuis le service unpkg.com, avec un contrôle d'intégrité qui garantit que le fichier reçu est bien celui attendu. Comme pour tout fichier téléchargé, ce service reçoit l'adresse IP du visiteur. Aucun cookie n'est déposé.</li>
+      <li><strong>Vidéo YouTube</strong> (page « Pourquoi compter le carbone ») : rien n'est chargé depuis YouTube tant que le visiteur n'a pas cliqué sur « Lancer la vidéo ». Après ce clic, la lecture se fait depuis youtube-nocookie.com, qui relève des règles de confidentialité de Google.</li>
+    </ul>
+
+    <h3>Journaux techniques de l'hébergeur</h3>
+    <p>Comme tout serveur web, celui de l'hébergeur enregistre des journaux techniques (adresse IP, page demandée, date et heure, navigateur), utilisés uniquement pour la sécurité et le bon fonctionnement du service. Lib&CO2 ne les exploite pas à d'autres fins. Leur durée de conservation est celle appliquée par l'hébergeur <em>[à confirmer auprès d'OVH et à compléter ici]</em>.</p>
 
     <h3>Destinataires des données</h3>
     <p>Aucune donnée personnelle n'est transmise à un tiers à des fins commerciales ou marketing. Les seules statistiques transmises à un tiers sont les données agrégées et anonymes de fréquentation traitées par Plausible (voir ci-dessus), une fois cet outil activé.</p>
@@ -133,6 +111,6 @@
 
     <h2>Contact</h2>
     <p>Pour toute question, signalement d'erreur ou suggestion : <a href="mailto:libetco2@gmail.com">libetco2@gmail.com</a></p>
-  </div>
+  </main>
 </body>
 </html>

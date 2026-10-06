@@ -65,15 +65,15 @@ export function renderResultats(root, ctx) {
         <div class="eyebrow">${famille.label}</div>
         <div class="ligne-hero">
           <div><div class="chiffre-hero titre-serif">${resultats.totalT.toFixed(2)} <small>tCO2e / an</small></div><div class="sous-legende">Empreinte annuelle de l'ensemble de ${famille.lieuArticleLe}</div></div>
-          <div><div class="chiffre-hero titre-serif" style="color:var(--couleur-accent-ambre);">${parActeAffiche.toFixed(1)} <small>kgCO2e</small></div><div class="sous-legende">par ${famille.uniteActe}${aDesPrescriptions ? (inclurePrescriptions ? " (avec prescriptions)" : " (hors prescriptions)") : ""}</div></div>
+          <div><div class="chiffre-hero titre-serif" data-style="color:var(--couleur-accent-ambre);">${parActeAffiche.toFixed(1)} <small>kgCO2e</small></div><div class="sous-legende">par ${famille.uniteActe}${aDesPrescriptions ? (inclurePrescriptions ? " (avec prescriptions)" : " (hors prescriptions)") : ""}</div></div>
         </div>
         ${
           aDesPrescriptions
             ? `
-          <div style="margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.15); font-size:12.5px; line-height:1.5; opacity:0.9;">
+          <div data-style="margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.15); font-size:12.5px; line-height:1.5; opacity:0.9;">
             Dont <strong>${resultats.totalT - resultats.totalTHorsPrescriptions > 0 ? (resultats.parPoste.prescriptions / 1000).toFixed(2) : "0.00"} tCO2e/an</strong> lié·es aux prescriptions (médicaments, examens, dispositifs).
             Empreinte <strong>hors prescriptions : ${resultats.totalTHorsPrescriptions.toFixed(2)} tCO2e/an</strong> — c'est ce chiffre qui reste comparable à un praticien qui ne prescrit pas.
-            <label style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer; font-size:12.5px;">
+            <label data-style="display:flex; align-items:center; gap:8px; margin-top:10px; cursor:pointer; font-size:12.5px;">
               <input type="checkbox" id="chk-inclure-prescriptions" ${inclurePrescriptions ? "checked" : ""} />
               Inclure les prescriptions dans le "kgCO2e par ${famille.uniteActe}" affiché ci-dessus
             </label>
@@ -84,7 +84,7 @@ export function renderResultats(root, ctx) {
 
       <div class="carte carte-graphique">
         <div class="entete-graphique">
-          <div style="font-weight:700; font-size:14.5px;">Répartition par poste d'émission</div>
+          <div data-style="font-weight:700; font-size:14.5px;">Répartition par poste d'émission</div>
           <div class="toggle-graphique">
             <button data-type-graph="pie" class="${typeGraphique === "pie" ? "actif" : ""}">◔</button>
             <button data-type-graph="bar" class="${typeGraphique === "bar" ? "actif" : ""}">▤</button>
@@ -92,62 +92,62 @@ export function renderResultats(root, ctx) {
         </div>
         <div class="zone-canvas-repartition"><canvas id="canvas-repartition"></canvas></div>
         <div class="legende-graphique">
-          ${donneesGraphique.map((d) => `<div class="legende-item"><span class="pastille" style="background:${d.color}"></span><span class="libelle-poste">${d.label}</span><span class="valeur-poste">${fmt(d.value)} kg</span></div>`).join("")}
+          ${donneesGraphique.map((d) => `<div class="legende-item"><span class="pastille" data-style="background:${d.color}"></span><span class="libelle-poste">${d.label}</span><span class="valeur-poste">${fmt(d.value)} kg</span></div>`).join("")}
         </div>
-        <div style="text-align:center; margin-top:10px;"><button class="bouton-reperes" id="btn-reperes">❓ Quelques repères</button></div>
+        <div data-style="text-align:center; margin-top:10px;"><button class="bouton-reperes" id="btn-reperes">❓ Quelques repères</button></div>
       </div>
 
       <div class="zone-jauge-sticky" id="zone-jauge"></div>
 
       <div class="carte">
-        <div style="font-weight:700; font-size:15px;">Pistes de décarbonation priorisées</div>
-        <div class="texte-discret" style="margin-bottom:6px;">Top 5 des actions les plus efficaces (impact x coût). Cochez celles que vous envisagez — la jauge ci-dessus se met à jour en direct.</div>
+        <div data-style="font-weight:700; font-size:15px;">Pistes de décarbonation priorisées</div>
+        <div class="texte-discret" data-style="margin-bottom:6px;">Top 5 des actions les plus efficaces (impact x coût). Cochez celles que vous envisagez — la jauge ci-dessus se met à jour en direct.</div>
         ${reducPlan > 0 ? `<div class="bandeau-plan">Avec les actions cochées, votre plan d'action représente environ <span class="texte-mono">-${fmt(reducPlan)} kgCO2e/an</span> (-${pctReducPlan.toFixed(0)}% de votre empreinte).</div>` : ""}
         <div id="liste-actions-top"></div>
         ${
           autresActions.length > 0
             ? `
           <button class="bouton-voir-plus" id="btn-plus-actions">${afficherPlusActions ? "Masquer les autres actions ▲" : `Voir ${autresActions.length} autres actions moins impactantes ▼`}</button>
-          <div id="liste-actions-autres" style="${afficherPlusActions ? "" : "display:none;"}"></div>`
+          <div id="liste-actions-autres" data-style="${afficherPlusActions ? "" : "display:none;"}"></div>`
             : ""
         }
       </div>
 
       <div class="carte">
-        <div style="font-weight:700; font-size:14px; margin-bottom:6px;">Simuler un objectif par ${famille.uniteActe}</div>
-        <div class="texte-discret" style="margin-bottom:10px;">Indiquez le niveau visé : la réduction totale nécessaire est calculée automatiquement.</div>
+        <div data-style="font-weight:700; font-size:14px; margin-bottom:6px;">Simuler un objectif par ${famille.uniteActe}</div>
+        <div class="texte-discret" data-style="margin-bottom:10px;">Indiquez le niveau visé : la réduction totale nécessaire est calculée automatiquement.</div>
         ${champNombreHtml("objectifSeance", 0, { step: 0.1, suffix: `kgCO2e / ${famille.uniteActe} visé`, libelle: `Objectif en kgCO2e par ${famille.uniteActe}` })}
-        <div id="resultat-simulateur" style="margin-top:12px; font-size:13px; line-height:1.55;"></div>
+        <div id="resultat-simulateur" data-style="margin-top:12px; font-size:13px; line-height:1.55;"></div>
       </div>
 
       <div class="carte zone-certificat">
-        <div style="font-weight:700; font-size:14.5px; margin-bottom:4px;">Exporter mon certificat</div>
-        <div class="texte-discret" style="margin-bottom:12px;">Une image à partager ou à afficher, résumant votre estimation.</div>
+        <div data-style="font-weight:700; font-size:14.5px; margin-bottom:4px;">Exporter mon certificat</div>
+        <div class="texte-discret" data-style="margin-bottom:12px;">Une image à partager ou à afficher, résumant votre estimation.</div>
         <input type="text" id="input-nom-cabinet" aria-label="Nom affiché sur le certificat (facultatif)" placeholder="Nom de ${famille.lieuArticleMon} (facultatif)" value="${echapperHtml(nomCabinet)}" />
         <button class="bouton bouton-ambre" id="btn-export-certificat">⬇ Télécharger le certificat (PNG)</button>
         <div class="statut-certificat ${typeCertificat === "ok" ? "ok" : typeCertificat === "erreur" ? "erreur" : ""}">
           ${typeCertificat === "loading" ? "Génération en cours…" : typeCertificat === "erreur" ? "La génération a échoué — réessayez." : typeCertificat === "ok" ? "Certificat téléchargé ✓" : ""}
         </div>
-        <canvas id="canvas-certificat" width="640" height="560" style="display:none;"></canvas>
+        <canvas id="canvas-certificat" width="640" height="560" data-style="display:none;"></canvas>
       </div>
 
-      <div class="carte" style="text-align:center;">
-        <div style="font-weight:700; font-size:14.5px; margin-bottom:6px;">Suivre l'évolution de mon cabinet</div>
-        <div class="texte-discret" style="margin-bottom:14px;">Enregistrez ce bilan pour le retrouver plus tard et suivre son évolution dans le temps.</div>
-        <button class="bouton bouton-primaire" id="btn-enregistrer-bilan" style="margin-right:10px;">Enregistrer ce bilan</button>
+      <div class="carte" data-style="text-align:center;">
+        <div data-style="font-weight:700; font-size:14.5px; margin-bottom:6px;">Suivre l'évolution de mon cabinet</div>
+        <div class="texte-discret" data-style="margin-bottom:14px;">Enregistrez ce bilan pour le retrouver plus tard et suivre son évolution dans le temps.</div>
+        <button class="bouton bouton-primaire" id="btn-enregistrer-bilan" data-style="margin-right:10px;">Enregistrer ce bilan</button>
         <button class="bouton bouton-secondaire" id="btn-voir-historique">Voir mon historique</button>
       </div>
 
-      <div class="carte" style="text-align:center; background:var(--couleur-primaire-fond); border-style:dashed;">
-        <div style="font-weight:700; font-size:14.5px; margin-bottom:6px;">🌍 Aller plus loin que le carbone</div>
-        <div class="texte-discret" style="margin-bottom:14px;">Le carbone n'est qu'une des dimensions de l'impact environnemental d'une activité. Découvrez les autres enjeux à connaître (eau, ressources, biodiversité...).</div>
+      <div class="carte" data-style="text-align:center; background:var(--couleur-primaire-fond); border-style:dashed;">
+        <div data-style="font-weight:700; font-size:14.5px; margin-bottom:6px;">🌍 Aller plus loin que le carbone</div>
+        <div class="texte-discret" data-style="margin-bottom:14px;">Le carbone n'est qu'une des dimensions de l'impact environnemental d'une activité. Découvrez les autres enjeux à connaître (eau, ressources, biodiversité...).</div>
         <a href="les-autres-enjeux.html" class="bouton bouton-secondaire">Voir les autres enjeux ›</a>
       </div>
 
-      <div style="text-align:center; margin-top:16px;"><button class="bouton-lien" id="btn-recommencer">↺ Recommencer une estimation</button></div>
+      <div data-style="text-align:center; margin-top:16px;"><button class="bouton-lien" id="btn-recommencer">↺ Recommencer une estimation</button></div>
 
       <p class="mentions">Version bêta-test — Ordres de grandeur indicatifs, non contractuels. Facteurs d'émission : ADEME Base Empreinte (dernière version disponible), méthodologie inspirée du rapport kinéCO2 (Lib&CO2, Carbone 4). Déplacements de la patientèle/clientèle : Enquête Mobilité des Personnes 2019 (SDES), report modal par zone (zonage INSEE en aires urbaines 2010) ajusté selon le motif de déplacement propre à chaque famille de métier. Référentiels : GHG Protocol, BEGES v5.</p>
-      <p class="mentions"><a href="../mentions-legales.html" style="color:inherit;">Mentions légales</a> · <a href="https://github.com/romarickine/libco2cab" target="_blank" rel="noopener" style="color:inherit;">Code source</a></p>
+      <p class="mentions"><a href="../mentions-legales.html" data-style="color:inherit;">Mentions légales</a> · <a href="https://github.com/romarickine/libco2cab" target="_blank" rel="noopener" data-style="color:inherit;">Code source</a></p>
     </div>
     <div id="zone-modale"></div>
   `;
@@ -159,7 +159,7 @@ export function renderResultats(root, ctx) {
   } catch (e) {
     console.error("Lib&CO2 — graphique de répartition indisponible :", e);
     document.querySelector(".zone-canvas-repartition").innerHTML =
-      `<p class="texte-discret" style="padding-top:20px;">Graphique indisponible.</p>`;
+      `<p class="texte-discret" data-style="padding-top:20px;">Graphique indisponible.</p>`;
   }
   // Jauge
   dessinerJaugeEngagement(document.getElementById("zone-jauge"), pctReducPlan, resultats.totalT, objectif3ansKg / 1000);
@@ -203,7 +203,7 @@ export function renderResultats(root, ctx) {
     }
     const reductionKg = deltaKgParActe * (totalKgAffiche / parActeAffiche);
     const reductionPct = (reductionKg / totalKgAffiche) * 100;
-    let texte = `Pour atteindre <strong>${objectif} kgCO2e/${famille.uniteActe}</strong>, réduire d'environ <span class="texte-mono" style="color:var(--couleur-primaire); font-weight:700;">${fmt(reductionKg)} kgCO2e/an</span> (-${reductionPct.toFixed(0)}%).`;
+    let texte = `Pour atteindre <strong>${objectif} kgCO2e/${famille.uniteActe}</strong>, réduire d'environ <span class="texte-mono" data-style="color:var(--couleur-primaire); font-weight:700;">${fmt(reductionKg)} kgCO2e/an</span> (-${reductionPct.toFixed(0)}%).`;
     if (reducPlan > 0)
       texte += ` Le plan coché couvre ${Math.min(100, (reducPlan / reductionKg) * 100).toFixed(0)}% de cet objectif.`;
     zoneResultatSim.innerHTML = texte;
@@ -216,7 +216,7 @@ function ligneActionHtml(a, rang) {
   return `
     <div class="ligne-action">
       <div class="ligne-action-contenu">
-        <input type="checkbox" aria-label="Retenir l'action : ${echapperHtml(a.titre)}" data-toggle-action="${a.id}" data-default-pct="${a.defaultPct || 0}" ${a.checked ? "checked" : ""} style="margin-top:4px; flex-shrink:0;" />
+        <input type="checkbox" aria-label="Retenir l'action : ${echapperHtml(a.titre)}" data-toggle-action="${a.id}" data-default-pct="${a.defaultPct || 0}" ${a.checked ? "checked" : ""} data-style="margin-top:4px; flex-shrink:0;" />
         <div class="ligne-action-rang">${rang}</div>
         <div class="ligne-action-corps">
           <div class="titre">${a.titre}</div>
@@ -226,9 +226,9 @@ function ligneActionHtml(a, rang) {
             a.checked && a.unit === "degres"
               ? `
             <div class="stepper-degres">
-              <div style="font-size:12px; font-weight:600;">Variation de consigne :</div>
+              <div data-style="font-size:12px; font-weight:600;">Variation de consigne :</div>
               <button data-degres-moins="${a.id}">−</button>
-              <span class="texte-mono" style="font-weight:700;">${a.degres} °C</span>
+              <span class="texte-mono" data-style="font-weight:700;">${a.degres} °C</span>
               <button data-degres-plus="${a.id}">+</button>
             </div>`
               : ""

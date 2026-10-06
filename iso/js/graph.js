@@ -15,6 +15,9 @@ const EARTH_RADIUS = 6371000;
 // Vitesse (km/h) en deçà de laquelle une rue est considérée « calme » : le vélo
 // peut y circuler à contresens du sens unique (hypothèse, voir sensUniqueApplique).
 const SEUIL_RUE_CALME_KMH = 30;
+// Passes de lissage des altitudes BD TOPO® (voir lisserAltitudes) : 1, retenue après
+// comparaison sur 4 sites le 06/10/2026 (docs/validation-lissage-altitudes.md). [Estimé]
+const PASSES_LISSAGE_ALTITUDE = 1;
 // En contexte urbain : au-delà de cette vitesse, voie rapide, sens unique maintenu pour le vélo (seuil de cadrage, non sourcé).
 const SEUIL_VOIE_RAPIDE_URBAINE_KMH = 50;
 /**
@@ -92,11 +95,22 @@ function createNodeSnapper(toleranceMeters) {
  * carrefour (la BD TOPO® ne fournit pas d'identifiant de nœud).
  * @param {object} featureCollection  Réponse du WFS IGN.
  * @param {number} nodeSnapTolerance  Mètres.
- * @returns {{nodeCoords: Map<number, [number, number]>, edges: object[]}}
+ * @returns {{nodeCoords: Map<number, [number, number]>, edges: object[], nodeElev: Map<number, number>}}
+ *   nodeElev : altitude (m) des nœuds dont le sommet porte un Z valide (géométrie 3D BD TOPO®).
  */
 export function parseIGNRoadsToGraph(featureCollection, nodeSnapTolerance) {
   const snapper = createNodeSnapper(nodeSnapTolerance);
   const edges = [];
+  // Altitude par nœud, lue dans la 3e coordonnée des sommets (la BD TOPO®
+  // livre des géométries 3D). Valeurs hors de la plage plausible (la BD TOPO®
+  // code un Z inconnu par une valeur négative conventionnelle ; 3,3 % des
+  // sommets relevés à Vourles le 06/10/2026) : ignorées, complétées ensuite
+  // (voir completerAltitudes et isochrones.js).
+  const nodeElev = new Map();
+  const noterZ = (id, c) => {
+    const z = c[2];
+    if (!nodeElev.has(id) && typeof z === "number" && z > -500 && z < 5000) nodeElev.set(id, z);
+  };
   // Identifiants négatifs, jamais générés par le snapper (qui compte à partir
   // de 0) : réservés aux points de forme intermédiaires, pour qu'ils ne
   // puissent jamais se fusionner avec un point d'un autre tronçon.
@@ -146,6 +160,7 @@ export function parseIGNRoadsToGraph(featureCollection, nodeSnapTolerance) {
         snapper.nodeCoords.set(id, [coords[i][0], coords[i][1]]);
         nodeIds[i] = id;
       }
+      for (let i = 0; i < n; i++) noterZ(nodeIds[i], coords[i]);
       for (let i = 0; i < n - 1; i++) {
         const [lon1, lat1] = coords[i];
         const [lon2, lat2] = coords[i + 1];
@@ -159,7 +174,80 @@ export function parseIGNRoadsToGraph(featureCollection, nodeSnapTolerance) {
       }
     }
   }
-  return { nodeCoords: snapper.nodeCoords, edges };
+  return { nodeCoords: snapper.nodeCoords, edges, nodeElev };
+}
+
+/**
+ * Lisse les altitudes le long du réseau : chaque nœud prend la moyenne de sa
+ * propre altitude et de celles de ses voisins, `passes` fois. Raison : la pente
+ * est calculée tronçon par tronçon, entre sommets parfois distants de quelques
+ * mètres ; un écart de quelques décimètres sur le Z d'un sommet y produit des
+ * pentes fictives de plusieurs %, que les modèles de vitesse (non linéaires)
+ * transforment en ralentissement net.
+ * Validation du 06/10/2026 sur 4 sites (Saint-Étienne, Pélussin, Feurs, Charly),
+ * contre l'ancienne méthode (grille RGE ALTI® de 70 m) : 1 passe donne le meilleur
+ * recouvrement des zones vélo (indice de Jaccard moyen 0,91, minimum 0,86 ; sans
+ * lissage 0,85 / 0,68 ; 3 passes 0,82 / 0,51) et le dénivelé cumulé le plus proche
+ * (−4 à −5 % ; sans lissage +6 à +9 % ; 3 passes −10 à −12 %). Détail :
+ * docs/validation-lissage-altitudes.md. [Estimé : 4 sites de la Loire et du Rhône]
+ * Modifie `elevations` en place.
+ * @param {object} graph @param {Map<number, number>} elevations @param {number} [passes]
+ */
+export function lisserAltitudes(graph, elevations, passes = PASSES_LISSAGE_ALTITUDE) {
+  const voisins = new Map();
+  for (const e of graph.edges) {
+    if (!voisins.has(e.from)) voisins.set(e.from, []);
+    if (!voisins.has(e.to)) voisins.set(e.to, []);
+    voisins.get(e.from).push(e.to);
+    voisins.get(e.to).push(e.from);
+  }
+  for (let p = 0; p < passes; p++) {
+    const lissees = new Map();
+    for (const [id, z] of elevations) {
+      let somme = z,
+        n = 1;
+      for (const v of voisins.get(id) || []) {
+        const zv = elevations.get(v);
+        if (zv !== undefined) {
+          somme += zv;
+          n++;
+        }
+      }
+      lissees.set(id, somme / n);
+    }
+    for (const [id, z] of lissees) elevations.set(id, z);
+  }
+}
+
+/**
+ * Complète les altitudes manquantes par la moyenne des voisins connus (le long
+ * des tronçons), en quelques passes : un sommet sans Z se trouve presque
+ * toujours entre deux sommets qui en ont un. Modifie `elevations` en place.
+ * @param {object} graph  { nodeCoords, edges }
+ * @param {Map<number, number>} elevations
+ * @param {number} [passes]
+ * @returns {number} Nombre de nœuds encore sans altitude.
+ */
+export function completerAltitudes(graph, elevations, passes = 6) {
+  const voisins = new Map();
+  for (const e of graph.edges) {
+    if (!voisins.has(e.from)) voisins.set(e.from, []);
+    if (!voisins.has(e.to)) voisins.set(e.to, []);
+    voisins.get(e.from).push(e.to);
+    voisins.get(e.to).push(e.from);
+  }
+  let manquants = [...graph.nodeCoords.keys()].filter((id) => !elevations.has(id));
+  for (let p = 0; p < passes && manquants.length; p++) {
+    const ajouts = [];
+    for (const id of manquants) {
+      const zs = (voisins.get(id) || []).map((v) => elevations.get(v)).filter((z) => z !== undefined);
+      if (zs.length) ajouts.push([id, zs.reduce((a, b) => a + b, 0) / zs.length]);
+    }
+    if (!ajouts.length) break;
+    for (const [id, z] of ajouts) elevations.set(id, z);
+    manquants = manquants.filter((id) => !elevations.has(id));
+  }
+  return manquants.length;
 }
 
 /**

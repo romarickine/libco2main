@@ -39,7 +39,7 @@ export function renderIntro(root, { onStart }) {
       <div class="badge">🌿 Outil pour les professionnels libéraux</div>
       <p class="lead">Estimez, en quelques minutes, l'ordre de grandeur des émissions de gaz à effet de serre de votre activité indépendante — et identifiez les leviers de décarbonation les plus pertinents pour vous.</p>
       <p class="sub">Méthodologie inspirée de kinéCO2 (Lib&CO2, Carbone 4) — facteurs d'émission ADEME Base Empreinte, report modal de la patientèle/clientèle basé sur l'Enquête Mobilité des Personnes 2019.</p>
-      <div style="display:flex; align-items:center; justify-content:center; gap:10px;">
+      <div data-style="display:flex; align-items:center; justify-content:center; gap:10px;">
         <button class="bouton bouton-primaire" id="btn-demarrer">Démarrer mon estimation ›</button>
         <a href="pourquoi-compter-le-carbone.html" class="icone-info-tooltip" data-tooltip="Pourquoi compter le carbone ?" aria-label="Pourquoi compter le carbone ?">?</a>
       </div>
@@ -50,7 +50,7 @@ export function renderIntro(root, { onStart }) {
         <div class="feature-card"><div>✅</div><div class="titre">Plan d'action</div><div class="desc">Des leviers priorisés, avec un ordre de coût.</div></div>
       </div>
       <p class="mentions">Version bêta-test. Les résultats sont des ordres de grandeur destinés à éclairer vos décisions, pas un bilan d'émissions de gaz à effet de serre réglementaire (BEGES).</p>
-      <p class="mentions">🔒 Vos données restent sur votre appareil (aucun serveur, aucun compte) · 📖 Code source ouvert sur <a href="https://github.com/romarickine/libco2cab" target="_blank" rel="noopener" style="color:inherit;">GitHub</a> · <a href="../mentions-legales.html" style="color:inherit;">Mentions légales</a></p>
+      <p class="mentions">🔒 Vos données restent sur votre appareil (aucun serveur, aucun compte) · 📖 Code source ouvert sur <a href="https://github.com/romarickine/libco2cab" target="_blank" rel="noopener" data-style="color:inherit;">GitHub</a> · <a href="../mentions-legales.html" data-style="color:inherit;">Mentions légales</a></p>
     </div>
   `;
   document.getElementById("btn-demarrer").addEventListener("click", onStart);
@@ -69,10 +69,10 @@ export function renderPropositionBrouillon(root, { date, onReprendre, onIgnorer 
   });
   root.innerHTML = `
     <div class="conteneur-etroit">
-      <div class="carte" style="text-align:center; margin-top: 60px;">
-        <div style="font-size:15px; font-weight:700; margin-bottom:8px;">Reprendre votre saisie précédente ?</div>
-        <div class="texte-discret" style="margin-bottom:18px;">Une saisie non terminée a été sauvegardée le ${d}.</div>
-        <button class="bouton bouton-primaire" id="btn-reprendre" style="margin-right:10px;">Reprendre</button>
+      <div class="carte" data-style="text-align:center; margin-top: 60px;">
+        <div data-style="font-size:15px; font-weight:700; margin-bottom:8px;">Reprendre votre saisie précédente ?</div>
+        <div class="texte-discret" data-style="margin-bottom:18px;">Une saisie non terminée a été sauvegardée le ${d}.</div>
+        <button class="bouton bouton-primaire" id="btn-reprendre" data-style="margin-right:10px;">Reprendre</button>
         <button class="bouton bouton-secondaire" id="btn-ignorer">Recommencer à zéro</button>
       </div>
     </div>
@@ -119,8 +119,8 @@ export function renderWizard(root, ctx) {
         ${etapes.map((e, i) => `<div class="segment ${i <= etapeIndex ? "actif" : ""}"></div>`).join("")}
       </div>
       <div class="eyebrow">Étape ${etapeIndex + 1} / ${etapes.length}</div>
-      <h2 class="titre-serif" style="font-size:30px; margin: 4px 0 28px;">${titre}</h2>
-      <div class="carte" style="padding:28px;" id="contenu-etape"></div>
+      <h2 class="titre-serif" data-style="font-size:30px; margin: 4px 0 28px;">${titre}</h2>
+      <div class="carte" data-style="padding:28px;" id="contenu-etape"></div>
       <div class="pas-actions">
         <button class="bouton bouton-secondaire" id="btn-precedent" ${estPremiere ? "disabled" : ""}>‹ Précédent</button>
         <button class="bouton bouton-primaire" id="btn-suivant">${estDerniere ? "Voir mon estimation" : "Suivant"} ›</button>
@@ -155,19 +155,19 @@ export function renderHistorique(root, { bilans, onSupprimer, onBack, onNouveauB
         <a href="../index.html" title="Retour à Lib&CO2"><img src="../shared/assets/logo/logo-libco2.png" alt="Lib&CO2" /></a>
         <button class="lien-retour" id="btn-retour-hist">‹ Retour aux résultats</button>
       </div>
-      <h2 class="titre-serif" style="font-size:28px; margin: 4px 0 20px;">Évolution de mon cabinet dans le temps</h2>
+      <h2 class="titre-serif" data-style="font-size:28px; margin: 4px 0 20px;">Évolution de mon cabinet dans le temps</h2>
       ${
         bilans.length === 0
           ? `<div class="carte"><p class="texte-discret">Aucun bilan enregistré pour l'instant. Depuis l'écran de résultats, cliquez sur "Enregistrer ce bilan" pour commencer un suivi dans le temps.</p></div>`
           : `
         <div class="carte">
-          <div style="font-weight:700; font-size:14.5px; margin-bottom:10px;">Empreinte totale (tCO2e/an), poste par poste</div>
+          <div data-style="font-weight:700; font-size:14.5px; margin-bottom:10px;">Empreinte totale (tCO2e/an), poste par poste</div>
           ${bilans.length >= 2 ? `<div class="zone-canvas-evolution"><canvas id="canvas-evolution"></canvas></div>` : `<p class="texte-discret">Enregistrez au moins 2 bilans pour voir apparaître un graphique d'évolution.</p>`}
         </div>
         <div class="carte" id="zone-tableau-evolution"></div>
       `
       }
-      <div style="text-align:center; margin-top:16px;"><button class="bouton bouton-primaire" id="btn-nouveau-bilan">Faire un nouveau bilan</button></div>
+      <div data-style="text-align:center; margin-top:16px;"><button class="bouton bouton-primaire" id="btn-nouveau-bilan">Faire un nouveau bilan</button></div>
     </div>
   `;
   document.getElementById("btn-retour-hist").addEventListener("click", onBack);

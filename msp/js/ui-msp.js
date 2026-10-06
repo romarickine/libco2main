@@ -123,7 +123,7 @@ function rendreNav(etat) {
 
   return `
   <div class="barre-avancement" role="progressbar" aria-valuenow="${pourcentage}" aria-valuemin="0" aria-valuemax="100">
-    <div class="barre-avancement-remplissage" style="width:${pourcentage}%"></div>
+    <div class="barre-avancement-remplissage" data-style="width:${pourcentage}%"></div>
   </div>
   <nav class="nav-etapes">${ETAPES.map((label, i) => {
     const n = i + 1;

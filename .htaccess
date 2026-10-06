@@ -1,0 +1,89 @@
+# =============================================================================
+# .htaccess — configuration du serveur pour libco2.fr (hébergement OVH, Apache)
+# -----------------------------------------------------------------------------
+# À déposer à la racine du site (dossier www/ chez OVH). Il pose :
+#   1. HTTPS obligatoire et une seule adresse (https://libco2.fr, sans www) ;
+#   2. les en-têtes de sécurité (référence : OWASP Secure Headers Project) ;
+#   3. la page 404, la compression et la durée de cache.
+# Valeurs vérifiées le 3 octobre 2026. Voir docs/CONFORMITE.md (registre des
+# valeurs) pour le statut de chaque valeur et les tests à faire après mise en
+# ligne (securityheaders.com, Mozilla Observatory).
+#
+# Si un module Apache manque, le bloc <IfModule> correspondant est ignoré sans
+# erreur : vérifier les en-têtes réellement reçus après mise en ligne.
+# =============================================================================
+
+Options -Indexes
+AddDefaultCharset utf-8
+AddType application/manifest+json .webmanifest
+AddType text/javascript .js .mjs
+
+# --- 1. HTTPS et adresse unique ----------------------------------------------
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # HTTP -> HTTPS (OVH : activer d'abord le certificat SSL gratuit du domaine).
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^ https://libco2.fr%{REQUEST_URI} [R=301,L]
+
+  # www.libco2.fr -> libco2.fr (l'adresse canonique déclarée dans les pages).
+  RewriteCond %{HTTP_HOST} ^www\.libco2\.fr$ [NC]
+  RewriteRule ^ https://libco2.fr%{REQUEST_URI} [R=301,L]
+
+  # Ancienne adresse des mentions légales.
+  RewriteRule ^cab/mentions-legales\.html$ /mentions-legales.html [R=301,L]
+</IfModule>
+
+ErrorDocument 404 /404.html
+
+# --- 2. En-têtes de sécurité --------------------------------------------------
+<IfModule mod_headers.c>
+  # HSTS : le navigateur n'utilisera plus que HTTPS pendant 2 ans.
+  # AVANT la mise en ligne : vérifier que TOUS les sous-domaines de libco2.fr
+  # répondent en HTTPS ; sinon retirer « ; includeSubDomains ». N'ajouter
+  # « ; preload » qu'ensuite, une fois HTTPS validé partout (inscription quasi
+  # irréversible dans les navigateurs).
+  Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains" "expr=%{HTTPS} == 'on'"
+
+  # CSP : tout est refusé par défaut, puis ouvert service par service.
+  # - unpkg.com : bibliothèque de carte Leaflet (page iso), avec contrôle
+  #   d'intégrité ; à retirer quand Leaflet sera copié dans shared/vendor/.
+  # - data.geopf.fr : services publics de l'IGN (tuiles, réseau routier,
+  #   altimétrie, géocodage) pour la carte du sans-voiture.
+  # - www.youtube-nocookie.com : vidéo de la page « Pourquoi compter le
+  #   carbone », chargée seulement après un clic.
+  # Aucun 'unsafe-inline' ni 'unsafe-eval' : pas de script ni de style écrit
+  # dans les pages. Les styles calculés passent par shared/js/styles-dynamiques.js.
+  # Plausible (mesure d'audience), le jour de son activation : ajouter son
+  # domaine à script-src et connect-src.
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' https://unpkg.com; img-src 'self' data: blob: https://data.geopf.fr https://unpkg.com; connect-src 'self' https://data.geopf.fr; frame-src https://www.youtube-nocookie.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  # API du navigateur inutilisées par le site : désactivées.
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+  Header always set Cross-Origin-Opener-Policy "same-origin"
+  # Doublon ancien de frame-ancestors, pour les navigateurs qui l'ignorent.
+  Header always set X-Frame-Options "DENY"
+</IfModule>
+
+# --- 3. Compression et cache ---------------------------------------------------
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json application/manifest+json image/svg+xml text/plain application/xml text/xml
+</IfModule>
+
+<IfModule mod_headers.c>
+  # Le site n'a pas d'étape de construction : les noms de fichiers ne changent
+  # pas d'une version à l'autre. HTML, CSS et JS sont donc revalidés à chaque
+  # visite (réponse 304 légère si rien n'a changé), pour qu'une mise à jour
+  # soit visible tout de suite et que page et scripts restent cohérents.
+  <FilesMatch "\.(html|css|js|mjs|json|webmanifest|xml|txt)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  # Images et icônes : 30 jours (elles changent rarement ; renommer le fichier
+  # si une image doit être remplacée vite).
+  <FilesMatch "\.(png|jpe?g|webp|avif|svg|ico|woff2)$">
+    Header set Cache-Control "public, max-age=2592000"
+  </FilesMatch>
+</IfModule>

@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light" />
 <title>La carte du sans-voiture — Lib&CO2</title>
 <meta name="description" content="Où marcher, pédaler ou rouler en vélo électrique est plus rapide que la voiture — un outil Lib&CO2, gratuit et open source.">
 <link rel="canonical" href="https://libco2.fr/iso/" />
@@ -32,13 +33,15 @@
   "publisher": { "@type": "Organization", "name": "Lib&CO2", "url": "https://libco2.fr/" }
 }
 </script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<!-- Leaflet depuis unpkg avec contrôle d'intégrité (SRI, empreintes publiées sur leafletjs.com/download, relevées le 03/10/2026).
+     Écart assumé au cahier « aucun CDN tiers » en attendant la copie locale dans shared/vendor/leaflet/. -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous" />
 <link rel="stylesheet" href="../shared/css/tokens.css" />
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
+  <a class="lien-evitement" href="#layout">Aller au contenu</a>
 <header>
   <div class="header-title">
     <a href="../index.html" class="brand-badge" title="Retour à Lib&CO2">🌿 Un outil Lib&amp;CO2</a>
@@ -56,7 +59,7 @@
   <div class="modal-box">
     <button class="modal-close" id="closeMethodology" aria-label="Fermer">×</button>
     <h2>Méthodologie</h2>
-    <p style="color: var(--muted);">Comment cet outil calcule les zones où marche, vélo et vélo électrique sont plus rapides que la voiture, et sur quelles hypothèses il repose.</p>
+    <p class="st-5e6099">Comment cet outil calcule les zones où marche, vélo et vélo électrique sont plus rapides que la voiture, et sur quelles hypothèses il repose.</p>
 
     <h3>Principe général</h3>
     <p>La méthode est un <strong>calcul de plus court chemin sur un graphe</strong> (algorithme de Dijkstra), la référence académique et pratique pour ce type de calcul — pas un service isochrone tiers. Le réseau routier autour du point de départ est téléchargé une fois (BD TOPO® IGN), transformé en graphe (carrefours = nœuds, tronçons = arêtes pondérées par un temps de trajet), puis quatre temps de trajet sont calculés depuis l'origine : marche, vélo, vélo électrique (VAE), et voiture — chacun avec son propre modèle de vitesse. Une zone (marche, vélo ou VAE) est la partie du réseau, connectée au point de départ par un chemin continûment gagnant, où ce mode bat la voiture.</p>
@@ -64,7 +67,7 @@
     <h3>Sources de données</h3>
     <ul>
       <li><strong>Réseau routier</strong> — BD TOPO® IGN (tronçons de route), avec nature de voie, sens de circulation, vitesse moyenne réelle par tronçon quand elle est disponible.</li>
-      <li><strong>Altimétrie</strong> — IGN Géoplateforme, échantillonnée sur une grille régulière (70 m) puis interpolée à chaque nœud, plutôt qu'un point par nœud du réseau (bien plus rapide, l'altitude variant progressivement à cette échelle).</li>
+      <li><strong>Altitude</strong> — lue directement dans la géométrie 3D des tronçons BD TOPO® (déjà téléchargée pour le réseau), puis lissée le long des rues (moyenne avec les points voisins, une passe) pour éviter des pentes fictives sur les tronçons très courts. Sur un échantillon de 400 points (Vourles, 6 octobre 2026), l'écart avec le modèle d'altitude RGE ALTI® de l'IGN est de 0,65 m en médiane et sous 1,5 m pour 90 % des points. Sur un pont, c'est l'altitude de la chaussée qui est prise, pas celle du fond de vallée. Les quelques points sans altitude dans la BD TOPO® sont complétés par leurs voisins, puis, s'il en reste, par l'API d'altimétrie de l'IGN.</li>
       <li><strong>Géocodage</strong> — IGN Géoplateforme (recherche et autocomplétion), basé sur la Base Adresse Nationale.</li>
     </ul>
 
@@ -124,7 +127,8 @@
         <li>Le repli du temps voiture (chemins non reliés au réseau voiture) utilise une distance à vol d'oiseau et une vitesse de marche prudente, pas un vrai itinéraire calculé.</li>
         <li>Le seuil de hiérarchie routière pour compter un carrefour (écart de 0,5 rang, et un cap à ±45° pour distinguer un croisement d'une ligne droite) est un choix raisonné, pas calibré sur des mesures réelles — un carrefour ignoré à tort ou compté à tort reste possible, notamment dans un virage prononcé qui pourrait être confondu avec un croisement.</li>
         <li>Coefficients de pénalité de surface estimés, pas mesurés.</li>
-        <li>L'altitude est lissée sur une grille (70 m), pas un relevé exact à chaque mètre.</li>
+        <li>L'altitude est lissée le long des rues (une passe) : un relevé exact à chaque mètre n'est pas visé. Ce réglage a été choisi en comparant, sur 4 sites de la Loire et du Rhône, les zones obtenues avec celles de l'ancienne méthode (grille d'altitude de 70 m) : 91 % de recouvrement en moyenne pour le vélo, 86 % au pire.</li>
+        <li>En périurbain vallonné, la zone vélo peut être au bord du basculement (le vélo y fait presque jeu égal avec la voiture) : quelques décimètres de pente suffisent alors à en changer nettement l'étendue.</li>
       </ul>
     </div>
   </div>
@@ -135,20 +139,20 @@
   <button id="tabMapButton">🗺️ Carte</button>
 </div>
 
-<div id="layout" class="show-sidebar">
+<main id="layout" class="show-sidebar">
   <div id="sidebar">
 
     <div class="method-note">
       Méthode : graphe du réseau routier (BD TOPO® IGN) parcouru par un algorithme de plus court chemin
       (Dijkstra), avec vitesse ajustée à la pente réelle selon la fonction de randonnée de
-      <a href="https://en.wikipedia.org/wiki/Tobler%27s_hiking_function" target="_blank">Tobler (1993)</a> pour la marche
+      <a href="https://en.wikipedia.org/wiki/Tobler%27s_hiking_function" target="_blank" rel="noopener">Tobler (1993)</a> pour la marche
       et le modèle empirique de Parkin &amp; Rotheram (2010) pour le vélo/VAE. Aucun service isochrone tiers n'est utilisé.
     </div>
 
     <div class="section-title">Point de départ</div>
-    <div class="field" style="position: relative;">
+    <div class="field st-48031c">
       <label for="address">Adresse</label>
-      <div style="display:flex; gap:6px;">
+      <div class="st-9001ab">
         <input type="text" id="address" placeholder="votre adresse" autocomplete="off" />
         <button class="geo-btn" id="geocode">Chercher</button>
       </div>
@@ -160,9 +164,9 @@
 
     <div class="section-title">Sens du trajet</div>
     <div class="field" id="directionChoice" role="radiogroup" aria-label="Sens du trajet">
-      <label style="display:block;font-weight:400"><input type="radio" name="direction" value="depart" checked /> J'en pars <span class="hint">(trajets depuis l'adresse)</span></label>
-      <label style="display:block;font-weight:400"><input type="radio" name="direction" value="arrivee" /> J'y vais <span class="hint">(trajets vers l'adresse)</span></label>
-      <label style="display:block;font-weight:400"><input type="radio" name="direction" value="aller-retour" /> Aller-retour <span class="hint">(aller + retour cumulés)</span></label>
+      <label class="st-0e9103"><input type="radio" name="direction" value="depart" checked /> J'en pars <span class="hint">(trajets depuis l'adresse)</span></label>
+      <label class="st-0e9103"><input type="radio" name="direction" value="arrivee" /> J'y vais <span class="hint">(trajets vers l'adresse)</span></label>
+      <label class="st-0e9103"><input type="radio" name="direction" value="aller-retour" /> Aller-retour <span class="hint">(aller + retour cumulés)</span></label>
     </div>
     <p class="hint">Sens uniques, pentes et carrefours comptent dans chaque sens : la carte « j'y vais » peut différer de « j'en pars ». En aller-retour, un mode gagne si l'aller + le retour à vélo ou à pied durent moins que l'aller + le retour en voiture (délai d'accès voiture compté deux fois).</p>
 
@@ -175,9 +179,9 @@
 
     <div class="section-title">Légende</div>
     <div class="legend">
-      <div class="legend-item"><span class="legend-swatch" style="background:var(--walk)"></span> Marche <span class="legend-count" id="countWalk"></span></div>
-      <div class="legend-item"><span class="legend-swatch" style="background:var(--bike)"></span> Vélo <span class="legend-count" id="countBike"></span></div>
-      <div class="legend-item"><span class="legend-swatch" style="background:var(--ebike)"></span> Vélo électrique <span class="legend-count" id="countEbike"></span></div>
+      <div class="legend-item"><span class="legend-swatch st-287c6e"></span> Marche <span class="legend-count" id="countWalk"></span></div>
+      <div class="legend-item"><span class="legend-swatch st-80c0ec"></span> Vélo <span class="legend-count" id="countBike"></span></div>
+      <div class="legend-item"><span class="legend-swatch st-4a152a"></span> Vélo électrique <span class="legend-count" id="countEbike"></span></div>
     </div>
     <p class="hint">Zones où le mode actif est plus rapide que la voiture. Comme le VAE inclut généralement le vélo, qui inclut généralement la marche, l'affichage se fait par anneaux (chaque couleur montre ce que ce mode ajoute au-delà du précédent) ; le nombre d'hexagones dans la légende reste la taille totale de chaque zone. Réseau : <span id="networkInfo">—</span>.</p>
 
@@ -197,17 +201,17 @@
           <option value="print300" selected>Impression A1 — 300 DPI (recommandé)</option>
         </select>
       </div>
-      <button id="exportButton" class="geo-btn" style="width:100%; margin-top:6px;">📥 Télécharger l'image (JPG)</button>
+      <button id="exportButton" class="geo-btn st-d3acf5">📥 Télécharger l'image (JPG)</button>
       <p class="hint" id="exportStatus"></p>
     </div>
 
     <div id="diagnosticSection" class="export-section">
       <div class="section-title">Temps de déplacement en un point</div>
       <p class="hint">Cliquez sur la carte pour voir le temps de chaque mode jusqu'à ce point, et vérifier rapidement la cohérence du calcul.</p>
-      <div id="diagnosticOutput" class="limits-box" style="display:none; margin-top:8px; font-size:12.5px;"></div>
+      <div id="diagnosticOutput" class="limits-box st-d2f1a6"></div>
     </div>
 
-    <p class="hint" style="margin-top:20px;">Données : réseau routier <a href="https://geoservices.ign.fr/bdtopo" target="_blank">BD TOPO® IGN</a> (API WFS Géoplateforme), altimétrie <a href="https://geoservices.ign.fr/" target="_blank">IGN Géoplateforme</a>, géocodage IGN. Tous les calculs se font directement dans votre navigateur.</p>
+    <p class="hint st-60d36d">Données : réseau routier <a href="https://geoservices.ign.fr/bdtopo" target="_blank" rel="noopener">BD TOPO® IGN</a> (API WFS Géoplateforme), altimétrie <a href="https://geoservices.ign.fr/" target="_blank" rel="noopener">IGN Géoplateforme</a>, géocodage IGN. Tous les calculs se font directement dans votre navigateur.</p>
 
     <div class="sidebar-footer">
       Un outil <a href="../index.html">Lib&amp;CO2</a> — gratuit, open source, aucune donnée transmise à un serveur.<br>
@@ -216,9 +220,9 @@
   </div>
 
   <div id="map"></div>
-</div>
+</main>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

@@ -477,7 +477,7 @@ export function initUI() {
     const delayCarSeconds = lastComputation.delayCarApplied * 60;
     let html = "<strong>Temps jusqu’à ce point</strong> (" + snapDistance.toFixed(0) + " m du point cliqué)<br>";
     html +=
-      '<table style="width:100%; margin-top:4px;"><tr><th style="text-align:left;">Mode</th><th style="text-align:left;">Trajet</th><th style="text-align:left;">+ Accès</th><th style="text-align:left;">Total porte-à-porte</th></tr>';
+      '<table data-style="width:100%; margin-top:4px;"><tr><th data-style="text-align:left;">Mode</th><th data-style="text-align:left;">Trajet</th><th data-style="text-align:left;">+ Accès</th><th data-style="text-align:left;">Total porte-à-porte</th></tr>';
     const carTotalSeconds = carIsUnreachable ? null : carEffective + delayCarSeconds;
     for (const mode of modeDefs) {
       const mt = modeTimesByKey[mode.key].get(nearestNode);
@@ -518,7 +518,7 @@ export function initUI() {
     }
     html += "</table>";
     html +=
-      '<p class="hint" style="margin-top:4px;">« Accès » = temps pour détacher/rattacher son vélo, ou trouver une place et se garer (plus long en ville). ✅ = ce mode arrive plus vite que la voiture porte-à-porte à ce point précis.</p>';
+      '<p class="hint" data-style="margin-top:4px;">« Accès » = temps pour détacher/rattacher son vélo, ou trouver une place et se garer (plus long en ville). ✅ = ce mode arrive plus vite que la voiture porte-à-porte à ce point précis.</p>';
 
     // --- Détails techniques : repliés par défaut (usage interne, comparaison
     // à une source externe type Google Maps, diagnostic d'un détour ou d'une
@@ -566,12 +566,12 @@ export function initUI() {
           (junctionShare * 100).toFixed(0) +
           "% du temps total)" +
           (junctionShare > 0.3
-            ? ' — <strong style="color:var(--danger);">part anormalement élevée, probablement des faux carrefours (ex. fusion erronée des deux sens d’une route à chaussées séparées)</strong>'
+            ? ' — <strong data-style="color:var(--danger);">part anormalement élevée, probablement des faux carrefours (ex. fusion erronée des deux sens d’une route à chaussées séparées)</strong>'
             : "") +
           (detourRatio > 1.6
-            ? '<br><strong style="color:var(--danger);">Détour important, probablement topologique</strong>'
+            ? '<br><strong data-style="color:var(--danger);">Détour important, probablement topologique</strong>'
             : impliedSpeed < 30 && junctionShare <= 0.3
-              ? '<br><strong style="color:var(--danger);">Vitesse anormalement basse, probablement une donnée de vitesse manquante/sous-estimée sur ce trajet</strong>'
+              ? '<br><strong data-style="color:var(--danger);">Vitesse anormalement basse, probablement une donnée de vitesse manquante/sous-estimée sur ce trajet</strong>'
               : "");
       }
     }
@@ -586,7 +586,7 @@ export function initUI() {
     if (incidentEdges.length > 0) {
       advancedHtml += "<br><strong>Tronçons connectés à ce nœud (données brutes)</strong>";
       advancedHtml +=
-        '<table style="width:100%; margin-top:4px;"><tr><th style="text-align:left;">Nature</th><th style="text-align:left;">Vitesse déclarée</th><th style="text-align:left;">Longueur</th></tr>';
+        '<table data-style="width:100%; margin-top:4px;"><tr><th data-style="text-align:left;">Nature</th><th data-style="text-align:left;">Vitesse déclarée</th><th data-style="text-align:left;">Longueur</th></tr>';
       for (const e of incidentEdges) {
         advancedHtml +=
           "<tr><td>" +
@@ -601,7 +601,7 @@ export function initUI() {
     }
 
     advancedHtml +=
-      '<br><br><table style="width:100%;"><tr><th style="text-align:left;">Mode</th><th style="text-align:left;">Temps</th><th style="text-align:left;">Seuil à battre</th><th style="text-align:left;">Résultat</th></tr>';
+      '<br><br><table data-style="width:100%;"><tr><th data-style="text-align:left;">Mode</th><th data-style="text-align:left;">Temps</th><th data-style="text-align:left;">Seuil à battre</th><th data-style="text-align:left;">Résultat</th></tr>';
     for (const mode of modeDefs) {
       const mt = modeTimesByKey[mode.key].get(nearestNode);
       const seuil = carEffective === Infinity ? Infinity : carEffective + mode.carPenalty;
@@ -614,8 +614,8 @@ export function initUI() {
     advancedHtml += "</table>";
 
     html +=
-      '<details style="margin-top:8px;"><summary style="cursor:pointer; color:var(--muted); font-size:11.5px;">Détails techniques (pour vérification)</summary>' +
-      '<div style="margin-top:6px;">' +
+      '<details data-style="margin-top:8px;"><summary data-style="cursor:pointer; color:var(--muted); font-size:11.5px;">Détails techniques (pour vérification)</summary>' +
+      '<div data-style="margin-top:6px;">' +
       advancedHtml +
       "</div></details>";
 

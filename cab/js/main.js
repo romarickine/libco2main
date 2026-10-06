@@ -7,6 +7,8 @@
  * ni accès au stockage ne se fait directement ici.
  * ----------------------------------------------------------------------
  */
+// En premier : rend possibles les styles calculés sous CSP stricte (voir ce fichier).
+import "../../shared/js/styles-dynamiques.js";
 import { FAMILLES } from "../../shared/js/data/facteurs-emission.js";
 import { ZONES } from "../../shared/js/data/zonage-insee.js";
 import { relierLibelles } from "../../shared/js/accessibilite.js";

@@ -11,6 +11,8 @@
  * Affichage : ui-msp.js. Utilisé par : index.html (module chargé au démarrage),
  * et par les modules d'affichage et d'export, qui lisent l'état via getEtat().
  */
+// En premier : rend possibles les styles calculés sous CSP stricte (voir ce fichier).
+import "../../shared/js/styles-dynamiques.js";
 import {
   chargerBrouillon,
   sauvegarderBrouillon,
