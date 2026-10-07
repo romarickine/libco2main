@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <title>Méthodologie et facteurs d'émission — Lib&CO2</title>
+  <meta name="description" content="Méthode de calcul de Lib&CO2 Cab et Lib&CO2 MSP : règles de choix des facteurs d'émission, tableau complet des facteurs avec leur source (Base Carbone ADEME, études publiées), gains des actions, limites et historique des révisions." />
+  <link rel="canonical" href="https://libco2.fr/cab/methodologie.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Méthodologie et facteurs d'émission — Lib&CO2" />
+  <meta property="og:description" content="Tous les facteurs d'émission de Lib&CO2, avec leur source précise et les règles de choix appliquées." />
+  <meta property="og:url" content="https://libco2.fr/cab/methodologie.html" />
+  <meta property="og:image" content="https://libco2.fr/assets/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:locale" content="fr_FR" />
+  <meta property="og:site_name" content="Lib&amp;CO2" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Méthodologie et facteurs d'émission — Lib&CO2" />
+  <meta name="twitter:description" content="Tous les facteurs d'émission de Lib&CO2, avec leur source précise et les règles de choix appliquées." />
+  <meta name="twitter:image" content="https://libco2.fr/assets/og-image.png" />
+  <link rel="icon" href="../favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../shared/assets/favicon/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="../shared/assets/favicon/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="../shared/assets/favicon/apple-touch-icon.png" />
+  <link rel="manifest" href="site.webmanifest" />
+  <link rel="stylesheet" href="../shared/css/tokens.css" />
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/methodologie.css" />
+</head>
+<body>
+  <a class="lien-evitement" href="#contenu">Aller au contenu</a>
+  <main id="contenu" class="page-methodo">
+    <nav class="methodo-retours" aria-label="Retour aux outils">
+      <a href="index.html" class="lien-retour">‹ Lib&CO2 Cab</a>
+      <a href="../msp/" class="lien-retour">‹ Lib&CO2 MSP</a>
+    </nav>
+
+    <header class="methodo-hero">
+      <img width="600" height="199" class="methodo-logo" src="../shared/assets/logo/logo-libco2.png" alt="Lib&CO2" />
+      <h1>Méthodologie et facteurs d'émission</h1>
+      <p>Lib&CO2 Cab (professionnels libéraux) et Lib&CO2 MSP (maisons de santé) utilisent les mêmes facteurs d'émission : deux saisies identiques donnent le même résultat. Cette page en donne la liste complète, avec la source de chaque valeur. Elle est générée à partir du fichier de facteurs de l'outil : ce qui est affiché ici est exactement ce que le calcul utilise.</p>
+    </header>
+
+    <section aria-labelledby="t-principe">
+      <h2 id="t-principe">Principe du calcul</h2>
+      <p>Pour chaque poste, une donnée d'activité (kilomètres, kWh, euros dépensés, kilos de déchets, nombre d'appareils) est multipliée par un facteur d'émission, en kilogrammes d'équivalent CO2 (kgCO2e). Le périmètre suit le découpage des bilans d'émissions de gaz à effet de serre (GHG Protocol, méthode réglementaire française BEGES version 5) : émissions directes, énergie, et émissions indirectes (achats, déplacements, immobilisations, déchets). La méthode s'inspire de l'étude kinéCO2. Ce n'est pas un bilan réglementaire (BEGES) : c'est un ordre de grandeur, pour repérer les postes qui pèsent le plus.</p>
+    </section>
+
+    <section aria-labelledby="t-sources">
+      <h2 id="t-sources">D'où viennent les facteurs</h2>
+      <p>Ordre de priorité des sources :</p>
+      <ol>
+        <li><strong>ADEME</strong> : la Base Carbone®, base publique officielle des facteurs d'émission en France, interrogée élément par élément (jeu de données ouvert de data.ademe.fr, version V23.6 du 3 juillet 2025, consultée le 6 octobre 2026). Chaque facteur cite l'identifiant de l'élément, pour pouvoir le retrouver ;</li>
+        <li><strong>littérature scientifique à comité de lecture</strong> (articles avec leur référence DOI) ;</li>
+        <li><strong>rapports institutionnels</strong> (ministères, enquêtes nationales, The Shift Project, associations professionnelles).</li>
+      </ol>
+      <p>Règles de choix quand plusieurs valeurs existent :</p>
+      <ul>
+        <li><strong>R1 — millésime le plus récent</strong> pour les séries annuelles (électricité, trains, ratios monétaires) : une valeur ancienne décrit une situation passée ;</li>
+        <li><strong>R2 — l'élément qui correspond à la question posée.</strong> Quand l'outil ne demande pas la variante (motorisation de la voiture, filière de traitement d'un déchet…), on prend l'élément « moyen » ou « par défaut » publié par l'ADEME ;</li>
+        <li><strong>R3 — sinon, la valeur la plus haute</strong>, par prudence : mieux vaut surestimer un peu une émission que la passer sous silence. Pour les gains des actions, la prudence joue dans l'autre sens : on retient la borne basse.</li>
+      </ul>
+      <p>Statut de chaque valeur :</p>
+      <ul>
+        <li><span class="badge-statut statut-source">SOURCÉ</span> valeur rattachée à une source publiée précise ;</li>
+        <li><span class="badge-statut statut-partiel">SOURCÉ (partiel)</span> source publiée, mais valeur déduite, proxy ou source non publique (le texte dit en quoi) ;</li>
+        <li><span class="badge-statut statut-estime">ESTIMÉ</span> pas de source directe ; le raisonnement est donné.</li>
+      </ul>
+      <p id="bilan-statuts" class="methodo-bilan"></p>
+    </section>
+
+    <section aria-labelledby="t-facteurs">
+      <h2 id="t-facteurs">Les facteurs d'émission</h2>
+      <div id="tables-facteurs"></div>
+    </section>
+
+    <section aria-labelledby="t-msp">
+      <h2 id="t-msp">Facteurs propres à Lib&CO2 MSP</h2>
+      <div id="tables-msp"></div>
+    </section>
+
+    <section aria-labelledby="t-actions">
+      <h2 id="t-actions">Gains des pistes d'action</h2>
+      <p>Le « gain maximal » est la part du poste concerné qui disparaît si l'action est menée à 100 %. Il combine souvent un gain unitaire sourcé (par exemple −96 % par kilomètre basculé de la voiture au vélo électrique) et une part du poste réellement concernée, qui reste une hypothèse : le texte distingue les deux.</p>
+      <div id="table-actions"></div>
+    </section>
+
+    <section aria-labelledby="t-couts">
+      <h2 id="t-couts">Coût des actions (€ par kgCO2e évité)</h2>
+      <p>Deux coûts sont donnés pour chaque action :</p>
+      <ul>
+        <li><strong>le coût net pour le praticien</strong> : surcoût d'investissement amorti sur la durée de vie, moins les économies (énergie, carburant, achats évités), divisé par les kgCO2e évités, calculé avec des prix sourcés (régulateur de l'énergie, statistiques publiques, ADEME). Il est négatif quand l'action fait gagner de l'argent. Les aides sont précisées quand elles changent le résultat ;</li>
+        <li><strong>le coût d'abattement publié</strong> : la valeur des études de référence (France Stratégie, DG Trésor), quand elle existe. Attention : France Stratégie publie des coûts pour la collectivité, la DG Trésor des coûts privés (point de vue de celui qui investit).</li>
+      </ul>
+      <p>La catégorie affichée dans les outils, qui pondère aussi le tri des actions, vient du milieu de la fourchette de coût net : « Rentable ou sans coût » si elle est nulle ou négative ; « Coût modéré » jusqu'à la valeur de l'action pour le climat, <span id="seuil-vac"></span> € par kg en 2026 (valeur tutélaire du carbone révisée par France Stratégie en 2025 : 256 € par tonne en 2025, +3,2 % par an) ; « Coût élevé » au-delà. Sans chiffre, une indication qualitative est utilisée.</p>
+      <div id="table-couts"></div>
+    </section>
+
+    <section aria-labelledby="t-limites">
+      <h2 id="t-limites">Limites connues</h2>
+      <ul>
+        <li>Les ratios monétaires (kgCO2e par euro) donnent une moyenne de secteur : deux achats du même montant comptent autant, quel que soit le fournisseur.</li>
+        <li>Les déchets triés sont comptés avec la filière moyenne française de chaque flux (Base Carbone, « fin de vie moyenne filière »). Les émissions évitées par le recyclage, publiées à part par l'ADEME, ne sont pas déduites : c'est la convention des bilans d'émissions.</li>
+        <li>Le chauffage électrique et la pompe à chaleur utilisent le facteur hivernal de l'électricité, plus élevé que la moyenne annuelle ; le rendement de la pompe à chaleur n'est pas déduit quand la consommation est estimée par m².</li>
+        <li>Sans facture, la consommation du local est estimée par des ratios par m² anciens (2012) : saisir ses consommations réelles améliore nettement la précision.</li>
+        <li>Les facteurs nationaux ne reflètent pas un réseau de chaleur ou de transport particulier.</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="t-historique">
+      <h2 id="t-historique">Historique des révisions</h2>
+      <h3>6 octobre 2026 — revue complète des sources</h3>
+      <ul>
+        <li>Tous les facteurs rattachés à un élément précis de la Base Carbone (identifiant cité) ; les valeurs reprises de seconde main ont été vérifiées à la source quand elle était accessible (exceptions signalées : équipements massifs du rapport kinéCO2, ratios de consommation par m²).</li>
+        <li><strong>Déplacements</strong> : voiture thermique 0,218 → 0,256 kgCO2e/km (motorisation moyenne 2023) ; hybride 0,16 → 0,232 ; deux-roues 0,087 → 0,217 ; bus 0,122 → 0,202 ; TER 0,0313 → 0,0277 ; train grandes lignes 0,003 → 0,0075 ; avion court-courrier 0,225 → 0,289, moyen-courrier 0,185 → 0,236.</li>
+        <li><strong>Énergie</strong> : chauffage électrique et pompe à chaleur 0,052 → 0,115 kgCO2e/kWh (facteur hivernal) ; électricité spécifique 0,052 → 0,0519 ; fioul 0,324 → 0,325.</li>
+        <li><strong>Déchets</strong> : les flux triés incluent désormais les procédés de recyclage et la combustion des plastiques fossiles (plastique 0,041 → 1,907 kgCO2e/kg ; papier et carton 0,028 → 0,737 ; verre 0,02 → 0,496 ; aluminium 0,11 → 0,311 ; DEEE 0,802 → 1,995).</li>
+        <li><strong>Achats</strong> : repas végétarien 1,40 → 0,51 kgCO2e/repas ; médicaments harmonisés entre Cab et MSP à 0,194 kgCO2e/€ (MSP utilisait 0,5) ; matériel médical 0,19 → 0,231 ; mobilier 0,261 → 0,231 ; écran 222 → 248 kgCO2e.</li>
+        <li><strong>Coûts des actions</strong> (7 octobre 2026) : coût net pour le praticien calculé avec des prix sourcés, coût d'abattement publié quand il existe, catégorie de coût dérivée de la valeur de l'action pour le climat. Véhicule électrique et matériel reconditionné passent en « rentable ou sans coût », pompe à chaleur en « coût modéré ».</li>
+        <li><strong>Actions</strong> : électricité verte ramenée à un gain nul (méthode BEGES) ; gains rattachés à des sources pour le véhicule électrique, la visioconférence, la téléconsultation, le matériel reconditionné, la pompe à chaleur, les repas végétariens et le gaspillage alimentaire.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script type="module" src="js/pages/methodologie.js"></script>
+</body>
+</html>

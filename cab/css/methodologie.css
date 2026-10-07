@@ -1,0 +1,35 @@
+/* Feuille propre à la page cab/methodologie.html (méthodologie et facteurs d'émission). */
+.page-methodo { max-width: 1040px; margin: 0 auto; padding: 32px 20px 90px; }
+.methodo-retours { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+.methodo-hero { text-align: center; margin-bottom: 32px; }
+.methodo-logo { height: 36px; width: auto; }
+.methodo-hero h1 { font-family: var(--police-serif); font-size: 30px; margin: 10px 0 12px; line-height: 1.25; color: var(--couleur-encre); }
+.methodo-hero p { font-size: 15.5px; color: var(--couleur-texte); line-height: 1.6; max-width: 720px; margin: 0 auto; }
+.page-methodo section { margin-top: 36px; }
+.page-methodo h2 { font-family: var(--police-serif); font-size: 22px; color: var(--couleur-encre); border-bottom: 1px solid var(--couleur-bordure); padding-bottom: 6px; }
+.page-methodo h3 { font-size: 16px; margin: 26px 0 8px; color: var(--couleur-encre); }
+.page-methodo p, .page-methodo li { font-size: 14.5px; line-height: 1.6; color: var(--couleur-texte); }
+.methodo-bilan { font-weight: 600; color: var(--couleur-primaire); }
+.methodo-note { font-size: 13.5px; color: var(--couleur-discret); }
+
+.table-defilante { overflow-x: auto; border: 1px solid var(--couleur-bordure); border-radius: 10px; background: var(--couleur-carte); }
+.table-defilante:focus-visible { outline: 3px solid var(--couleur-accent-bleu); outline-offset: 2px; }
+.table-methodo { border-collapse: collapse; width: 100%; font-size: 13px; }
+.table-methodo th, .table-methodo td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--couleur-bordure-legere); line-height: 1.5; }
+.table-methodo thead th { background: var(--couleur-fond); font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--couleur-discret); }
+.table-methodo tbody th { font-weight: 600; color: var(--couleur-encre); min-width: 160px; }
+.table-methodo td.num { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600; }
+.table-methodo td:last-child { min-width: 320px; }
+
+.badge-statut { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; margin-right: 4px; white-space: nowrap; }
+.statut-source { background: var(--couleur-primaire-fond); color: var(--couleur-primaire); }
+.statut-partiel { background: var(--couleur-accent-ambre-fond); color: var(--couleur-ambre-texte); }
+.statut-estime { background: #b04d4d14; color: #b04d4d; }
+
+@media (max-width: 640px) {
+  .methodo-hero h1 { font-size: 24px; }
+  .table-methodo td:last-child { min-width: 240px; }
+}
+.statut-cout-gratuit { background: var(--couleur-primaire-fond); color: var(--couleur-primaire); }
+.statut-cout-faible { background: var(--couleur-accent-ambre-fond); color: var(--couleur-ambre-texte); }
+.statut-cout-investissement { background: #b04d4d14; color: #b04d4d; }

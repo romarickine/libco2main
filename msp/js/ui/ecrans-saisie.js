@@ -173,7 +173,7 @@ function rendreSectionPrescriptions(p, i) {
     <label>Montant annuel de médicaments prescrits (€)
       <input type="number" min="0" data-path="praticiens.${i}.prescriptions.montantAnnuelMedicaments" value="${p.prescriptions.montantAnnuelMedicaments}">
     </label>
-    <p class="aide">Facteur SOURCÉ (The Shift Project / ADEME Base Empreinte, 0,5 kgCO2e/€). Aucun risque de double comptage : rien d'autre dans l'outil ne capte la fabrication des médicaments.</p>
+    <p class="aide">Facteur SOURCÉ (ADEME Base Carbone®, produits pharmaceutiques 2023, 0,194 kgCO2e/€). Aucun risque de double comptage : rien d'autre dans l'outil ne capte la fabrication des médicaments.</p>
     <p class="sous-titre-bloc">Actes paramédicaux prescrits réalisés en dehors de la structure</p>
     <p class="aide">Ne saisir que les actes réalisés par un praticien extérieur à cette MSP — ceux réalisés par un collègue de la structure sont déjà comptés dans son propre bilan, les compter ici créerait un double comptage. Le poids de chaque acte externe est estimé à partir du ratio kgCO2e/acte déjà mesuré pour la même profession au sein de cette MSP (à défaut d'un bilan réel du praticien externe) — non chiffrable si la profession n'est pas représentée dans la structure.</p>
     ${p.prescriptions.actesParamedicauxExternes.length > 0 ? `<div class="ligne-mode-transport ligne-materiel-entete"><span>Profession prescrite</span><span>Actes/an</span><span></span></div>` : ""}

@@ -15,6 +15,7 @@ import { resolveZoneFromCommune } from "./data/resolve-commune-msp.js";
 import {
   FE_TRANSPORT,
   FE_ENERGIE,
+  feChauffage,
   RATIOS_ENERGIE_PAR_ACTIVITE,
   FE_MONETAIRE,
   FE_FRET_COLIS,
@@ -50,10 +51,10 @@ export function calculLocal(structureMSP, anneeActuelle = new Date().getFullYear
   const { surfaceTotale, local } = structureMSP;
   const elec_kWh = local.consoReelle?.elec_kWh ?? surfaceTotale * RATIO_LOCAL_MSP.elec;
   const chauffage_kWh = local.consoReelle?.chauffage_kWh ?? surfaceTotale * RATIO_LOCAL_MSP.chauffage;
-  const feChauffage = FE_ENERGIE[local.energieChauffage].value;
+  const feChauffageLocal = feChauffage(local.energieChauffage);
   const feElec = FE_ENERGIE.electricite.value;
 
-  let emissionsEnergie = elec_kWh * feElec + chauffage_kWh * feChauffage;
+  let emissionsEnergie = elec_kWh * feElec + chauffage_kWh * feChauffageLocal;
 
   if (local.localDeporte) {
     const s = local.localDeporte.surface;

@@ -7,7 +7,7 @@
  * Utilisé par : ui-msp.js, export/plan-actions-rtf.js.
  * (Découpé de ui-msp.js en septembre 2026 : un fichier par responsabilité.)
  */
-import { ACTIONS, CATEGORIES_META } from "../../../shared/js/data/facteurs-emission.js";
+import { ACTIONS, CATEGORIES_META, COST_LABELS } from "../../../shared/js/data/facteurs-emission.js";
 import { ACTIONS_MSP_SUPPLEMENTAIRES, LIBELLES_ACTIONS_MSP } from "../data/facteurs-emission-msp.js";
 import { fmt } from "./commun.js";
 import { rendrePiedNavigation } from "../ui-msp.js";
@@ -173,7 +173,7 @@ function rendreActionCard(etat, action, valeurPoste) {
     </label>
     <div class="action-badges">
       <span class="badge ${sourcee ? "badge-source" : "badge-estime"}">${sourcee ? "Sourcé" : "Estimé"}</span>
-      <span class="badge badge-cout">${action.cost}</span>
+      <span class="badge badge-cout">${COST_LABELS[action.cost]}</span>
     </div>
     ${
       choix.active

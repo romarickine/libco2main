@@ -38,7 +38,7 @@ export function renderIntro(root, { onStart }) {
       <img src="../shared/assets/logo/logo-libco2.png" alt="Lib&CO2" class="logo-intro" />
       <div class="badge">🌿 Outil pour les professionnels libéraux</div>
       <p class="lead">Estimez, en quelques minutes, l'ordre de grandeur des émissions de gaz à effet de serre de votre activité indépendante — et identifiez les leviers de décarbonation les plus pertinents pour vous.</p>
-      <p class="sub">Méthodologie inspirée de kinéCO2 (Lib&CO2, Carbone 4) — facteurs d'émission ADEME Base Empreinte, report modal de la patientèle/clientèle basé sur l'Enquête Mobilité des Personnes 2019.</p>
+      <p class="sub">Méthodologie inspirée de kinéCO2 (Lib&CO2, Carbone 4) — facteurs d'émission ADEME (Base Carbone®), report modal de la patientèle/clientèle basé sur l'Enquête Mobilité des Personnes 2019. <a href="methodologie.html">Méthodologie et sources des facteurs</a>.</p>
       <div data-style="display:flex; align-items:center; justify-content:center; gap:10px;">
         <button class="bouton bouton-primaire" id="btn-demarrer">Démarrer mon estimation ›</button>
         <a href="pourquoi-compter-le-carbone.html" class="icone-info-tooltip" data-tooltip="Pourquoi compter le carbone ?" aria-label="Pourquoi compter le carbone ?">?</a>

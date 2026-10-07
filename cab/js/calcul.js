@@ -10,6 +10,7 @@
 import {
   FE_TRANSPORT,
   FE_ENERGIE,
+  feChauffage,
   RATIOS_ENERGIE_PAR_ACTIVITE,
   FE_NUMERIQUE,
   FE_REPAS,
@@ -61,7 +62,7 @@ export function calculLocal(l, familleId) {
   const elecKwh = l.consoElecConnue ? l.consoElecKwh : l.surface * ratios.elec;
   const chauffageKwh = l.consoChauffageConnue ? l.consoChauffageKwh : l.surface * ratios.chauffage;
   const elec = elecKwh * FE_ENERGIE.electricite.value;
-  const chauffage = chauffageKwh * FE_ENERGIE[l.energieChauffage].value;
+  const chauffage = chauffageKwh * feChauffage(l.energieChauffage);
   let deporte = 0;
   if (l.localDeporte) {
     const elecDep = l.surfaceDeportee * ratios.elec;

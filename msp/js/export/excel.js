@@ -294,7 +294,7 @@ export function exporterExcel(etat) {
     ligneExcel([
       celluleTexte("Méthode"),
       celluleTexte(
-        "Médicaments : facteur SOURCÉ 0,5 kgCO2e/€ (Shift Project/ADEME Base Empreinte). Actes externes : ratio kgCO2e/acte ESTIMÉ, dérivé de la même profession au sein de cette MSP. Option A retenue : les actes prescrits réalisés par un collègue de la même MSP sont exclus (déjà comptés dans son propre bilan).",
+        "Médicaments : facteur SOURCÉ 0,194 kgCO2e/€ (ADEME Base Carbone®, produits pharmaceutiques 2023). Actes externes : ratio kgCO2e/acte ESTIMÉ, dérivé de la même profession au sein de cette MSP. Option A retenue : les actes prescrits réalisés par un collègue de la même MSP sont exclus (déjà comptés dans son propre bilan).",
       ),
       celluleTexte(""),
       celluleTexte(""),
@@ -356,7 +356,7 @@ export function exporterExcel(etat) {
     ligneExcel([
       celluleTexte("Méthode"),
       celluleTexte(
-        "CA médicaments net = CA médicaments déclaré − (coefficient d\u2019achat × total des prescriptions médicaments de la structure), plafonné à 0 — évite de compter deux fois les médicaments prescrits par un praticien de la MSP puis achetés dans sa propre officine. Facteur SOURCÉ 0,5 kgCO2e/€ (Shift Project/ADEME Base Empreinte) pour les médicaments ; facteur biens_consommables pour la parapharmacie. Poste exclu du total par défaut, comme les prescriptions (case à cocher en résultats).",
+        "CA médicaments net = CA médicaments déclaré − (coefficient d\u2019achat × total des prescriptions médicaments de la structure), plafonné à 0 — évite de compter deux fois les médicaments prescrits par un praticien de la MSP puis achetés dans sa propre officine. Facteur SOURCÉ 0,194 kgCO2e/€ (ADEME Base Carbone®, produits pharmaceutiques 2023) pour les médicaments ; facteur biens_consommables pour la parapharmacie. Poste exclu du total par défaut, comme les prescriptions (case à cocher en résultats).",
       ),
       celluleTexte(""),
       celluleTexte(""),
@@ -440,6 +440,16 @@ export function exporterExcel(etat) {
         celluleTexte(f.source || ""),
       ]),
     );
+    if (f.valueChauffage !== undefined) {
+      lignesEnergie.push(
+        ligneExcel([
+          celluleTexte((LABELS_ENERGIES[cle] || cle) + " — chauffage"),
+          celluleNombre(f.valueChauffage),
+          celluleTexte("kgCO2e/kWh"),
+          celluleTexte(f.source || ""),
+        ]),
+      );
+    }
   }
   lignesEnergie.push(
     ligneExcel([
@@ -462,7 +472,7 @@ export function exporterExcel(etat) {
       celluleTexte("Bâtiment — construction (établissement de santé béton)"),
       celluleNombre(FACTEUR_BATIMENT_SANTE.kgCO2e_m2),
       celluleTexte("kgCO2e/m²"),
-      celluleTexte("Base Carbone ADEME V23.10"),
+      celluleTexte("Base Carbone ADEME V23.6"),
     ]),
   );
   lignesEnergie.push(
@@ -533,7 +543,7 @@ export function exporterExcel(etat) {
         celluleTexte("Mobilier — " + (LABELS_MOBILIER[cle] || cle)),
         celluleNombre(v),
         celluleTexte("kgCO2e/unité"),
-        celluleTexte("Base Carbone V23.10"),
+        celluleTexte("Base Carbone V23.6"),
       ]),
     );
   }

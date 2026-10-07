@@ -8,7 +8,7 @@
  * Utilisé par : main.js via ui.js (renderResultats).
  * (Découpé de ui.js en septembre 2026 : un fichier par responsabilité.)
  */
-import { CATEGORIES_META } from "../../../shared/js/data/facteurs-emission.js";
+import { CATEGORIES_META, COST_LABELS } from "../../../shared/js/data/facteurs-emission.js";
 import { champNombreHtml, fmt, lienifier } from "./commun.js";
 import { dessinerGraphiqueRepartition, dessinerJaugeEngagement } from "../graphiques.js";
 import { echapperHtml } from "../../../shared/js/echappement.js";
@@ -146,7 +146,7 @@ export function renderResultats(root, ctx) {
 
       <div data-style="text-align:center; margin-top:16px;"><button class="bouton-lien" id="btn-recommencer">↺ Recommencer une estimation</button></div>
 
-      <p class="mentions">Version bêta-test — Ordres de grandeur indicatifs, non contractuels. Facteurs d'émission : ADEME Base Empreinte (dernière version disponible), méthodologie inspirée du rapport kinéCO2 (Lib&CO2, Carbone 4). Déplacements de la patientèle/clientèle : Enquête Mobilité des Personnes 2019 (SDES), report modal par zone (zonage INSEE en aires urbaines 2010) ajusté selon le motif de déplacement propre à chaque famille de métier. Référentiels : GHG Protocol, BEGES v5.</p>
+      <p class="mentions">Version bêta-test — Ordres de grandeur indicatifs, non contractuels. Facteurs d'émission : ADEME Base Carbone® V23.6 et études publiées, détaillés sur la page <a href="methodologie.html">Méthodologie et facteurs d'émission</a> ; méthodologie inspirée du rapport kinéCO2 (Lib&CO2, Carbone 4). Déplacements de la patientèle/clientèle : Enquête Mobilité des Personnes 2019 (SDES), report modal par zone (zonage INSEE en aires urbaines 2010) ajusté selon le motif de déplacement propre à chaque famille de métier. Référentiels : GHG Protocol, BEGES v5.</p>
       <p class="mentions"><a href="../mentions-legales.html" data-style="color:inherit;">Mentions légales</a> · <a href="https://github.com/romarickine/libco2cab" target="_blank" rel="noopener" data-style="color:inherit;">Code source</a></p>
     </div>
     <div id="zone-modale"></div>
@@ -220,7 +220,7 @@ function ligneActionHtml(a, rang) {
         <div class="ligne-action-rang">${rang}</div>
         <div class="ligne-action-corps">
           <div class="titre">${a.titre}</div>
-          <div class="meta">${CATEGORIES_META[a.poste].label} · ${a.coutKg}</div>
+          <div class="meta">${CATEGORIES_META[a.poste].label} · coût net : ${a.coutKg}</div>
           <div class="source">Source : ${lienifier(a.source)}</div>
           ${
             a.checked && a.unit === "degres"
@@ -245,7 +245,7 @@ function ligneActionHtml(a, rang) {
         </div>
         <div class="ligne-action-resultat">
           <div class="kg">-${fmt(a.potentielKg)} kg</div>
-          <div class="badge-cout ${a.cost}">${a.cost === "gratuit" ? "Gratuit" : a.cost === "faible" ? "Faible coût" : "Investissement"}</div>
+          <div class="badge-cout ${a.cost}">${COST_LABELS[a.cost]}</div>
         </div>
       </div>
     </div>

@@ -11,17 +11,22 @@
  *
  * Utilisé par : calcul-msp.js, etat-msp.js, modules ui/ et export/.
  */
+import { FE_MONETAIRE, categorieCout } from "../../../shared/js/data/facteurs-emission.js";
 
 // ---------------------------------------------------------------------------
 // 0. PRESCRIPTIONS — professions habilitées à prescrire dans l'outil MSP, et
-// facteur médicaments. SOURCÉ : The Shift Project, "Facteurs d'émission des
-// médicaments" (note technique, avril 2023), reprenant le facteur ADEME Base
-// Empreinte de 500 kgCO2e/k€ (0,5 kgCO2e/€) — retenu par le Shift Project
-// après comparaison de plusieurs sources comme la valeur la plus robuste.
+// facteur médicaments. SOURCÉ : même facteur que Lib&CO2 Cab
+// (FE_MONETAIRE.medicaments, source unique) : Base Carbone V23.6, « Produits
+// pharmaceutiques de base et préparations pharmaceutiques » 2023, 194
+// kgCO2e/k€ HT (id 43435). Remplace 0,5 kgCO2e/€ (The Shift Project, note
+// technique « Facteurs d'émissions des médicaments », 18/04/2023, p. 10, qui
+// reprenait la Base Empreinte de l'époque) : l'ADEME a depuis publié la
+// valeur 2023 (règle R1, version la plus récente de la même source) ; les
+// deux outils donnent désormais le même résultat pour la même dépense.
 // Limite assumée : facteur moyen tous médicaments confondus, sans
 // distinction par classe thérapeutique (une base plus fine, Ecovamed,
 // existe si une précision ultérieure est souhaitée).
-export const FE_MEDICAMENTS_EUR = 0.5;
+export const FE_MEDICAMENTS_EUR = FE_MONETAIRE.medicaments;
 
 // Kiné et infirmier prescrivent très marginalement (renouvellements,
 // vaccination) : seules médecin généraliste, chirurgien-dentiste et
@@ -30,27 +35,34 @@ export const PROFESSIONS_PRESCRIPTRICES = ["medecin_generaliste", "chirurgien_de
 
 // ---------------------------------------------------------------------------
 // 1. VÉHICULES PROFESSIONNELS — décomposition usage / fabrication
-// Source : Base Carbone V23.10, familles "Voiture" (2023) et "Voiture
-// particulière" (2020, Valide générique). SOURCÉ. Nécessaire ici (absent du
+// Source : Base Carbone V23.6 (data.ademe.fr, consulté le 06/10/2026), mêmes
+// éléments que FE_TRANSPORT (shared/js/data/facteurs-emission.js). SOURCÉ. Nécessaire ici (absent du
 // socle individuel) car le socle utilise un facteur combiné usage+fabrication
 // par km (FE_TRANSPORT.voiture_*), alors que la MSP a besoin de séparer les
 // deux pour éviter un double comptage avec le nouveau poste immobilisation
 // véhicule. Les clés correspondent à celles de FE_TRANSPORT
 // (voiture_thermique / voiture_hybride / voiture_electrique).
 export const FACTEURS_VEHICULES_USAGE_FABRICATION = {
-  voiture_thermique: { usage: 0.208, fabrication: 0.041, total: 0.249 },
-  // Moyenne arithmétique simple des 4 variantes Base Carbone (mild essence,
-  // mild diesel, full, rechargeable) — non pondérée par les parts de marché
-  // réelles (ESTIMÉ sur la pondération, SOURCÉ sur chaque valeur d'origine).
-  voiture_hybride: { usage: 0.121, fabrication: 0.046, total: 0.167 },
-  voiture_electrique: { usage: 0.02, fabrication: 0.084, total: 0.103 },
+  // « Voiture, motorisation moyenne, 2023 », id 43791 : carburant amont 0,0532
+  // + combustion 0,161 = usage 0,2142 ; fabrication 0,041.
+  voiture_thermique: { usage: 0.2142, fabrication: 0.041, total: 0.2552 },
+  // « Voiture particulière, cœur de gamme, hybride mild essence », id 28011 :
+  // carburant 0,0408 + 0,151 = usage 0,1918 ; véhicule 0,04 (variante non
+  // rechargeable la plus émissive, règle R3, comme FE_TRANSPORT).
+  voiture_hybride: { usage: 0.1918, fabrication: 0.04, total: 0.2318 },
+  // « Voiture particulière, cœur de gamme, électrique », id 28007 : électricité
+  // 0,0198 ; véhicule 0,0836.
+  voiture_electrique: { usage: 0.0198, fabrication: 0.0836, total: 0.1034 },
 };
 
 // ---------------------------------------------------------------------------
 // 2. BÂTIMENT — carbone de construction, sous-ligne du poste local/immobilisations
-// Facteur SOURCÉ (Base Carbone V23.10, id 20739, "Établissement de santé,
-// structure béton", Valide générique, MAJ 2014). Durée d'amortissement de 30
-// ans et seuil de rénovation lourde : ESTIMÉ / choix éditorial de Romaric.
+// Facteur SOURCÉ (Base Carbone V23.6, id 20739, « Établissement de santé,
+// structure en béton », 440 kgCO2e/m², Valide générique, vérifié le
+// 06/10/2026). Durée d'amortissement de 30 ans : ESTIMÉ, choix éditorial —
+// plus prudent que la période de référence de 50 ans de la RE2020 (que
+// retient aussi la Banque de France pour ses bâtiments tertiaires) : une
+// durée plus courte donne des émissions annuelles plus hautes.
 export const FACTEUR_BATIMENT_SANTE = {
   kgCO2e_m2: 440,
   dureeAmortissementAns: 30,
@@ -91,7 +103,10 @@ export function emissionsBatimentAnnuelles(surfaceM2, anneeConstruction, renovat
 //   Imprimante mono-fonction A4 laser N&B : 166 kgCO2e/appareil, Archivé (2019)
 
 // Mobilier : comptage par unité (choix MSP, différent du socle individuel qui
-// utilise FE_MOBILIER en €/kgCO2e). SOURCÉ Base Carbone V23.10.
+// utilise FE_MOBILIER en €/kgCO2e). SOURCÉ Base Carbone V23.6, vérifié le
+// 06/10/2026 : chaise bois id 26958, plastique 26959, bois textile 26960,
+// table bois massif 26961, table représentative 26962, armoire 26963, canapé
+// textile 26964, canapé cuir 26965 (kgCO2e/unité).
 export const FACTEURS_MOBILIER_UNITE = {
   chaiseBois: 18.6,
   chaisePlastique: 34.4,
@@ -161,11 +176,11 @@ export const LIBELLES_ACTIONS_MSP = {
   },
   lo3: {
     source:
-      "ESTIMÉ — ordre de grandeur usuel pour une rénovation d'isolation partielle, non re-vérifié cette session. Appliqué au poste local entier (le calcul MSP ne sépare pas chauffage et électricité).",
+      "SOURCÉ (partiel) — ADEME, « Clés pour agir – Isoler sa maison » (novembre 2024, p. 4) : dans un bâtiment non isolé, le toit représente 25 à 30 % des pertes de chaleur, les murs 20 à 25 %, les fenêtres 10 à 15 % ; plafond de 25 % pour une isolation partielle, maximum théorique (les économies mesurées sont souvent plus faibles). Appliqué au poste local entier (le calcul MSP ne sépare pas chauffage et électricité) : le gain affiché est donc un majorant.",
   },
   lo4: {
     source:
-      "ESTIMÉ — effet surtout comptable (garanties d'origine) vu le mix français déjà décarboné ; valeur volontairement basse. Appliqué au poste local entier (le calcul MSP ne sépare pas chauffage et électricité).",
+      "SOURCÉ — gain comptable nul : la méthode réglementaire BEGES version 5 (2022, chapitre 2) ne permet pas de déduire l'électricité couverte par des garanties d'origine ; l'ADEME (avis du 3 décembre 2018) note qu'une offre verte « standard » ne finance pas de nouvelles capacités renouvelables. Action maintenue pour information, sans réduction chiffrée.",
   },
 };
 
@@ -180,8 +195,9 @@ export const ACTIONS_MSP_SUPPLEMENTAIRES = [
     hasPct: true,
     defaultPct: 20,
     maxReduction: 0.2,
-    cost: "gratuit",
-    coutKg: "0 € — coordination interne entre professionnels",
+    coutKg: "≈ 0 €/kgCO2e évité (coordination interne)",
+    coutNet: { min: 0, max: 0, calcul: "Organisation interne entre professionnels, sans dépense." },
+    coutAbattement: "Non publié.",
   },
 ];
 
@@ -230,3 +246,5 @@ export function calculerTauxDependanceFossile(ratioParActe) {
     progressionVersObjectif2050: progression,
   };
 }
+
+for (const a of ACTIONS_MSP_SUPPLEMENTAIRES) a.cost = categorieCout(a);
