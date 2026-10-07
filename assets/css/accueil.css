@@ -77,6 +77,16 @@
     .pf-item p { margin: 0 0 8px; font-size: 14px; color: var(--texte); }
     .pf-item a { font-size: 13px; font-weight: 700; }
 
+    /* Offres d'accompagnement */
+    .grille-offres { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    @media (max-width: 720px) { .grille-offres { grid-template-columns: 1fr; } }
+    .carte-offre { background: #fff; border: 1px solid var(--bordure); border-left: 4px solid var(--vert); border-radius: 14px; padding: 20px 22px; display: flex; flex-direction: column; }
+    .carte-offre h3 { margin: 0 0 8px; font-size: 16.5px; }
+    .carte-offre p { margin: 0 0 14px; font-size: 14px; color: var(--texte); flex: 1; }
+    .lien-offre { font-weight: 700; font-size: 14px; color: var(--vert); text-decoration: none; min-height: 24px; display: inline-flex; align-items: center; }
+    .lien-offre:hover, .lien-offre:focus-visible { text-decoration: underline; }
+    .note-offres { font-size: 13px; color: var(--discret); margin-top: 16px; }
+
     /* Contact */
     .bloc-contact { text-align: center; background: var(--vert-fond); border-radius: 20px; padding: 46px 30px; }
     .bloc-contact h2 { font-family: var(--serif); font-size: 24px; margin: 0 0 10px; }

@@ -12,6 +12,7 @@ import { CATEGORIES_META, COST_LABELS } from "../../../shared/js/data/facteurs-e
 import { champNombreHtml, fmt, lienifier } from "./commun.js";
 import { dessinerGraphiqueRepartition, dessinerJaugeEngagement } from "../graphiques.js";
 import { echapperHtml } from "../../../shared/js/echappement.js";
+import { lienContact } from "../../../shared/js/contact.js";
 
 // ============================================================================
 // ÉCRAN RÉSULTATS
@@ -136,6 +137,17 @@ export function renderResultats(root, ctx) {
         <div class="texte-discret" data-style="margin-bottom:14px;">Enregistrez ce bilan pour le retrouver plus tard et suivre son évolution dans le temps.</div>
         <button class="bouton bouton-primaire" id="btn-enregistrer-bilan" data-style="margin-right:10px;">Enregistrer ce bilan</button>
         <button class="bouton bouton-secondaire" id="btn-voir-historique">Voir mon historique</button>
+      </div>
+
+      <div class="carte carte-accompagnement">
+        <div data-style="font-weight:700; font-size:14.5px; margin-bottom:6px;">Passer à l'action, accompagné</div>
+        <div class="texte-discret" data-style="margin-bottom:14px;">Ce bilan est un ordre de grandeur. Si vous souhaitez le fiabiliser avec vos données réelles, bâtir un plan d'action pour votre structure ou former votre équipe, Lib&CO2 peut vous accompagner. Un premier échange est sans engagement.</div>
+        <a class="bouton bouton-primaire" href="${echapperHtml(
+          lienContact("diagnostic", [
+            `Résultat de mon estimation Lib&CO2 Cab : ${resultats.totalT.toFixed(2)} tCO2e/an, ${parActeAffiche.toFixed(1)} kgCO2e par ${famille.uniteActe}.`,
+          ]),
+        )}">Écrire à Lib&CO2</a>
+        <div class="texte-discret" data-style="margin-top:8px; font-size:12px;">Votre messagerie s'ouvre avec une trame pré-remplie (dont le résultat ci-dessus) : vous relisez et envoyez, ou non.</div>
       </div>
 
       <div class="carte" data-style="text-align:center; background:var(--couleur-primaire-fond); border-style:dashed;">

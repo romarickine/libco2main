@@ -247,6 +247,15 @@ sup.ref a {
   opacity: 0.85;
   font-size: 14px;
 }
+/* Ligne secondaire vers l'accompagnement (structures, institutions). */
+.bloc-cta .cta-accompagnement {
+  margin: 16px 0 0;
+  font-size: 13px;
+}
+.bloc-cta .cta-accompagnement a {
+  color: #fff;
+  font-weight: 700;
+}
 .bouton {
   display: inline-block;
   background: var(--vert);

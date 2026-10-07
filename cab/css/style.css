@@ -100,6 +100,11 @@ button {
   padding: 22px 20px;
   margin-bottom: 16px;
 }
+/* Proposition d'accompagnement en fin de résultats (discrète, sans insistance). */
+.carte-accompagnement {
+  text-align: center;
+  border-left: 4px solid var(--couleur-primaire);
+}
 .carte-hero {
   background: var(--couleur-encre);
   border: none;

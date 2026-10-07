@@ -812,6 +812,15 @@ th {
   margin: 0.3rem 0 0;
 }
 
+/* Proposition d'accompagnement en fin de pistes d'action (discrète). */
+.carte-accompagnement {
+  text-align: center;
+  border-left: 4px solid var(--couleur-primaire);
+}
+.carte-accompagnement .bouton-principal {
+  display: inline-block;
+  text-decoration: none;
+}
 .carte-invitation {
   background: linear-gradient(135deg, var(--couleur-primaire-fond) 0%, var(--couleur-accent-vert-fond) 100%);
   text-align: center;

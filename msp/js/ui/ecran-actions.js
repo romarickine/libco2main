@@ -10,6 +10,8 @@
 import { ACTIONS, CATEGORIES_META, COST_LABELS } from "../../../shared/js/data/facteurs-emission.js";
 import { ACTIONS_MSP_SUPPLEMENTAIRES, LIBELLES_ACTIONS_MSP } from "../data/facteurs-emission-msp.js";
 import { fmt } from "./commun.js";
+import { echapperHtml } from "../../../shared/js/echappement.js";
+import { lienContact } from "../../../shared/js/contact.js";
 import { rendrePiedNavigation } from "../ui-msp.js";
 import { svgJaugeDemiCercle } from "./graphiques-svg.js";
 
@@ -146,6 +148,17 @@ export function rendreSolutions(etat) {
     ${Object.entries(groupes)
       .map(([posteId, actions]) => rendreGroupeActions(etat, posteId, actions, r))
       .join("")}
+    <div class="carte carte-accompagnement">
+      <h3 class="carte-titre">Mettre en œuvre le plan, accompagnés</h3>
+      <p class="aide">Pour fiabiliser ce bilan avec les données réelles de la structure, animer le plan d'action avec l'équipe ou organiser un atelier, Lib&CO2 peut vous accompagner. Un premier échange est sans engagement.</p>
+      <a class="bouton-principal" href="${echapperHtml(
+        lienContact(
+          "diagnostic",
+          r ? [`Résultat de notre estimation Lib&CO2 MSP : ${fmt(r.empreinteTotale)} kgCO2e/an${actionsCochees.length ? `, ${actionsCochees.length} action(s) envisagée(s)` : ""}.`] : [],
+        ),
+      )}">Écrire à Lib&CO2</a>
+      <p class="aide" data-style="margin-top:0.6rem">Votre messagerie s'ouvre avec une trame pré-remplie : vous relisez et envoyez, ou non.</p>
+    </div>
     ${rendrePiedNavigation(etat)}
   </section>`;
 }
