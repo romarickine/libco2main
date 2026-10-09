@@ -8,6 +8,27 @@ import { geocodeAddress, fetchAddressSuggestions } from "./ign-api.js";
 import { exportMapImage } from "./export-image.js";
 import { echapperHtml } from "../../shared/js/echappement.js";
 import { getModeColors } from "./colors.js";
+
+/**
+ * Réglages des îlots passés dans l'adresse de la page, pour les essais :
+ * ?ilots=off (seule la zone reliée au départ) ou
+ * ?ilots=minHex,ancreMin,distParHexM,partDegradée%,pochesVoitureMax (ex. 5,40,100,70,10).
+ * Sans paramètre : valeurs de config.js.
+ * @returns {object|false|undefined}
+ */
+function reglagesIlotsDepuisUrl() {
+  const v = new URLSearchParams(location.search).get("ilots");
+  if (v == null) return undefined;
+  if (v === "off") return false;
+  const [minHex, ancreMin, distParHexM, deg, poches] = v.split(",").map(Number);
+  const r = {};
+  if (Number.isFinite(minHex)) r.minHex = minHex;
+  if (Number.isFinite(ancreMin)) r.ancreMin = ancreMin;
+  if (Number.isFinite(distParHexM)) r.distParHexM = distParHexM;
+  if (Number.isFinite(deg)) r.partDegradeeMax = deg / 100;
+  if (Number.isFinite(poches)) r.pochesVoitureMax = poches;
+  return r;
+}
 import { URBAN_CLASSIFICATION_RADIUS_M, findNearestNode, haversineMeters, estimateCarTime } from "./graph.js";
 
 /**
@@ -230,7 +251,7 @@ export function initUI() {
       return;
     }
 
-    const direction = document.querySelector('input[name="direction"]:checked')?.value || "depart";
+    const direction = document.getElementById("direction")?.value || "aller-retour";
     btn.disabled = true;
     statusEl.className = "";
     statusEl.textContent = "Démarrage…";
@@ -249,6 +270,7 @@ export function initUI() {
           lon,
           lat,
           direction,
+          ilots: reglagesIlotsDepuisUrl(),
           onEtat: ({ message, fraction }) => {
             statusEl.textContent = message;
             const pct = Math.round(fraction * 100);

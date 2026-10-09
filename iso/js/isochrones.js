@@ -11,6 +11,7 @@ import {
   computeNodeDegrees,
   checkRawConnectivity,
   connectedWinningNodes,
+  allWinningNodes,
   analyzeFrontier,
   haversineMeters,
   classifyUrbanContext,
@@ -19,9 +20,10 @@ import {
   completerAltitudes,
   lisserAltitudes,
 } from "./graph.js";
+import { filtrerIlots, trousACombler, NATURES_DEGRADEES } from "./ilots.js";
 import { HexGrid, traceOuterBoundaries, buildPolygonsWithHoles, smoothPolygonsWithHoles } from "./hexgrid.js";
 import { fetchIGNRoads, etendreIGNRoads, fetchElevations } from "./ign-api.js";
-import { DELAY_BIKE_MIN, DELAY_CAR_MIN_URBAN, DELAY_CAR_MIN_RURAL } from "./config.js";
+import { DELAY_BIKE_MIN, DELAY_CAR_MIN_URBAN, DELAY_CAR_MIN_RURAL, ILOTS } from "./config.js";
 
 // Rend la main au navigateur le temps d'une image, pour qu'il ait l'occasion
 // de repeindre l'écran (barre de progression, pourcentage) avant de reprendre
@@ -137,6 +139,7 @@ export async function computeIsochronesNetwork(opts) {
     direction = DIRECTION_DEPART,
     reseauPrecedent = null,
     garderReseau = false,
+    ilots = undefined,
     onProgress,
   } = opts;
   const bufferRadiusMeters = 40;
@@ -232,7 +235,13 @@ export async function computeIsochronesNetwork(opts) {
   const modeTimesByKey = {}; // conservé pour l'outil de diagnostic (inspection d'un point)
   const hexGrid = new HexGrid(lon, lat, bufferRadiusMeters * 1.6, 6);
   const progressPerMode = { Walk: 0.65, Bike: 0.78, Ebike: 0.9 };
-  const zonesVides = () => ({ polygons: [], hexagonCount: 0, possiblyTruncated: false, frontierDiagnosis: null });
+  const zonesVides = () => ({ polygons: [], hexagonCount: 0, possiblyTruncated: false, frontierDiagnosis: null, ilots: null });
+  // Mode « toutes zones gagnantes » + filtre de pertinence (ilots.js, réglages
+  // dans config.js). `ilots: false` revient à la seule zone reliée au départ.
+  const reglagesIlots = ilots === false ? null : { ...ILOTS, ...(ilots || {}) };
+  const ilotsActifs = reglagesIlots !== null && reglagesIlots.actif !== false;
+  const [origLon, origLat] = graph.nodeCoords.get(originNode);
+  const cleOrigine = hexGrid.cleDe(origLon, origLat);
 
   for (const mode of modeDefs) {
     onProgress("Calcul — " + mode.key + "…", progressPerMode[mode.key]);
@@ -243,16 +252,121 @@ export async function computeIsochronesNetwork(opts) {
     // Parcours de connexité dans le sens de la carte : « j'y vais » remonte le
     // réseau depuis la destination ; départ et aller-retour partent de l'adresse.
     const adjacenceParcours = direction === DIRECTION_ARRIVEE ? transposeAdjacency(adjacency) : adjacency;
-    const winningNodes = connectedWinningNodes(
-      adjacenceParcours,
-      modeTimes,
-      carTimes,
-      carIndex,
-      graph.nodeCoords,
-      originNode,
-      mode.carPenalty * facteurTrajets,
-      facteurTrajets,
-    );
+    const winningNodes = ilotsActifs
+      ? allWinningNodes(modeTimes, carTimes, carIndex, graph.nodeCoords, originNode, mode.carPenalty * facteurTrajets, facteurTrajets)
+      : connectedWinningNodes(
+          adjacenceParcours,
+          modeTimes,
+          carTimes,
+          carIndex,
+          graph.nodeCoords,
+          originNode,
+          mode.carPenalty * facteurTrajets,
+          facteurTrajets,
+        );
+
+    // Hexagones gagnants ; on note à part les « carrossables », traversés par au
+    // moins une voie gagnante où la voiture a un vrai temps calculé : ouverte
+    // à la voiture, non dégradée (chemin, sentier, route empierrée) et reliée
+    // au réseau voiture. Ailleurs (pistes cyclables, voies de berge, chemins),
+    // le temps voiture n'est qu'une estimation à pied jusqu'à la route la plus
+    // proche, et la « victoire » du mode n'a guère de sens.
+    // Zone principale : nœuds reliés au départ par des rues où le mode gagne
+    // de proche en proche (l'ancien calcul). Le reste des zones gagnantes forme
+    // les îlots, filtrés plus bas, même s'ils touchent cette zone sur la grille.
+    const connexes = ilotsActifs
+      ? connectedWinningNodes(
+          adjacenceParcours,
+          modeTimes,
+          carTimes,
+          carIndex,
+          graph.nodeCoords,
+          originNode,
+          mode.carPenalty * facteurTrajets,
+          facteurTrajets,
+        )
+      : null;
+    const clesPrincipales = new Set();
+    const hexagons = {};
+    const hexCarrossables = new Set();
+    for (const edge of graph.edges) {
+      if (!isEdgeUsable(edge, mode.mode)) {
+        continue;
+      }
+      if (!winningNodes.has(edge.from) || !winningNodes.has(edge.to)) {
+        continue;
+      }
+      const [lon1, lat1] = graph.nodeCoords.get(edge.from);
+      const [lon2, lat2] = graph.nodeCoords.get(edge.to);
+      hexGrid.addSegmentToGrid(hexagons, lon1, lat1, lon2, lat2);
+      if (connexes && connexes.has(edge.from) && connexes.has(edge.to)) {
+        hexGrid.clesSegment(clesPrincipales, lon1, lat1, lon2, lat2);
+      }
+      if (
+        ilotsActifs &&
+        !NATURES_DEGRADEES.has(edge.nature) &&
+        isEdgeUsable(edge, "car") &&
+        carTimes.has(edge.from) &&
+        carTimes.has(edge.to)
+      ) {
+        hexGrid.clesSegment(hexCarrossables, lon1, lat1, lon2, lat2);
+      }
+    }
+
+    // Voies praticables du mode (gagnantes ou non) dans le cadre d'un ensemble
+    // d'hexagones : sert à distinguer, dans un trou, interstice sans route et
+    // poche où la voiture gagne.
+    const hexRoutesDans = (cles) => {
+      let minLo = Infinity,
+        maxLo = -Infinity,
+        minLa = Infinity,
+        maxLa = -Infinity;
+      for (const key of cles) {
+        for (const [lo, la] of (hexagons[key] || hexGrid.celluleDepuisCle(key)).coordinates) {
+          if (lo < minLo) minLo = lo;
+          if (lo > maxLo) maxLo = lo;
+          if (la < minLa) minLa = la;
+          if (la > maxLa) maxLa = la;
+        }
+      }
+      const hexRoutes = new Set();
+      const dansCadre = (lo, la) => lo >= minLo && lo <= maxLo && la >= minLa && la <= maxLa;
+      for (const edge of graph.edges) {
+        if (!isEdgeUsable(edge, mode.mode)) continue;
+        const [lon1, lat1] = graph.nodeCoords.get(edge.from);
+        const [lon2, lat2] = graph.nodeCoords.get(edge.to);
+        if (!dansCadre(lon1, lat1) && !dansCadre(lon2, lat2)) continue;
+        hexGrid.clesSegment(hexRoutes, lon1, lat1, lon2, lat2);
+      }
+      return hexRoutes;
+    };
+    // Accès aux hexagones avant filtrage (essais de calibrage uniquement).
+    if (typeof opts.surHexagonesBruts === "function") {
+      opts.surHexagonesBruts(mode.key, { cles: Object.keys(hexagons), clesPrincipales, hexCarrossables, cleOrigine, hexGrid, hexRoutesDans });
+    }
+
+    let statsIlots = null;
+    if (ilotsActifs) {
+      const filtre = filtrerIlots(Object.keys(hexagons), {
+        clesPrincipales,
+        cleOrigine,
+        hexCarrossables,
+        minHex: reglagesIlots.minHex,
+        ancreMin: reglagesIlots.ancreMin,
+        distParHex: reglagesIlots.distParHexM / hexGrid.hexSize,
+        partDegradeeMax: reglagesIlots.partDegradeeMax,
+      });
+      for (const key of Object.keys(hexagons)) if (!filtre.gardes.has(key)) delete hexagons[key];
+      const hexRoutes = hexRoutesDans(Object.keys(hexagons));
+      const ajouts = trousACombler(new Set(Object.keys(hexagons)), hexRoutes, reglagesIlots.pochesVoitureMax);
+      for (const key of ajouts) hexagons[key] = hexGrid.celluleDepuisCle(key);
+      statsIlots = {
+        ilotsGardes: filtre.ilotsGardes,
+        ilotsEcartes: filtre.ilotsEcartes,
+        ilotsNonCarrossablesEcartes: filtre.ilotsNonCarrossablesEcartes,
+        trousCombles: ajouts.length,
+      };
+    }
 
     // Détecte si la zone touche le bord du rayon réseau interrogé : signe
     // probable que la vraie frontière (là où la voiture rattraperait le mode)
@@ -260,6 +374,10 @@ export async function computeIsochronesNetwork(opts) {
     let maxDistanceFromOrigin = 0;
     for (const nodeId of winningNodes) {
       const [nlon, nlat] = graph.nodeCoords.get(nodeId);
+      // Îlots écartés par le filtre : ils ne doivent pas faire relancer à 15 km.
+      if (ilotsActifs && !hexagons[hexGrid.cleDe(nlon, nlat)]) {
+        continue;
+      }
       const d = haversineMeters(lon, lat, nlon, nlat);
       if (d > maxDistanceFromOrigin) {
         maxDistanceFromOrigin = d;
@@ -278,19 +396,8 @@ export async function computeIsochronesNetwork(opts) {
       facteurTrajets,
     );
 
-    const hexagons = {};
-    for (const edge of graph.edges) {
-      if (!isEdgeUsable(edge, mode.mode)) {
-        continue;
-      }
-      if (!winningNodes.has(edge.from) || !winningNodes.has(edge.to)) {
-        continue;
-      }
-      const [lon1, lat1] = graph.nodeCoords.get(edge.from);
-      const [lon2, lat2] = graph.nodeCoords.get(edge.to);
-      hexGrid.addSegmentToGrid(hexagons, lon1, lat1, lon2, lat2);
-    }
     hexagonsByMode[mode.key] = hexagons;
+    hexagonsByMode[mode.key + "_ilots"] = statsIlots;
     hexagonsByMode[mode.key + "_truncated"] = possiblyTruncated;
     hexagonsByMode[mode.key + "_frontier"] = frontierDiagnosis;
   }
@@ -324,6 +431,7 @@ export async function computeIsochronesNetwork(opts) {
       hexagonCount: Object.keys(hexagons).length,
       possiblyTruncated: hexagonsByMode[mode.key + "_truncated"],
       frontierDiagnosis: hexagonsByMode[mode.key + "_frontier"],
+      ilots: hexagonsByMode[mode.key + "_ilots"],
     };
   }
 

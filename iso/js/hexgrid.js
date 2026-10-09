@@ -74,6 +74,31 @@ export class HexGrid {
     }
     return key;
   }
+  /** Clé « q,r » de l'hexagone contenant un point. */
+  cleDe(lon, lat) {
+    const [px, py] = this.toLocalMeters(lon, lat);
+    const [q, r] = this.pixelToAxial(px, py);
+    return q + "," + r;
+  }
+  /** Ajoute à `cles` (Set) les clés des hexagones traversés par un segment, sans géométrie (léger en mémoire). */
+  clesSegment(cles, lon1, lat1, lon2, lat2) {
+    const lengthKm = HexGrid.coordDistance(lon1, lat1, lon2, lat2);
+    const steps = Math.max(1, Math.ceil((lengthKm * 1000) / (this.hexSize * 0.5)));
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      cles.add(this.cleDe(lon1 + (lon2 - lon1) * t, lat1 + (lat2 - lat1) * t));
+    }
+  }
+  /** Géométrie d'un hexagone à partir de sa clé (même forme que addPointToGrid). */
+  celluleDepuisCle(key) {
+    const i = key.indexOf(",");
+    const [cx, cy] = this.axialToPixel(+key.slice(0, i), +key.slice(i + 1));
+    const coordinates = this.hexagonVertices(cx, cy).map(([x, y]) => {
+      const [lo, la] = this.toLonLat(x, y);
+      return [+lo.toFixed(this.precision), +la.toFixed(this.precision)];
+    });
+    return { coordinates };
+  }
   addSegmentToGrid(hexagons, lon1, lat1, lon2, lat2) {
     const lengthKm = HexGrid.coordDistance(lon1, lat1, lon2, lat2);
     const steps = Math.max(1, Math.ceil((lengthKm * 1000) / (this.hexSize * 0.5)));

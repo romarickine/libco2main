@@ -41,7 +41,7 @@ function appliquer(el) {
 }
 
 if (typeof document !== "undefined" && typeof MutationObserver !== "undefined") {
-  const observateur = new MutationObserver((mutations) => {
+  const observateur = new globalThis.MutationObserver((mutations) => {
     for (const m of mutations) {
       if (m.type === "attributes") appliquer(m.target);
       else for (const n of m.addedNodes) appliquerStylesDynamiques(n);

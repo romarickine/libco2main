@@ -393,16 +393,11 @@ button.geo-btn:hover {
 }
 /* Sens du trajet : trois choix sur une ligne. */
 .sens-choix {
-  border: 0;
-  padding: 0;
   margin: 4px 0 14px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 16px;
 }
-.sens-choix legend {
+.sens-libelle {
   /* même aspect que .section-title */
-  width: 100%;
+  display: block;
   font-size: 11px;
   font-weight: 700;
   color: var(--moss-dark);
@@ -410,13 +405,16 @@ button.geo-btn:hover {
   padding: 0 0 5px;
   border-bottom: 1px solid var(--line);
 }
-.sens-choix label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 24px;
-  font-weight: 400;
-  cursor: pointer;
+.sens-choix select {
+  width: 100%;
+  min-height: 32px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 13.5px;
+  font-family: inherit;
+  background: var(--paper);
+  color: var(--ink);
 }
 .method-note {
   font-size: 12px;

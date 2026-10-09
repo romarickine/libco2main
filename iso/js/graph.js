@@ -174,7 +174,54 @@ export function parseIGNRoadsToGraph(featureCollection, nodeSnapTolerance) {
       }
     }
   }
+  marquerBretellesAutoroutieres(edges);
   return { nodeCoords: snapper.nodeCoords, edges, nodeElev };
+}
+
+/**
+ * Marque les bretelles d'autoroute (`edge.bretelleAutoroute = true`) : la BD
+ * TOPO® code toutes les bretelles avec la même nature « Bretelle », qu'elles
+ * desservent une autoroute ou une simple voie rapide. On retient comme
+ * bretelle d'autoroute toute chaîne de tronçons « Bretelle » reliée, par un
+ * nœud commun, à un tronçon « Type autoroutier » (parcours de proche en proche
+ * le long des bretelles). La marche et le vélo y sont interdits comme sur
+ * l'autoroute elle-même (code de la route, art. R. 412-7 et R. 421-2).
+ * Modifie les tronçons en place.
+ * @param {object[]} edges
+ */
+export function marquerBretellesAutoroutieres(edges) {
+  const bretellesParNoeud = new Map();
+  const depart = [];
+  const vus = new Set();
+  for (const e of edges) {
+    if (e.nature === "Bretelle") {
+      for (const n of [e.from, e.to]) {
+        if (!bretellesParNoeud.has(n)) bretellesParNoeud.set(n, []);
+        bretellesParNoeud.get(n).push(e);
+      }
+    } else if (e.nature === "Type autoroutier") {
+      for (const n of [e.from, e.to]) {
+        if (!vus.has(n)) {
+          vus.add(n);
+          depart.push(n);
+        }
+      }
+    }
+  }
+  const pile = depart;
+  while (pile.length) {
+    const n = pile.pop();
+    for (const e of bretellesParNoeud.get(n) || []) {
+      if (e.bretelleAutoroute) continue;
+      e.bretelleAutoroute = true;
+      for (const m of [e.from, e.to]) {
+        if (!vus.has(m)) {
+          vus.add(m);
+          pile.push(m);
+        }
+      }
+    }
+  }
 }
 
 /**
@@ -294,6 +341,12 @@ export function isEdgeUsable(edge, mode) {
   // coupait parfois le réseau cyclable à tort (ex. voies rapides urbaines à
   // vitesse modérée) et bornait artificiellement les zones vélo/VAE.
   if (BDTOPO_WALK_BIKE_EXCLUDED_NATURES.has(edge.nature)) {
+    return false;
+  }
+  // Bretelles d'autoroute : même interdiction que l'autoroute (voir
+  // marquerBretellesAutoroutieres). Les bretelles de voies rapides ordinaires
+  // restent soumises à la règle de vitesse ci-dessous.
+  if (edge.bretelleAutoroute) {
     return false;
   }
   const speedKmh = edge.vitesse || BDTOPO_DEFAULT_SPEED[edge.nature] || BDTOPO_DEFAULT_SPEED_FALLBACK;
@@ -484,7 +537,10 @@ export function sensUniqueApplique(edge, mode, urbain = false) {
   if (mode !== "bike" && mode !== "ebike") {
     return false;
   }
-  if (edge.nature === "Rond-point") {
+  // Ronds-points, bretelles et routes à chaussées séparées : jamais à
+  // contresens, même en ville et même lentes (demande du porteur du projet,
+  // 09/10/2026) — la tolérance urbaine ne vaut que pour les rues ordinaires.
+  if (edge.nature === "Rond-point" || edge.nature === "Bretelle" || edge.nature === "Route à 2 chaussées") {
     return true;
   }
   const vitesse = edge.vitesse || BDTOPO_DEFAULT_SPEED[edge.nature] || BDTOPO_DEFAULT_SPEED_FALLBACK;
@@ -796,6 +852,23 @@ export function connectedWinningNodes(
     }
   }
   return visited;
+}
+
+/**
+ * Tous les nœuds où le mode bat la voiture, reliés ou non au départ (mode
+ * « toutes zones gagnantes ») : même règle de victoire que
+ * connectedWinningNodes, sans contrainte de connexité. Le nœud de départ est
+ * toujours inclus. Les îlots détachés sont ensuite triés par filtrerIlots
+ * (ilots.js).
+ * @returns {Set<number>}
+ */
+export function allWinningNodes(modeTimes, carTimes, carIndex, nodeCoords, originNode, carPenalty, gapFactor = 1) {
+  const gagnants = new Set([originNode]);
+  for (const [n, mt] of modeTimes) {
+    const carTime = estimateCarTime(carTimes, carIndex, n, nodeCoords, gapFactor) + carPenalty;
+    if (mt < carTime) gagnants.add(n);
+  }
+  return gagnants;
 }
 
 /**

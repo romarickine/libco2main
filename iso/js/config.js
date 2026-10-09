@@ -74,3 +74,26 @@ export const WFS_PAGE_SIZE = 4800;
 // cartes.gouv.fr] ; 29 auparavant, sans marge, alors que des refus 429 ont déjà
 // été observés en rafale (voir ign-api.js). [Estimé : marge prudente, 06/10/2026]
 export const WFS_MAX_REQUESTS_PER_SECOND = 12;
+
+// --- Îlots gagnants et trous internes (ilots.js) ---------------------------
+// Mode « toutes zones gagnantes » (choix du porteur du projet, 09/10/2026) :
+// les secteurs où un mode bat la voiture sans être reliés au départ sont
+// affichés s'ils passent un filtre de pertinence. Hexagones de 64 m (≈ 0,35 ha).
+//   minHex          : taille minimale d'un îlot détaché (hexagones)
+//   ancreMin        : taille à partir de laquelle un îlot carrossable est gardé d'office
+//   distParHexM     : distance (m) autorisée à une ancre par hexagone au-delà de minHex (0 = sans condition)
+//   partDegradeeMax : part d'hexagones non carrossables (aucune voie où la voiture a un vrai
+//                     temps : chemins, sentiers, routes empierrées, pistes cyclables, voies non
+//                     reliées au réseau voiture) au-delà de laquelle un îlot est écarté (0 = désactivé)
+// Îlot = secteur gagnant hors de la zone reliée au départ par le réseau du mode, même s'il la touche.
+//   pochesVoitureMax: trous où la voiture gagne comblés sous cette taille (hexagones)
+// [Estimé] valeurs de la solution transmise (jeu A), retenues après comparaison
+// de 4 jeux sur 4 sites le 09/10/2026 (voir docs/calibrage-ilots.md).
+export const ILOTS = {
+  actif: true,
+  minHex: 5,
+  ancreMin: 40,
+  distParHexM: 100,
+  partDegradeeMax: 0.7,
+  pochesVoitureMax: 10,
+};
