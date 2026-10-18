@@ -288,6 +288,7 @@ export function initUI() {
         rawFeatureCount,
         urbanContext,
         delayCarApplied,
+        parkingLisiere,
         diagnostics,
       } = computation;
 
@@ -307,7 +308,12 @@ export function initUI() {
         URBAN_CLASSIFICATION_RADIUS_M +
         " m, délai voiture appliqué : " +
         delayCarApplied +
-        " min)";
+        " min)" +
+        (parkingLisiere
+          ? " — adresse hors réseau voiture : voiture garée à " +
+            parkingLisiere.distanceMeters +
+            " m, marche ajoutée au temps voiture"
+          : "");
       lastComputation = {
         results,
         lat,

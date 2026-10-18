@@ -670,6 +670,33 @@ export function transposeAdjacency(adjacency) {
  * @param {object} graph @param {number} lon @param {number} lat
  * @returns {number|null} Identifiant du nœud.
  */
+/**
+ * Nœud carrossable le plus proche d'un point : extrémité d'un tronçon ouvert à
+ * la voiture (isEdgeUsable « car »), hors des nœuds `exclus`, à moins de
+ * `maxDistM`. Sert au « parking en lisière » quand l'adresse est hors du
+ * réseau voiture (zone piétonne, sentier, escalier…).
+ * @returns {{node: number, distanceMeters: number}|null}
+ */
+export function noeudCarrossableProche(graph, lon, lat, exclus, maxDistM) {
+  let best = null,
+    bestDist = maxDistM;
+  const vus = new Set();
+  for (const edge of graph.edges) {
+    if (!isEdgeUsable(edge, "car")) continue;
+    for (const n of [edge.from, edge.to]) {
+      if (vus.has(n) || (exclus && exclus.has(n))) continue;
+      vus.add(n);
+      const [nlon, nlat] = graph.nodeCoords.get(n);
+      const d = haversineMeters(lon, lat, nlon, nlat);
+      if (d < bestDist) {
+        bestDist = d;
+        best = n;
+      }
+    }
+  }
+  return best == null ? null : { node: best, distanceMeters: bestDist };
+}
+
 export function findNearestNode(graph, lon, lat) {
   let best = null,
     bestDist = Infinity;
@@ -729,6 +756,9 @@ export function buildCarReachabilityIndex(carTimes, nodeCoords, cellSizeMeters) 
     return [Math.floor(lon / (cellSizeMeters / mPerDegLon)), Math.floor(lat / (cellSizeMeters / mPerDegLat))];
   };
   const buckets = new Map();
+  // Emprise des compartiments occupés : la recherche du plus proche s'y borne
+  // (voir findNearestCarTime).
+  const emprise = { minCx: Infinity, maxCx: -Infinity, minCy: Infinity, maxCy: -Infinity };
   for (const [id, time] of carTimes) {
     const [lon, lat] = nodeCoords.get(id);
     const [cx, cy] = cellOf(lon, lat);
@@ -737,31 +767,55 @@ export function buildCarReachabilityIndex(carTimes, nodeCoords, cellSizeMeters) 
       buckets.set(key, []);
     }
     buckets.get(key).push({ lon, lat, time });
+    if (cx < emprise.minCx) emprise.minCx = cx;
+    if (cx > emprise.maxCx) emprise.maxCx = cx;
+    if (cy < emprise.minCy) emprise.minCy = cy;
+    if (cy > emprise.maxCy) emprise.maxCy = cy;
   }
-  return { buckets, cellOf };
+  return { buckets, cellOf, emprise };
 }
 
 function findNearestCarTime(index, lon, lat, maxRing) {
   const [cx, cy] = index.cellOf(lon, lat);
+  // Recherche bornée à l'emprise des compartiments occupés : les anneaux (ou
+  // portions d'anneau) qui en sortent ne contiennent rien. Même résultat que
+  // le balayage complet, mais sans parcourir des milliers de compartiments
+  // vides quand l'index est petit (adresse en zone piétonne, par exemple).
+  const e = index.emprise;
+  if (!e || index.buckets.size === 0) return null;
+  const premierAnneau = Math.max(e.minCx - cx, cx - e.maxCx, e.minCy - cy, cy - e.maxCy, 0);
+  if (premierAnneau > maxRing) return null;
   let best = null,
     bestDist = Infinity;
-  for (let ring = 0; ring <= maxRing; ring++) {
-    for (let dx = -ring; dx <= ring; dx++) {
-      for (let dy = -ring; dy <= ring; dy++) {
-        if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) {
-          continue;
-        } // seulement le bord de l'anneau (déjà vu sinon)
-        const bucket = index.buckets.get(cx + dx + "_" + (cy + dy));
-        if (!bucket) {
-          continue;
-        }
-        for (const cand of bucket) {
-          const d = haversineMeters(lon, lat, cand.lon, cand.lat);
-          if (d < bestDist) {
-            bestDist = d;
-            best = cand;
-          }
-        }
+  const examiner = (dx, dy) => {
+    const bucket = index.buckets.get(cx + dx + "_" + (cy + dy));
+    if (!bucket) return;
+    for (const cand of bucket) {
+      const d = haversineMeters(lon, lat, cand.lon, cand.lat);
+      if (d < bestDist) {
+        bestDist = d;
+        best = cand;
+      }
+    }
+  };
+  // Au-delà de ce rayon, le bord de l'anneau est entièrement hors de l'emprise.
+  const dernierAnneau = Math.min(
+    maxRing,
+    Math.max(Math.abs(e.minCx - cx), Math.abs(e.maxCx - cx), Math.abs(e.minCy - cy), Math.abs(e.maxCy - cy)),
+  );
+  for (let ring = premierAnneau; ring <= dernierAnneau; ring++) {
+    const dxMin = Math.max(-ring, e.minCx - cx),
+      dxMax = Math.min(ring, e.maxCx - cx);
+    const dyMin = Math.max(-ring, e.minCy - cy),
+      dyMax = Math.min(ring, e.maxCy - cy);
+    // Seulement le bord de l'anneau (l'intérieur a déjà été vu), dans le même
+    // ordre que le balayage complet : à égalité de distance, même candidat.
+    for (let dx = dxMin; dx <= dxMax; dx++) {
+      if (Math.abs(dx) === ring) {
+        for (let dy = dyMin; dy <= dyMax; dy++) examiner(dx, dy);
+      } else {
+        if (-ring >= dyMin) examiner(dx, -ring);
+        if (ring <= dyMax) examiner(dx, ring);
       }
     }
     // Un anneau de sécurité supplémentaire une fois un candidat trouvé : le
@@ -778,8 +832,8 @@ function findNearestCarTime(index, lon, lat, maxRing) {
 // tronçon n'est pas un vrai itinéraire connu, juste une estimation à vol
 // d'oiseau pour combler l'écart jusqu'au réseau voiture le plus proche — mieux
 // vaut sous-estimer la vitesse que sur-crédibiliser une distance à vol d'oiseau.
-const CAR_GAP_FALLBACK_SPEED_MS = (4.5 * 1000) / 3600;
-const CAR_GAP_MAX_SEARCH_RING = 25; // ~5 km avec des cellules de 200 m
+export const CAR_GAP_FALLBACK_SPEED_MS = (4.5 * 1000) / 3600;
+export const CAR_GAP_MAX_SEARCH_RING = 25; // ~5 km avec des cellules de 200 m
 
 /**
  * Temps voiture "effectif" pour un nœud donné : le vrai temps Dijkstra s'il

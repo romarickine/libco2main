@@ -19,6 +19,9 @@ import {
   computeNodeIncidentEdges,
   completerAltitudes,
   lisserAltitudes,
+  noeudCarrossableProche,
+  CAR_GAP_FALLBACK_SPEED_MS,
+  CAR_GAP_MAX_SEARCH_RING,
 } from "./graph.js";
 import { filtrerIlots, trousACombler, NATURES_DEGRADEES } from "./ilots.js";
 import { HexGrid, traceOuterBoundaries, buildPolygonsWithHoles, smoothPolygonsWithHoles } from "./hexgrid.js";
@@ -38,6 +41,10 @@ import { DELAY_BIKE_MIN, DELAY_CAR_MIN_URBAN, DELAY_CAR_MIN_RURAL, ILOTS } from 
 // plan. Le calcul restait alors figé tant que l'utilisateur ne revenait pas
 // sur l'onglet (constaté le 28/09/2026). Dans ce cas, on rend la main par un
 // MessageChannel, qui n'est pas ralenti : rien à repeindre de toute façon.
+// Parking en lisière : tenté si l'adresse n'est sur aucun tronçon carrossable,
+// ou si le calcul voiture dessert moins de nœuds que ce seuil (enclave). [Estimé]
+const PARKING_SEUIL_NOEUDS = 50;
+
 function yieldToBrowser() {
   if (document.hidden) {
     return new Promise((resolve) => {
@@ -219,12 +226,42 @@ export async function computeIsochronesNetwork(opts) {
   await yieldToBrowser();
   const maxCarCutoff = Math.max(...modeDefs.map((m) => m.maxTime + m.carPenalty));
   const carAdjacency = buildAdjacency(graph, elevations, "car", nodeDegrees, nodeIncidentEdges, { urbain: urbanContext.isUrban });
-  const carDistances = new Map();
-  const carJunctionDelays = new Map();
-  const carTimes = tempsSelonDirection(carAdjacency, originNode, maxCarCutoff, direction, carDistances, carJunctionDelays);
+  let carDistances = new Map();
+  let carJunctionDelays = new Map();
+  let carTimes = tempsSelonDirection(carAdjacency, originNode, maxCarCutoff, direction, carDistances, carJunctionDelays);
   // Aller-retour : deux trajets, donc deux fois la pénalité d'accès voiture et
   // deux fois le comblement à pied jusqu'au réseau voiture (voir estimateCarTime).
   const facteurTrajets = direction === DIRECTION_ALLER_RETOUR ? 2 : 1;
+
+  // Parking en lisière : si l'adresse est hors du réseau voiture (zone
+  // piétonne, sentier, escalier, piste cyclable…), le calcul voiture ne sort
+  // pas du point de départ et la voiture « perd partout ». On relance alors le
+  // calcul depuis le nœud carrossable le plus proche (là où l'on se gare), si
+  // et seulement s'il dessert davantage de nœuds, et l'on ajoute à tous les
+  // temps voiture la marche entre l'adresse et ce parking (vol d'oiseau, même
+  // vitesse prudente que le repli d'estimateCarTime ; deux fois en aller-retour).
+  let parkingLisiere = null;
+  const departCarrossable = (nodeIncidentEdges.get(originNode) || []).some((e) => isEdgeUsable(e, "car"));
+  if (!departCarrossable || carTimes.size < PARKING_SEUIL_NOEUDS) {
+    const distMax = CAR_GAP_MAX_SEARCH_RING * 200; // même portée que le repli voiture
+    const parking = noeudCarrossableProche(graph, lon, lat, new Set(carTimes.keys()), distMax);
+    if (parking) {
+      const d2 = new Map(),
+        j2 = new Map();
+      const t2 = tempsSelonDirection(carAdjacency, parking.node, maxCarCutoff, direction, d2, j2);
+      if (t2.size > carTimes.size) {
+        const marche = (facteurTrajets * parking.distanceMeters) / CAR_GAP_FALLBACK_SPEED_MS;
+        carTimes = new Map([...t2].map(([n, t]) => [n, t + marche]));
+        carDistances = new Map([...d2].map(([n, d]) => [n, d + facteurTrajets * parking.distanceMeters]));
+        carJunctionDelays = j2;
+        parkingLisiere = {
+          distanceMeters: Math.round(parking.distanceMeters),
+          marcheSecondes: Math.round(marche),
+          noeudsDesservis: t2.size,
+        };
+      }
+    }
+  }
   // Cellules de 200m : assez fines pour bien localiser le nœud voiture le
   // plus proche d'un chemin/sentier isolé, sans exploser le nombre de
   // compartiments sur un réseau de 6 à 15 km de rayon (voir les paliers RADIUS_TIER_* et NETWORK_RADIUS_MAX_M dans config.js).
@@ -454,6 +491,7 @@ export async function computeIsochronesNetwork(opts) {
     rawFeatureCount: roadsGeoJson.rawFeatureCount,
     urbanContext,
     delayCarApplied: delayCar,
+    parkingLisiere,
     direction,
     // Conservé pour l'outil de diagnostic (inspection d'un point) : permet de
     // comparer directement, pour n'importe quel point cliqué, le temps
