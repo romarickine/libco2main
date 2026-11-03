@@ -1,6 +1,9 @@
-/* Accueil (index.html) — refonte du 03/11/2026 : fond blanc, grands titres
-   Inter, boutons en pilule, captures des outils ; aucun liseré de couleur,
-   cadres à bordure fine identique sur les quatre côtés. */
+/* Accueil (index.html) — agencement « proposition B » retenu le 03/11/2026 :
+   haut de page vert plein avec titre centré et capture qui déborde sur la
+   suite, chiffres clés, cartes d'outils (image, étiquette, titre, texte,
+   bouton), offres, histoire, appel final. Police Inter, fond blanc, bandes
+   gris clair, cadres à bordure fine identique sur les quatre côtés, aucun
+   liseré de couleur. */
 :root {
   --vert: var(--lc-vert);
   --vert-fonce: var(--lc-vert-fonce);
@@ -27,7 +30,7 @@ h1, h2, h3 {
   margin: 0;
 }
 a { color: var(--vert); }
-.conteneur { max-width: 1180px; margin: 0 auto; padding: 0 32px; }
+.conteneur { max-width: 1180px; margin: 0 auto; padding-left: 32px; padding-right: 32px; }
 
 /* Boutons */
 .bouton {
@@ -44,25 +47,27 @@ a { color: var(--vert); }
   transition: background-color 0.15s, color 0.15s;
 }
 .bouton:hover { background: var(--vert-fonce); border-color: var(--vert-fonce); }
-.bouton-contour { background: #fff; color: var(--vert); }
-.bouton-contour:hover { background: var(--lc-vert-fond); color: var(--vert-fonce); }
 .bouton-clair { background: #fff; border-color: #fff; color: var(--vert-fonce); }
-.bouton-clair:hover { background: #e6efe8; border-color: #e6efe8; }
+.bouton-clair:hover { background: #e6efe8; border-color: #e6efe8; color: var(--vert-fonce); }
+.bouton-transparent { background: transparent; border-color: rgba(255, 255, 255, 0.85); color: #fff; }
+.bouton-transparent:hover { background: rgba(255, 255, 255, 0.12); border-color: #fff; }
+.bouton-msp { background: var(--lc-bleu); border-color: var(--lc-bleu); }
+.bouton-msp:hover { background: var(--lc-bleu-fonce); border-color: var(--lc-bleu-fonce); }
 
-/* En-tête */
-.entete { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 84px; }
-.entete-logo img { height: 40px; width: auto; display: block; }
+/* Haut de page vert */
+.haut { background: var(--vert-fonce); color: #d6e4da; }
+.entete { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 88px; }
+.entete-logo img { height: 40px; width: auto; display: block; filter: brightness(0) invert(1); }
 .nav-haut { display: flex; align-items: center; gap: 28px; }
-.nav-haut a:not(.bouton) { color: var(--encre); font-weight: 500; font-size: 15px; text-decoration: none; }
-.nav-haut a:not(.bouton):hover { color: var(--vert); }
-
-/* Haut de page */
-.hero { max-width: 880px; padding: 88px 0 64px; }
-.surtitre, .numero, .etiquette, .annee { margin: 0; font-size: 14px; font-weight: 600; color: var(--vert); }
-.surtitre { margin-bottom: 20px; }
-.hero h1 { font-size: clamp(40px, 6.4vw, 76px); }
-.chapo { font-size: clamp(18px, 2vw, 21px); max-width: 32em; margin: 28px 0 36px; }
-.actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.nav-haut a:not(.bouton) { color: #fff; font-weight: 500; font-size: 15px; text-decoration: none; }
+.nav-haut a:not(.bouton):hover { text-decoration: underline; }
+.hero { text-align: center; padding-top: 64px; }
+.surtitre { margin: 0 0 18px; font-size: 14px; font-weight: 600; color: #a8d4b4; }
+.hero h1 { color: #fff; font-size: clamp(38px, 6vw, 72px); max-width: 13em; margin: 0 auto; }
+.chapo { font-size: clamp(17px, 2vw, 20px); max-width: 36em; margin: 24px auto 34px; }
+.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.hero { display: flow-root; }
+.hero picture { display: block; max-width: 940px; margin: 56px auto -120px; position: relative; z-index: 1; }
 img.capture[width] {
   display: block;
   width: 100%;
@@ -70,28 +75,45 @@ img.capture[width] {
   border-radius: var(--lc-rayon-carte);
   border: 1px solid var(--bordure);
 }
-.capture-hero { box-shadow: var(--lc-ombre-capture); }
+.capture-hero { box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.45); }
+
+/* Chiffres clés (sous la capture qui déborde) */
+.chiffres { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; text-align: center; padding-top: 180px; padding-bottom: 88px; }
+.chiffres p { margin: 0; color: var(--discret); font-size: 15px; }
+.chiffres .chiffre { font-size: clamp(44px, 5vw, 64px); font-weight: 700; letter-spacing: -0.03em; line-height: 1; color: var(--vert); margin-bottom: 8px; }
 
 /* Sections */
-.section { padding-top: 112px; padding-bottom: 112px; }
-.numero { margin-bottom: 14px; }
-.section h2 { font-size: clamp(32px, 4.4vw, 52px); max-width: 16em; }
-.intro { font-size: 18px; max-width: 38em; margin: 20px 0 0; }
+.section { padding-top: 96px; padding-bottom: 96px; }
+.section h2 { font-size: clamp(30px, 4vw, 48px); max-width: 16em; }
+.intro { font-size: 18px; max-width: 38em; margin: 18px 0 0; }
 .note { font-size: 14px; color: var(--discret); max-width: 52em; margin: 40px 0 0; }
 .bande { background: var(--bande); }
+.etiquette, .annee { margin: 0; font-size: 14px; font-weight: 600; color: var(--vert); }
+.etiquette-msp { color: var(--lc-bleu); }
 
-/* Outils */
-.liste-outils { margin-top: 48px; border-top: 1px solid var(--bordure); }
-.ligne-outil {
-  display: grid;
-  grid-template-columns: 260px 1fr 420px;
-  gap: 40px;
-  align-items: center;
-  padding: 40px 0;
+/* Cartes d'outils */
+.cartes-outils { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 48px; }
+.carte-outil {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid var(--bordure);
+  border-radius: 18px;
+  overflow: hidden;
+}
+.carte-outil img[width] {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  object-position: top left;
   border-bottom: 1px solid var(--bordure);
 }
-.ligne-outil h3 { font-size: 30px; margin-top: 8px; }
-.ligne-outil p { margin: 0 0 20px; }
+.carte-outil-corps { display: flex; flex-direction: column; flex: 1; padding: 26px; }
+.carte-outil h3 { font-size: 28px; margin: 8px 0 12px; }
+.carte-outil-corps > p:not(.etiquette) { font-size: 15.5px; margin: 0 0 22px; flex: 1; }
+.carte-outil .bouton { align-self: flex-start; }
 
 /* Offres */
 .grille-offres { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 48px; }
@@ -101,16 +123,16 @@ img.capture[width] {
   background: #fff;
   border: 1px solid var(--bordure);
   border-radius: var(--lc-rayon-carte);
-  padding: 28px;
+  padding: 26px;
 }
-.offre h3 { font-size: 20px; letter-spacing: -0.01em; line-height: 1.2; }
+.offre h3 { font-size: 21px; letter-spacing: -0.012em; line-height: 1.2; }
 .offre p { font-size: 15px; margin: 12px 0 20px; flex: 1; }
 .offre a { font-weight: 600; font-size: 15px; text-decoration: none; }
 .offre a:hover { text-decoration: underline; }
 
 /* Histoire */
-.histoire { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; margin-top: 48px; }
-.histoire h3 { font-size: 28px; margin: 8px 0 14px; }
+.histoire { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; margin-top: 44px; }
+.histoire h3 { font-size: 26px; margin: 8px 0 14px; }
 .histoire p { margin: 0 0 14px; }
 
 /* Appel final */
@@ -120,9 +142,8 @@ img.capture[width] {
   border-radius: 24px;
   padding: 72px 32px;
   text-align: center;
-  margin-bottom: 96px;
 }
-.appel h2 { color: #fff; font-size: clamp(32px, 4.4vw, 52px); }
+.appel h2 { color: #fff; font-size: clamp(30px, 4vw, 48px); margin: 0 auto; }
 .appel p { margin: 18px auto 30px; max-width: 34em; }
 
 /* Pied de page */
@@ -137,15 +158,17 @@ img.capture[width] {
 .pied a:hover { color: var(--vert); }
 
 @media (max-width: 1000px) {
-  .ligne-outil { grid-template-columns: 1fr 1fr; }
-  .ligne-outil picture { grid-column: 1 / -1; }
+  .cartes-outils { grid-template-columns: 1fr 1fr; }
   .grille-offres { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 680px) {
-  .conteneur { padding: 0 20px; }
+  .conteneur { padding-left: 20px; padding-right: 20px; }
   .nav-haut a:not(.bouton) { display: none; }
-  .hero { padding: 48px 0 40px; }
-  .section { padding-top: 72px; padding-bottom: 72px; }
-  .ligne-outil, .grille-offres, .histoire { grid-template-columns: 1fr; gap: 20px; }
+  .entete-logo img { height: 32px; }
+  .hero { padding-top: 32px; }
+  .hero picture { margin: 36px auto -60px; }
+  .chiffres { grid-template-columns: 1fr; padding-top: 104px; padding-bottom: 56px; gap: 28px; }
+  .section { padding-top: 64px; padding-bottom: 64px; }
+  .cartes-outils, .grille-offres, .histoire { grid-template-columns: 1fr; gap: 20px; }
   .appel { padding: 48px 20px; }
 }
