@@ -51,10 +51,19 @@
 </head>
 <body>
   <a class="lien-evitement" href="#app">Aller au contenu</a>
-  <!-- Titre de la page, hors de #app pour survivre aux re-rendus : masqué à
-       l'écran (le logo et les titres d'étape h2 suffisent visuellement) mais
-       lu par les lecteurs d'écran et les moteurs de recherche. -->
-  <h1 class="visuellement-masque">Lib&amp;CO2 Cab — Calculateur carbone pour les professions libérales</h1>
+  <header class="lc-entete">
+    <a class="lc-entete-logo" href="../"><img width="486" height="100" src="../shared/assets/logo/logo-libco2-recadre.png" alt="Lib&amp;CO2, accueil" /></a>
+    <div class="lc-entete-section">
+      <h1 class="lc-entete-nom">Lib&amp;CO2 Cab</h1>
+      <p class="lc-entete-desc">Empreinte carbone d'un cabinet libéral</p>
+    </div>
+    <nav class="lc-entete-nav" aria-label="Autres outils">
+      <a href="../msp/">MSP</a>
+      <a href="../iso/">Carte du sans-voiture</a>
+      <a href="../blog/">Blog</a>
+      <a class="lc-entete-bouton" href="methodologie.html">Méthodologie</a>
+    </nav>
+  </header>
   <main id="app">
     <!-- Contenu de secours : remplacé par l'application dès que js/main.js
          se charge ; message clair si JavaScript est désactivé. -->

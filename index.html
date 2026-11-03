@@ -44,137 +44,144 @@
 <body>
   <a class="lien-evitement" href="#contenu">Aller au contenu</a>
 
-  <nav class="nav-haut conteneur" aria-label="Navigation principale">
-    <a href="#outils">Nos outils</a>
-    <a href="#accompagnement">Être accompagné</a>
-    <a href="blog/">Blog</a>
-    <a href="mailto:libetco2@gmail.com">Contact</a>
-  </nav>
+  <header class="entete conteneur">
+    <a class="entete-logo" href="./"><img width="486" height="100" src="shared/assets/logo/logo-libco2-recadre.png" alt="Lib&amp;CO2, accueil" /></a>
+    <nav class="nav-haut" aria-label="Navigation principale">
+      <a href="#outils">Nos outils</a>
+      <a href="#accompagnement">Être accompagné</a>
+      <a href="blog/">Blog</a>
+      <a class="bouton" href="mailto:libetco2@gmail.com">Nous écrire</a>
+    </nav>
+  </header>
 
   <main id="contenu">
-  <div class="hero conteneur">
-    <img width="600" height="199" src="shared/assets/logo/logo-libco2.png" alt="Lib&CO2" />
-    <div class="badge">🌿 Décarbonation des professions libérales</div>
-    <h1>Rendre la mesure carbone accessible à tous les professionnels libéraux</h1>
-    <p>Lib&CO2 conçoit des outils gratuits, open source et entièrement sourcés pour aider les cabinets et structures de santé, juridiques, de conseil ou d'architecture à comprendre et réduire leur empreinte environnementale — sans jargon, sans coût, en quelques minutes.</p>
-  </div>
+    <div class="conteneur">
+      <div class="hero">
+        <p class="surtitre">Décarbonation des professions libérales</p>
+        <h1>L'empreinte carbone, enfin à la taille d'un cabinet.</h1>
+        <p class="chapo">Lib&CO2 conçoit des outils gratuits, open source et entièrement sourcés pour les professionnels libéraux : santé, droit, conseil, architecture, artisanat d'art.</p>
+        <div class="actions">
+          <a class="bouton" href="cab/">Mesurer mon empreinte</a>
+          <a class="bouton bouton-contour" href="#outils">Voir les outils</a>
+        </div>
+      </div>
+      <picture>
+        <source srcset="assets/portfolio/cab-intro.webp" type="image/webp" />
+        <img class="capture capture-hero" width="2000" height="1440" src="assets/portfolio/cab-intro.png" alt="Écran d'accueil de Lib&CO2 Cab" />
+      </picture>
+    </div>
 
-  <section class="conteneur">
-    <div class="bloc-resume">
-      <h2>Notre conviction</h2>
-      <p>On ne pilote bien que ce que l'on mesure. Les professionnels libéraux représentent une part importante de l'activité économique française, mais disposent rarement du temps ou du budget pour réaliser un bilan carbone classique. Lib&CO2 est né pour combler cet écart : donner à chaque praticien un ordre de grandeur fiable de son impact, gratuitement, pour prioriser ses efforts plutôt que de deviner.</p>
-      <p>Chaque facteur d'émission utilisé est documenté et sourcé (ADEME, INSEE, SDES, GIEC), avec une distinction claire entre ce qui est vérifié et ce qui reste estimé — une exigence de transparence rare pour un outil gratuit.</p>
-      <div class="points">
-        <div class="point"><div class="n">3</div><div class="l">Outils développés, gratuits et open source</div></div>
-        <div class="point"><div class="n">100%</div><div class="l">Code source public, aucune donnée transmise à un serveur</div></div>
-        <div class="point"><div class="n">0€</div><div class="l">Coût pour l'utilisateur, aucun compte requis</div></div>
+    <section class="section conteneur" id="outils" aria-labelledby="titre-outils">
+      <p class="numero">01 — Les outils</p>
+      <h2 id="titre-outils">Trois outils, une même exigence</h2>
+      <p class="intro">Chaque facteur d'émission est documenté et sourcé (ADEME, Insee, SDES) ; ce qui reste estimé est signalé. Aucun compte, aucune donnée envoyée : tout se calcule dans votre navigateur.</p>
+      <div class="liste-outils">
+        <article class="ligne-outil">
+          <div>
+            <p class="etiquette">Pour un cabinet libéral</p>
+            <h3>Lib&CO2 Cab</h3>
+          </div>
+          <div>
+            <p>Santé, juridique, conseil, architecture, artisanat d'art : votre empreinte annuelle, votre ratio par acte et un plan d'action priorisé, en moins de 8 minutes.</p>
+            <a class="bouton bouton-contour" href="cab/">Ouvrir l'outil<span class="visuellement-cache"> Lib&CO2 Cab</span></a>
+          </div>
+          <picture>
+            <source srcset="assets/portfolio/cab-intro.webp" type="image/webp" />
+            <img class="capture" width="2000" height="1440" src="assets/portfolio/cab-intro.png" alt="" loading="lazy" />
+          </picture>
+        </article>
+        <article class="ligne-outil">
+          <div>
+            <p class="etiquette">Pour une maison de santé</p>
+            <h3>Lib&CO2 MSP</h3>
+          </div>
+          <div>
+            <p>Un seul répondant pour toute la structure : empreinte collective, indicateur de dépendance aux énergies fossiles et plan d'action par praticien.</p>
+            <a class="bouton bouton-contour" href="msp/">Ouvrir l'outil<span class="visuellement-cache"> Lib&CO2 MSP</span></a>
+          </div>
+          <picture>
+            <source srcset="assets/portfolio/msp-intro.webp" type="image/webp" />
+            <img class="capture" width="2000" height="1440" src="assets/portfolio/msp-intro.png" alt="" loading="lazy" />
+          </picture>
+        </article>
+        <article class="ligne-outil">
+          <div>
+            <p class="etiquette">Pour vos patients et clients</p>
+            <h3>La carte du sans-voiture</h3>
+          </div>
+          <div>
+            <p>Autour de votre adresse, les zones où la marche, le vélo et le vélo électrique arrivent avant la voiture, calculées sur le vrai réseau de rues et le relief réel. À imprimer pour une salle d'attente.</p>
+            <a class="bouton bouton-contour" href="iso/">Ouvrir l'outil<span class="visuellement-cache"> La carte du sans-voiture</span></a>
+          </div>
+          <picture>
+            <source srcset="assets/portfolio/iso-intro.webp" type="image/webp" />
+            <img class="capture" width="2000" height="1092" src="assets/portfolio/iso-intro.jpg" alt="" loading="lazy" />
+          </picture>
+        </article>
+      </div>
+      <p class="note">Ces outils ont été développés avec l'aide de l'intelligence artificielle (Claude, Anthropic). Le coût carbone de ce développement est <strong>estimé à environ 1,2 kg CO2e par outil</strong> — une estimation haute, fondée sur des fourchettes publiées faute de données officielles communiquées par les fournisseurs de ces modèles, à mettre en perspective avec les kilogrammes économisés par les actions que ces outils permettent d'identifier.</p>
+    </section>
+
+    <div class="bande">
+      <section class="section conteneur" id="accompagnement" aria-labelledby="titre-accompagnement">
+        <p class="numero">02 — Accompagnement</p>
+        <h2 id="titre-accompagnement">Aller plus loin, ensemble</h2>
+        <p class="intro">Les outils sont gratuits et le resteront. Pour fiabiliser une mesure, construire un plan d'action, mobiliser une équipe ou tout un réseau, Lib&CO2 propose aussi un accompagnement, pour les petites structures comme pour les institutions.</p>
+        <div class="grille-offres">
+          <div class="offre">
+            <h3>Diagnostic accompagné et plan d'action</h3>
+            <p>Pour une maison de santé, un cabinet de groupe, une CPTS ou toute petite structure : empreinte mesurée ensemble à partir de vos données réelles, priorités chiffrées, plan d'action concret et suivi d'une année sur l'autre.</p>
+            <a data-offre="diagnostic" href="mailto:libetco2@gmail.com?subject=Lib%26CO2%20-%20diagnostic%20carbone%20accompagn%C3%A9">Écrire à ce sujet →</a>
+          </div>
+          <div class="offre">
+            <h3>Institutions et réseaux</h3>
+            <p>Pour une URPS, une ARS, une fédération, un ordre ou une collectivité : déploiement des outils sur un réseau de structures, campagne de mesure, restitution collective et indicateurs de suivi.</p>
+            <a data-offre="institution" href="mailto:libetco2@gmail.com?subject=Lib%26CO2%20-%20accompagnement%20d'un%20r%C3%A9seau">Écrire à ce sujet →</a>
+          </div>
+          <div class="offre">
+            <h3>Formation et ateliers</h3>
+            <p>Sensibilisation ou atelier pratique pour une équipe ou un réseau de professionnels : comprendre d'où viennent les émissions d'un cabinet et repartir avec des actions adaptées à son métier.</p>
+            <a data-offre="formation" href="mailto:libetco2@gmail.com?subject=Lib%26CO2%20-%20formation%20%2F%20atelier">Écrire à ce sujet →</a>
+          </div>
+          <div class="offre">
+            <h3>Cartes du sans-voiture imprimées</h3>
+            <p>Cartes calculées pour une ou plusieurs adresses, imprimées en grand format (affiche, panneau rigide, bâche ou toile) et livrées sur place : salle d'attente, gare, mairie, magasin.</p>
+            <a data-offre="cartes" href="mailto:libetco2@gmail.com?subject=Lib%26CO2%20-%20cartes%20du%20sans-voiture%20imprim%C3%A9es">Écrire à ce sujet →</a>
+          </div>
+        </div>
+        <p class="note">Un premier échange, sans engagement, permet de voir si et comment Lib&CO2 peut vous être utile. Chaque lien ouvre votre messagerie avec une courte trame à compléter : rien n'est envoyé sans vous.</p>
+      </section>
+    </div>
+
+    <section class="section conteneur" aria-labelledby="titre-projet">
+      <p class="numero">03 — Le projet</p>
+      <h2 id="titre-projet">D'où vient Lib&CO2</h2>
+      <div class="histoire">
+        <div>
+          <p class="annee">2024–2025</p>
+          <h3>KinéCO2</h3>
+          <p>Lib&CO2 a participé au projet national KinéCO2, porté par plusieurs Unions Régionales des Professionnels de Santé (URPS) et déployé avec la méthodologie du cabinet MyCO2 (Carbone 4). Un panel de plus d'une centaine de cabinets de masso-kinésithérapie répartis sur toute la France a permis de mesurer, pour la première fois, l'empreinte carbone réelle d'une séance de kinésithérapie libérale — et d'identifier des pistes d'action réalistes pour la profession.</p>
+          <p><a href="https://www.myco2.com/login?redirect=%2FkineCO2" target="_blank" rel="noopener">La sensibilisation sur l'empreinte carbone, MyCO2 par Carbone 4<span class="visuellement-cache"> (nouvel onglet)</span></a></p>
+        </div>
+        <div>
+          <p class="annee">2025–2026</p>
+          <h3>Toutes les professions libérales</h3>
+          <p>Fort de cette première expérimentation, Lib&CO2 SASU a élargi la démarche au-delà de la kinésithérapie : santé, juridique, conseil, architecture, artisanat d'art. C'est ainsi qu'est né <strong>Lib&CO2 Cab</strong>, puis <strong>Lib&CO2 MSP</strong> pour les structures collectives.</p>
+          <p>En septembre 2026 s'y ajoute <strong>La carte du sans-voiture</strong> : le premier poste d'émissions d'un cabinet est souvent le trajet de ses patients ou clients. La carte montre, autour d'une adresse, où la marche, le vélo et le vélo électrique battent la voiture, calculé sur le réseau de rues et le relief de l'IGN.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="conteneur">
+      <div class="appel">
+        <h2>Une question, un projet ?</h2>
+        <p>Praticien, structure collective, institution ou simplement curieux du projet : nous répondons à tous les messages.</p>
+        <a class="bouton bouton-clair" href="mailto:libetco2@gmail.com">libetco2@gmail.com</a>
       </div>
     </div>
-  </section>
-
-  <section class="conteneur" id="outils">
-    <h2 class="titre-section">Nos outils</h2>
-    <p class="sous-titre-section">Trois outils gratuits, développés sous le même projet, avec la même exigence de transparence méthodologique.</p>
-    <div class="grille-outils">
-
-      <div class="carte-outil">
-        <picture>
-          <source srcset="assets/portfolio/cab-intro.webp" type="image/webp" />
-          <img width="2000" height="1440" class="apercu" src="assets/portfolio/cab-intro.png" alt="Aperçu de Lib&CO2 Cab" loading="lazy" />
-        </picture>
-        <div class="statut dispo">Disponible</div>
-        <h3>Lib&CO2 Cab</h3>
-        <p>Le calculateur pour les professionnels libéraux individuels : santé, juridique, conseil, architecture, artisanat d'art... Estimez votre empreinte annuelle et votre ratio par acte en moins de 8 minutes, avec un plan d'action priorisé.</p>
-        <a class="lien-outil" href="cab/">Ouvrir l'outil ›</a>
-      </div>
-
-      <div class="carte-outil">
-        <picture>
-          <source srcset="assets/portfolio/msp-intro.webp" type="image/webp" />
-          <img width="2000" height="1440" class="apercu" src="assets/portfolio/msp-intro.png" alt="Aperçu de Lib&CO2 MSP" loading="lazy" />
-        </picture>
-        <div class="statut dispo">Disponible</div>
-        <h3>Lib&CO2 MSP</h3>
-        <p>Le calculateur pensé pour les maisons de santé pluriprofessionnelles (MSP) : une version collective de la démarche, un seul répondant pour toute la structure, avec un indicateur de dépendance aux énergies fossiles et un plan d'action par praticien.</p>
-        <a class="lien-outil" href="msp/">Ouvrir l'outil ›</a>
-      </div>
-
-      <div class="carte-outil">
-        <picture>
-          <source srcset="assets/portfolio/iso-intro.webp" type="image/webp" />
-          <img width="2000" height="1440" class="apercu" src="assets/portfolio/iso-intro.png" alt="Aperçu de La carte du sans-voiture" loading="lazy" />
-        </picture>
-        <div class="statut dispo">Disponible</div>
-        <h3>La carte du sans-voiture</h3>
-        <p>Calculez, autour de votre cabinet, les zones où marcher, pédaler ou rouler en vélo électrique est plus rapide qu'y venir en voiture — sur le vrai réseau de rues et le relief réel. Un outil pour orienter concrètement votre patientèle vers la mobilité douce.</p>
-        <a class="lien-outil" href="iso/">Ouvrir l'outil ›</a>
-      </div>
-
-    </div>
-    <p class="disclaimer-co2">🤖 CO² — Par souci de cohérence avec notre propre démarche : chacun de ces outils a été développé avec l'aide de l'intelligence artificielle (Claude, Anthropic). Le coût carbone de ce développement est <strong>estimé à environ 1,2 kg CO2e par outil</strong> — une estimation haute, fondée sur des fourchettes publiées faute de données officielles communiquées par les fournisseurs de ces modèles, à mettre en perspective avec les kilogrammes économisés par les actions que ces outils permettent d'identifier.</p>
-  </section>
-
-  <section class="conteneur" id="accompagnement">
-    <h2 class="titre-section">Être accompagné</h2>
-    <p class="sous-titre-section">Les outils sont gratuits et le resteront. Pour aller plus loin — fiabiliser un bilan, construire un plan d'action, mobiliser une équipe ou tout un réseau — Lib&CO2 propose aussi un accompagnement, pour les petites structures comme pour les institutions.</p>
-    <div class="grille-offres">
-      <div class="carte-offre">
-        <h3>Diagnostic accompagné et plan d'action</h3>
-        <p>Pour une maison de santé, un cabinet de groupe, une CPTS ou toute petite structure : bilan réalisé ensemble à partir de vos données réelles, priorités chiffrées, plan d'action concret et suivi d'une année sur l'autre.</p>
-        <a class="lien-offre" data-offre="diagnostic" href="mailto:libetco2@gmail.com?subject=Lib%26CO2%20-%20diagnostic%20carbone%20accompagn%C3%A9">Écrire à ce sujet ›</a>
-      </div>
-      <div class="carte-offre">
-        <h3>Institutions et réseaux</h3>
-        <p>Pour une URPS, une ARS, une fédération, un ordre ou une collectivité : déploiement des outils sur un réseau de structures, campagne de mesure, restitution collective et indicateurs de suivi.</p>
-        <a class="lien-offre" data-offre="institution" href="mailto:libetco2@gmail.com?subject=Lib%26CO2%20-%20accompagnement%20d'un%20r%C3%A9seau">Écrire à ce sujet ›</a>
-      </div>
-      <div class="carte-offre">
-        <h3>Formation et ateliers</h3>
-        <p>Sensibilisation ou atelier pratique pour une équipe ou un réseau de professionnels : comprendre d'où viennent les émissions d'un cabinet et repartir avec des actions adaptées à son métier.</p>
-        <a class="lien-offre" data-offre="formation" href="mailto:libetco2@gmail.com?subject=Lib%26CO2%20-%20formation%20%2F%20atelier">Écrire à ce sujet ›</a>
-      </div>
-      <div class="carte-offre">
-        <h3>Cartes du sans-voiture imprimées</h3>
-        <p>Cartes calculées pour une ou plusieurs adresses, imprimées en grand format (affiche, panneau rigide, bâche ou toile) et livrées directement sur place : salle d'attente, gare, mairie, magasin.</p>
-        <a class="lien-offre" data-offre="cartes" href="mailto:libetco2@gmail.com?subject=Lib%26CO2%20-%20cartes%20du%20sans-voiture%20imprim%C3%A9es">Écrire à ce sujet ›</a>
-      </div>
-    </div>
-    <p class="note-offres">Un premier échange, sans engagement, permet de voir si et comment Lib&CO2 peut vous être utile. Chaque lien ouvre votre messagerie avec une courte trame à compléter : rien n'est envoyé sans vous.</p>
-  </section>
-
-  <section class="conteneur">
-    <h2 class="titre-section">Le projet Lib&CO2</h2>
-    <p class="sous-titre-section">Une démarche construite dans la continuité d'un premier projet national de référence.</p>
-
-    <div class="pf-item">
-      <div class="pf-annee">2024–25</div>
-      <div>
-        <h3>KinéCO2</h3>
-        <p>Lib&CO2 a participé au projet national KinéCO2, porté par plusieurs Unions Régionales des Professionnels de Santé (URPS) et déployé avec la méthodologie du cabinet MyCO2 (Carbone 4). Un panel de plus d'une centaine de cabinets de masso-kinésithérapie répartis sur toute la France a permis de mesurer, pour la première fois, l'empreinte carbone réelle d'une séance de kinésithérapie libérale — et d'identifier des pistes d'action réalistes pour la profession.</p>
-        <a href="https://www.myco2.com/login?redirect=%2FkineCO2" target="_blank" rel="noopener">→ La sensibilisation sur l'empreinte carbone | MyCO2 par Carbone 4</a>
-      </div>
-    </div>
-    <div class="pf-item">
-      <div class="pf-annee">2025–26</div>
-      <div>
-        <h3>Généralisation à l'ensemble des professions libérales</h3>
-        <p>Fort de cette première expérimentation, Lib&CO2 SASU a généralisé la démarche au-delà de la kinésithérapie : santé, juridique, conseil, architecture, artisanat d'art. C'est ainsi qu'est né <strong>Lib&CO2 Cab</strong>, puis <strong>Lib&CO2 MSP</strong> pour les structures collectives.</p>
-        <p>En septembre 2026 s'y ajoute <strong>La carte du sans-voiture</strong> : le premier poste d'émissions d'un cabinet est souvent le trajet de ses patients ou clients. La carte montre, autour d'une adresse, où la marche, le vélo et le vélo électrique battent la voiture, calculé sur le réseau de rues et le relief de l'IGN. Elle s'imprime en grand format pour une salle d'attente, une gare ou un bâtiment public.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="conteneur">
-    <div class="bloc-contact">
-      <h2>Une question, un projet ?</h2>
-      <p>Praticien, structure collective, institution ou simplement curieux du projet : nous répondons à tous les messages.</p>
-      <a class="bouton-mail" href="mailto:libetco2@gmail.com">✉️ libetco2@gmail.com</a>
-    </div>
-  </section>
-
   </main>
 
-  <footer>
+  <footer class="pied conteneur">
     <script type="module" src="shared/js/liens-contact.js"></script>
     Lib&CO2 SASU — Code source ouvert sur <a href="https://github.com/romarickine/libco2cab" target="_blank" rel="noopener">GitHub</a> · <a href="blog/">Blog</a> · <a href="mentions-legales.html">Mentions légales</a> · <a href="accessibilite.html">Accessibilité</a>
   </footer>

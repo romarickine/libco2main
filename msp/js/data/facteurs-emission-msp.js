@@ -172,7 +172,7 @@ export const LIBELLES_ACTIONS_MSP = {
   dc4: {
     titre: "Afficher en salle d'attente une carte isochrone comparant marche/vélo et voiture autour de la structure",
     source:
-      'ESTIMÉ — outil de visualisation concret pour appuyer l\'action « inciter aux mobilités actives » : <a href="../iso/" target="_blank" rel="noopener">La carte du sans-voiture</a>, un autre outil Lib&CO2, génère gratuitement une carte des zones plus rapidement accessibles à pied, à vélo ou en vélo électrique qu\'en voiture autour de la MSP — calculée sur le vrai réseau de rues et le relief réel, pas à vol d\'oiseau. Particulièrement pertinent pour une structure regroupant plusieurs praticiens, donc davantage de passages. Effet non chiffré par une étude ; estimé par analogie avec les actions de communication déjà présentes.',
+      'ESTIMÉ — outil de visualisation concret pour appuyer l\'action « inciter aux mobilités actives » : <a href="../iso/" target="_blank" rel="noopener">La carte du sans-voiture</a>, un autre outil Lib&CO2, génère gratuitement une carte des zones plus rapidement accessibles à pied, à vélo ou en vélo électrique qu\'en voiture autour de la MSP — calculée sur le vrai réseau de rues et le relief réel, pas à vol d\'oiseau. Particulièrement pertinent pour une structure regroupant plusieurs praticiens, donc davantage de passages. Aucune étude ne chiffre l\'effet d\'un affichage seul. Plafond de 11,5 %, signalé : c\'est l\'effet moyen de l\'ensemble des mesures douces (Möser et Bamberg, 2008), plus intensives qu\'une affiche ; borne haute probablement optimiste (effet faible selon Okraszewska et al., 2024). Remplace 12 %.',
   },
   lo3: {
     source:
@@ -191,7 +191,7 @@ export const ACTIONS_MSP_SUPPLEMENTAIRES = [
     titre:
       "Coordonner le parcours de soins pour grouper plusieurs actes lors d'une même visite (ex. consultation médicale + séance de kiné le même jour)",
     source:
-      "ESTIMÉ — pas d'étude chiffrant précisément ce gain pour un contexte MSP ; principe fondé sur la réduction du nombre de trajets du patient (deux venues à la structure ramenées à une seule), rendu possible par la coordination entre professionnels d'une même structure.",
+      "ESTIMÉ — principe : deux venues à la structure ramenées à une seule, grâce à la coordination entre professionnels. Plafond de 20 % du poste, signalé : aucune donnée publiée sur la part des patients vus par plusieurs professionnels d'une même MSP ni sur les rendez-vous groupés (revue du 03/11/2026 : IRDES, Questions d'économie de la santé n° 147, 2009, et n° 200, 2014 ; Duane B. et al., British Dental Journal 226(7), 2019, qui recommande de combiner les visites sans chiffrer le gain).",
     hasPct: true,
     defaultPct: 20,
     maxReduction: 0.2,

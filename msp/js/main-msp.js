@@ -228,7 +228,7 @@ export async function calculerEtEnregistrer() {
   etat.dernierResultat = resultat;
   if (resultat.alerteMedicamentsNegatif) {
     afficherBulle(
-      "💊 Le chiffre d'affaires médicaments déclaré par le pharmacien est inférieur à la part des prescriptions de la structure estimée honorée dans son officine — ramené à 0 plutôt qu'à une valeur négative. Vérifiez le coefficient d'achat renseigné sur sa fiche, ou le montant du CA.",
+      "Le chiffre d'affaires médicaments déclaré par le pharmacien est inférieur à la part des prescriptions de la structure estimée honorée dans son officine — ramené à 0 plutôt qu'à une valeur négative. Vérifiez le coefficient d'achat renseigné sur sa fiche, ou le montant du CA.",
     );
   }
   enregistrerBilan({ structureMSP: etat.structureMSP, resultat });

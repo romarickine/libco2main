@@ -19,6 +19,18 @@
  * Deuxième audit (26/09/2026, tests/navigateur/accessibilite.cjs) : texte
  * ambre, bleu d’information et aides vertes passés au seuil AA.
  */
+/* Police Inter (SIL Open Font License 1.1, voir shared/fonts/LICENCE-Inter.txt),
+   hébergée sur le site : aucune requête vers un service tiers. Fichier
+   variable unique (graisses 100 à 900, taille optique automatique : les grands
+   titres prennent le dessin « Display »), réduit aux caractères latins. */
+@font-face {
+  font-family: "Inter";
+  src: url("../fonts/Inter-variable-latin.woff") format("woff");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   /* Couleurs du logo */
   --lc-vert: #2e673e;
@@ -37,19 +49,30 @@
   --lc-bleu-info: #3d6f80; /* information discrète (5,55:1 sur blanc, 5,09:1 sur papier) */
 
   /* Neutres */
-  --lc-fond: #f7f5f0; /* fond « papier » des pages */
+  --lc-fond: #ffffff; /* fond des pages (blanc depuis la refonte du 03/11/2026 ; était #f7f5f0) */
+  --lc-fond-bande: #f4f6f3; /* bandes de section et zones secondaires */
   --lc-carte: #ffffff;
-  --lc-bordure: #e4e0d6;
-  --lc-bordure-legere: #f0ede4;
+  --lc-bordure: #e3e7e3;
+  --lc-bordure-legere: #eef1ee;
+  --lc-bordure-champ: #8a958f; /* contour des champs de saisie : 3,1:1 sur blanc (WCAG 1.4.11) */
   --lc-encre: #1b2b26; /* titres */
   --lc-texte: #3e4a45; /* texte courant */
   --lc-discret: #5c665f; /* texte secondaire (5,96:1) */
   --lc-tres-discret: #75807a; /* texte large uniquement (4,1:1) */
 
-  /* Typographie : polices système natives, aucune requête externe (RGPD,
-     affichage immédiat). */
-  --lc-police-titres: Georgia, "Iowan Old Style", "Palatino Linotype", "URW Palladio L", serif;
-  --lc-police-texte: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* Typographie : Inter hébergée sur le site (voir @font-face ci-dessus),
+     polices système en repli. Titres et texte dans la même famille ; les
+     titres se distinguent par la graisse, la taille et un interlettrage
+     resserré (--lc-titres-espacement). */
+  --lc-police-titres: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --lc-police-texte: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --lc-titres-graisse: 700;
+  --lc-titres-espacement: -0.025em;
+
+  /* Formes communes */
+  --lc-rayon-bouton: 999px; /* boutons en pilule */
+  --lc-rayon-carte: 16px;
+  --lc-ombre-capture: 0 24px 48px -28px rgba(27, 43, 38, 0.35); /* captures d'écran seulement */
   --lc-police-mono:
     ui-monospace, "SF Mono", "Cascadia Code", "Segoe UI Mono", "Roboto Mono", Consolas, "Courier New", monospace;
 }
@@ -124,5 +147,139 @@ img[width][height] {
     content: " (" attr(href) ")";
     font-size: 0.85em;
     word-break: break-all;
+  }
+}
+
+/* Texte lu par les lecteurs d'écran mais masqué à l'écran. */
+.visuellement-cache {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Titres : interlettrage resserré d'Inter aux grandes tailles (spécificité
+   nulle : une page peut le redéfinir). */
+:where(h1, h2) {
+  letter-spacing: var(--lc-titres-espacement);
+}
+:where(h3, h4) {
+  letter-spacing: -0.012em;
+}
+
+/* ---------------------------------------------------------------------------
+   Bandeau commun à toutes les pages sauf l'accueil (refonte du 03/11/2026) :
+   logo, nom de la section en cours (avec une courte description), liens vers
+   les autres sections, bouton propre à la section. La couleur de la section
+   (vert par défaut, bleu pour MSP) passe par --lc-section.
+   --------------------------------------------------------------------------- */
+.lc-entete {
+  --lc-section: var(--lc-vert);
+  --lc-section-fond: var(--lc-vert-fond);
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  min-height: 84px;
+  padding: 0 32px;
+  background: #fff;
+  border-bottom: 1px solid var(--lc-bordure);
+  font-family: var(--lc-police-texte);
+}
+.lc-entete--msp {
+  --lc-section: var(--lc-bleu);
+  --lc-section-fond: var(--lc-bleu-fond);
+}
+.lc-entete-logo {
+  flex-shrink: 0;
+}
+.lc-entete-logo img {
+  display: block;
+  height: 38px;
+  width: auto;
+}
+.lc-entete-section {
+  min-width: 0;
+  padding-left: 22px;
+  border-left: 1px solid var(--lc-bordure);
+}
+.lc-entete-nom {
+  display: block;
+  font-family: var(--lc-police-texte);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  color: var(--lc-encre);
+  margin: 0;
+}
+.lc-entete-desc {
+  display: block;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--lc-discret);
+}
+.lc-entete-nav {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.lc-entete-nav a:not(.lc-entete-bouton) {
+  color: var(--lc-encre);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.lc-entete-nav a:not(.lc-entete-bouton):hover {
+  color: var(--lc-section);
+}
+.lc-entete-bouton {
+  display: inline-block;
+  padding: 9px 18px;
+  border: 1.5px solid var(--lc-section);
+  border-radius: var(--lc-rayon-bouton);
+  background: #fff;
+  color: var(--lc-section);
+  font: 600 14.5px/1.2 var(--lc-police-texte);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.lc-entete-bouton:hover {
+  background: var(--lc-section-fond);
+}
+@media (max-width: 980px) {
+  .lc-entete-nav a:not(.lc-entete-bouton) {
+    display: none;
+  }
+}
+@media (max-width: 640px) {
+  .lc-entete {
+    padding: 12px 20px;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .lc-entete-logo img {
+    height: 30px;
+  }
+  .lc-entete-section {
+    padding-left: 14px;
+  }
+  .lc-entete-nom {
+    font-size: 16px;
+  }
+  .lc-entete-desc {
+    display: none;
+  }
+  .lc-entete-nav {
+    width: 100%;
+    margin-left: 0;
   }
 }

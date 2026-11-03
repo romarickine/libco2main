@@ -47,8 +47,8 @@ ErrorDocument 404 /404.html
   Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains" "expr=%{HTTPS} == 'on'"
 
   # CSP : tout est refusé par défaut, puis ouvert service par service.
-  # - unpkg.com : bibliothèque de carte Leaflet (page iso), avec contrôle
-  #   d'intégrité ; à retirer quand Leaflet sera copié dans shared/vendor/.
+  # Leaflet (page iso) est hébergé sur le site depuis le 03/11/2026
+  # (shared/vendor/leaflet/) : unpkg.com n'est plus autorisé.
   # - data.geopf.fr : services publics de l'IGN (tuiles, réseau routier,
   #   altimétrie, géocodage) pour la carte du sans-voiture.
   # - www.youtube-nocookie.com : vidéo de la page « Pourquoi compter le
@@ -57,7 +57,7 @@ ErrorDocument 404 /404.html
   # dans les pages. Les styles calculés passent par shared/js/styles-dynamiques.js.
   # Plausible (mesure d'audience), le jour de son activation : ajouter son
   # domaine à script-src et connect-src.
-  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' https://unpkg.com; img-src 'self' data: blob: https://data.geopf.fr https://unpkg.com; connect-src 'self' https://data.geopf.fr; frame-src https://www.youtube-nocookie.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https://data.geopf.fr; connect-src 'self' https://data.geopf.fr; frame-src https://www.youtube-nocookie.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
 
   Header always set X-Content-Type-Options "nosniff"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"

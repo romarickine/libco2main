@@ -1,0 +1,9 @@
+Leaflet 1.9.4, copie locale (03/11/2026).
+Source : archive officielle leaflet.zip, page des versions de github.com/Leaflet/Leaflet.
+leaflet.js : seule la ligne d'en-tête a été ramenée de « Leaflet 1.9.4+v1.d15112c » à
+« Leaflet 1.9.4 », pour que le fichier soit identique à celui d'unpkg.com et à son
+empreinte publiée (sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=).
+leaflet.css : identique (sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=).
+Licence : BSD 2-Clause (LICENCE.txt).
+Mise à jour : remplacer ces fichiers par ceux d'une nouvelle version, puis mettre à jour
+les empreintes (attributs integrity) dans iso/index.html.

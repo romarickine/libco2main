@@ -58,7 +58,6 @@ export function renderResultats(root, ctx) {
   root.innerHTML = `
     <div class="conteneur">
       <div class="entete-app">
-        <a href="../index.html" title="Retour à Lib&CO2"><img src="../shared/assets/logo/logo-libco2.png" alt="Lib&CO2" /></a>
         <button class="lien-retour" id="btn-retour">‹ Revenir au questionnaire</button>
       </div>
 
@@ -95,7 +94,7 @@ export function renderResultats(root, ctx) {
         <div class="legende-graphique">
           ${donneesGraphique.map((d) => `<div class="legende-item"><span class="pastille" data-style="background:${d.color}"></span><span class="libelle-poste">${d.label}</span><span class="valeur-poste">${fmt(d.value)} kg</span></div>`).join("")}
         </div>
-        <div data-style="text-align:center; margin-top:10px;"><button class="bouton-reperes" id="btn-reperes">❓ Quelques repères</button></div>
+        <div data-style="text-align:center; margin-top:10px;"><button class="bouton-reperes" id="btn-reperes">Quelques repères</button></div>
       </div>
 
       <div class="zone-jauge-sticky" id="zone-jauge"></div>
@@ -151,7 +150,7 @@ export function renderResultats(root, ctx) {
       </div>
 
       <div class="carte" data-style="text-align:center; background:var(--couleur-primaire-fond); border-style:dashed;">
-        <div data-style="font-weight:700; font-size:14.5px; margin-bottom:6px;">🌍 Aller plus loin que le carbone</div>
+        <div data-style="font-weight:700; font-size:14.5px; margin-bottom:6px;">Aller plus loin que le carbone</div>
         <div class="texte-discret" data-style="margin-bottom:14px;">Le carbone n'est qu'une des dimensions de l'impact environnemental d'une activité. Découvrez les autres enjeux à connaître (eau, ressources, biodiversité...).</div>
         <a href="les-autres-enjeux.html" class="bouton bouton-secondaire">Voir les autres enjeux ›</a>
       </div>
@@ -295,7 +294,7 @@ function afficherModaleReperes(zoneModale) {
     <div class="fond-modale" id="fond-modale">
       <div class="carte contenu-modale">
         <button class="fermer-modale" id="fermer-modale">✕</button>
-        <div class="titre-modale">❓ Pour se donner des repères</div>
+        <div class="titre-modale">Pour se donner des repères</div>
         ${REPERES.map((r) => `<div class="ligne-repere"><span>${r.label}</span><span class="texte-mono texte-discret">≈ ${r.kg} kgCO2e</span></div>`).join("")}
       </div>
     </div>

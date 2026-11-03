@@ -14,6 +14,7 @@
  *   ui/commun.js           pictogrammes, formatage, champs de formulaire
  * ----------------------------------------------------------------------
  */
+import { formatTotal } from "./ui/commun.js";
 import { afficherGraphiqueEvolution, construireTableauEvolution } from "./evolution.js";
 import {
   renderStepAlimentation,
@@ -34,23 +35,22 @@ export { renderResultats } from "./ui/ecran-resultats.js";
 export function renderIntro(root, { onStart }) {
   root.innerHTML = `
     <div class="intro">
-      <a href="../index.html" class="lien-retour-portail">‹ Lib&CO2</a>
-      <img src="../shared/assets/logo/logo-libco2.png" alt="Lib&CO2" class="logo-intro" />
-      <div class="badge">🌿 Outil pour les professionnels libéraux</div>
+      <p class="surtitre">Pour les professionnels libéraux</p>
+      <h2 class="intro-titre">Mesurez l'empreinte carbone de votre activité.</h2>
       <p class="lead">Estimez, en quelques minutes, l'ordre de grandeur des émissions de gaz à effet de serre de votre activité indépendante — et identifiez les leviers de décarbonation les plus pertinents pour vous.</p>
       <p class="sub">Méthodologie inspirée de kinéCO2 (Lib&CO2, Carbone 4) — facteurs d'émission ADEME (Base Carbone®), report modal de la patientèle/clientèle basé sur l'Enquête Mobilité des Personnes 2019. <a href="methodologie.html">Méthodologie et sources des facteurs</a>.</p>
-      <div data-style="display:flex; align-items:center; justify-content:center; gap:10px;">
-        <button class="bouton bouton-primaire" id="btn-demarrer">Démarrer mon estimation ›</button>
-        <a href="pourquoi-compter-le-carbone.html" class="icone-info-tooltip" data-tooltip="Pourquoi compter le carbone ?" aria-label="Pourquoi compter le carbone ?">?</a>
+      <div class="intro-actions">
+        <button class="bouton bouton-primaire" id="btn-demarrer">Démarrer mon estimation</button>
+        <a href="pourquoi-compter-le-carbone.html" class="bouton bouton-secondaire">Pourquoi compter le carbone ?</a>
       </div>
       <div class="grille-features">
-        <div class="feature-card"><div>✨</div><div class="titre">8 minutes</div><div class="desc">Un parcours court, pensé pour ne pas vous perdre.</div></div>
-        <div class="feature-card"><div>📊</div><div class="titre">8 postes clés</div><div class="desc">Déplacements, local, numérique, matériel, achats…</div></div>
-        <div class="feature-card"><div>🏆</div><div class="titre">Jauge d'engagement</div><div class="desc">Visualisez votre trajectoire vers l'Accord de Paris.</div></div>
-        <div class="feature-card"><div>✅</div><div class="titre">Plan d'action</div><div class="desc">Des leviers priorisés, avec un ordre de coût.</div></div>
+        <div class="feature-card"><div class="titre">8 minutes</div><div class="desc">Un parcours court, pensé pour ne pas vous perdre.</div></div>
+        <div class="feature-card"><div class="titre">8 postes clés</div><div class="desc">Déplacements, local, numérique, matériel, achats…</div></div>
+        <div class="feature-card"><div class="titre">Jauge d'engagement</div><div class="desc">Visualisez votre trajectoire vers l'Accord de Paris.</div></div>
+        <div class="feature-card"><div class="titre">Plan d'action</div><div class="desc">Des leviers priorisés, avec un ordre de coût.</div></div>
       </div>
       <p class="mentions">Version bêta-test. Les résultats sont des ordres de grandeur destinés à éclairer vos décisions, pas un bilan d'émissions de gaz à effet de serre réglementaire (BEGES).</p>
-      <p class="mentions">🔒 Vos données restent sur votre appareil (aucun serveur, aucun compte) · 📖 Code source ouvert sur <a href="https://github.com/romarickine/libco2cab" target="_blank" rel="noopener" data-style="color:inherit;">GitHub</a> · <a href="../mentions-legales.html" data-style="color:inherit;">Mentions légales</a></p>
+      <p class="mentions">Vos données restent sur votre appareil (aucun serveur, aucun compte) · Code source ouvert sur <a href="https://github.com/romarickine/libco2cab" target="_blank" rel="noopener" data-style="color:inherit;">GitHub</a> · <a href="../mentions-legales.html" data-style="color:inherit;">Mentions légales</a></p>
     </div>
   `;
   document.getElementById("btn-demarrer").addEventListener("click", onStart);
@@ -84,6 +84,18 @@ export function renderPropositionBrouillon(root, { date, onReprendre, onIgnorer 
 // ============================================================================
 // ASSISTANT (WIZARD)
 // ============================================================================
+// Noms courts affichés dans la barre d'étapes.
+const NOMS_COURTS_ETAPES = {
+  profil: "Profil",
+  deplacements: "Déplacements",
+  local: "Local",
+  numerique: "Numérique",
+  materiel: "Matériel",
+  dechets: "Déchets",
+  alimentation: "Alimentation",
+  services: "Services",
+};
+
 const TITRES_ETAPES = {
   profil: "Votre profil",
   deplacements: "Les déplacements professionnels",
@@ -110,15 +122,27 @@ export function renderWizard(root, ctx) {
   const titre = etapeId === "local" ? `Votre ${famille.lieuLabel} professionnel` : TITRES_ETAPES[etapeId];
 
   root.innerHTML = `
+    <div class="barre-etapes-cadre">
+      <div class="barre-etapes">
+        <ol class="etapes-cab" aria-label="Étapes du questionnaire">
+          ${etapes
+            .map(
+              (e, i) =>
+                `<li class="etape-cab ${i === etapeIndex ? "active" : i < etapeIndex ? "faite" : ""}"${i === etapeIndex ? ' aria-current="step"' : ""}><span class="etape-puce">${i + 1}</span><span class="etape-nom">${NOMS_COURTS_ETAPES[e]}</span></li>`,
+            )
+            .join("")}
+        </ol>
+        <div class="bloc-total">
+          <span class="total-en-cours">Total en cours <strong class="total-valeur" aria-live="polite">${formatTotal(resultats.totalT)}</strong></span>
+          <button type="button" class="bouton-info" id="btn-info-total" aria-expanded="false" aria-controls="explication-total" aria-label="Qu'est-ce que le total en cours ?">i</button>
+        </div>
+      </div>
+    </div>
     <div class="conteneur-etroit">
-      <div class="entete-app">
-        <a href="../index.html" title="Retour à Lib&CO2"><img src="../shared/assets/logo/logo-libco2.png" alt="Lib&CO2" /></a>
-        <div class="total-en-cours">Total en cours : ${resultats.totalT.toFixed(2)} tCO2e/an</div>
+      <div class="explication-total" id="explication-total" hidden>
+        <strong>Total en cours</strong> : l'empreinte annuelle estimée de votre activité, recalculée à chaque saisie. Les étapes que vous n'avez pas encore remplies sont comptées avec les valeurs par défaut de l'outil : le chiffre se précise au fil du questionnaire. Unité : tonnes d'équivalent CO2 par an (tCO2e/an).
       </div>
-      <div class="barre-progression">
-        ${etapes.map((e, i) => `<div class="segment ${i <= etapeIndex ? "actif" : ""}"></div>`).join("")}
-      </div>
-      <div class="eyebrow">Étape ${etapeIndex + 1} / ${etapes.length}</div>
+      <p class="eyebrow">Étape ${etapeIndex + 1} sur ${etapes.length}</p>
       <h2 class="titre-serif" data-style="font-size:30px; margin: 4px 0 28px;">${titre}</h2>
       <div class="carte" data-style="padding:28px;" id="contenu-etape"></div>
       <div class="pas-actions">
@@ -127,6 +151,14 @@ export function renderWizard(root, ctx) {
       </div>
     </div>
   `;
+
+  const boutonInfo = document.getElementById("btn-info-total");
+  const explication = document.getElementById("explication-total");
+  boutonInfo.addEventListener("click", () => {
+    const ouvert = boutonInfo.getAttribute("aria-expanded") === "true";
+    boutonInfo.setAttribute("aria-expanded", String(!ouvert));
+    explication.hidden = ouvert;
+  });
 
   const conteneurEtape = document.getElementById("contenu-etape");
   const rendus = {
@@ -152,7 +184,6 @@ export function renderHistorique(root, { bilans, onSupprimer, onBack, onNouveauB
   root.innerHTML = `
     <div class="conteneur">
       <div class="entete-app">
-        <a href="../index.html" title="Retour à Lib&CO2"><img src="../shared/assets/logo/logo-libco2.png" alt="Lib&CO2" /></a>
         <button class="lien-retour" id="btn-retour-hist">‹ Retour aux résultats</button>
       </div>
       <h2 class="titre-serif" data-style="font-size:28px; margin: 4px 0 20px;">Évolution de mon cabinet dans le temps</h2>

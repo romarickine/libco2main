@@ -11,7 +11,6 @@
  */
 import { FAMILLES, FE_ENERGIE, FE_TRANSPORT } from "../../../shared/js/data/facteurs-emission.js";
 import {
-  ICONES,
   attacherCases,
   attacherChampsNombre,
   attacherChampsNombreDispatch,
@@ -19,6 +18,7 @@ import {
   badgeLive,
   champNombreHtml,
   fmt,
+  formatTotal,
 } from "./commun.js";
 import { ZONES, chargerCommunes, kmModalTotal } from "../../../shared/js/data/zonage-insee.js";
 import { echapperHtml } from "../../../shared/js/echappement.js";
@@ -63,8 +63,8 @@ export function majBadgesEtTotal(resultats) {
     const elmt = document.querySelector(`[data-badge="gros_${id}"]`);
     if (elmt) elmt.textContent = `≈ ${fmt(v)} kgCO2e/an`;
   });
-  const totalEl = document.querySelector(".total-en-cours");
-  if (totalEl) totalEl.textContent = `Total en cours : ${resultats.totalT.toFixed(2)} tCO2e/an`;
+  const totalEl = document.querySelector(".total-valeur");
+  if (totalEl) totalEl.textContent = formatTotal(resultats.totalT);
   Object.entries(det.dechets || {}).forEach(([cle, v]) => {
     const elmt = document.querySelector(`[data-badge="${cle}"]`);
     if (elmt) elmt.textContent = `≈ ${fmt(v)} kgCO2e/an`;
@@ -82,7 +82,6 @@ export function renderStepProfil(el, { data, famille, ctx }) {
         ${FAMILLES.map(
           (f) => `
           <div class="carte-famille ${f.id === p.familleId ? "selectionne" : ""}" data-famille="${f.id}">
-            <span>${ICONES[f.icon] || "•"}</span>
             <div class="titre">${f.label}</div>
           </div>`,
         ).join("")}
@@ -107,11 +106,11 @@ export function renderStepProfil(el, { data, famille, ctx }) {
     ${
       p.mode !== "seul"
         ? `
-      <div data-style="display:flex; gap:18px;">
+      <div class="ligne-champs">
         <div class="champ"><label class="libelle">Praticiens (ETP) dans la structure</label>${champNombreHtml("nbPraticiens", p.nbPraticiens, { min: 1 })}</div>
         ${p.mode === "employeur" ? `<div class="champ"><label class="libelle">Salariés (ETP)</label>${champNombreHtml("nbSalaries", p.nbSalaries, { min: 0 })}</div>` : ""}
       </div>`
-        : `<div class="texte-discret" data-style="margin-top:-12px; margin-bottom:22px; display:flex; gap:5px;">ℹ️ Vous exercez seul(e) : la structure compte 1 praticien (vous-même).</div>`
+        : `<div class="texte-discret" data-style="margin-top:-12px; margin-bottom:22px; display:flex; gap:5px;">Vous exercez seul(e) : la structure compte 1 praticien (vous-même).</div>`
     }
 
     <hr class="separateur" />
@@ -132,6 +131,7 @@ export function renderStepProfil(el, { data, famille, ctx }) {
 
     <hr class="separateur" />
     <div class="groupe-champs-titre">Votre volume d'activité</div>
+    <div class="ligne-champs">
     <div class="champ">
       <label class="libelle">Nombre total de ${famille.acteLabel} réalisé(e)s par an, pour l'ensemble de ${famille.lieuArticleLe}</label>
       <div class="aide">Ce bilan d'émissions porte sur l'ensemble de ${famille.lieuArticleLe}, pas seulement sur votre propre activité : additionnez les ${famille.acteLabel} de tous les praticiens de la structure.</div>
@@ -142,6 +142,7 @@ export function renderStepProfil(el, { data, famille, ctx }) {
       <label class="libelle">Part des ${famille.acteLabel} réalisé(e)s dans ${p.mode === "seul" ? "votre" : "le"} ${famille.lieuLabel} : <span id="valeur-partCabinet">${p.partCabinet}</span>%</label>
       <div class="aide">Le reste est supposé réalisé au domicile du/de la ${famille.publicSingulier} ou à distance (visio).</div>
       <input type="range" min="0" max="100" value="${p.partCabinet}" data-champ-range="partCabinet" id="range-partCabinet" />
+    </div>
     </div>
 
     <div class="champ">
@@ -231,25 +232,25 @@ export function renderStepDeplacements(el, { data, resultats, ctx }) {
       nbEquipe > 1
         ? `
       <div class="encadre-info" data-style="margin-bottom:20px;">
-        <strong>⚠️ Vous avez indiqué ${nbEquipe} personnes dans la structure (praticiens + salariés).</strong>
+        <strong>Vous avez indiqué ${nbEquipe} personnes dans la structure (praticiens + salariés).</strong>
         <div data-style="font-size:12.5px; color:var(--lc-vert-info); margin-top:4px; line-height:1.5;">Ce poste doit couvrir <strong>l'ensemble de l'équipe</strong>, pas seulement vos propres trajets : additionnez (ou estimez en moyenne × ${nbEquipe}) les distances domicile-travail, les visites et les déplacements pour congrès de tous les praticiens et salariés de la structure.</div>
       </div>
     `
         : `<p class="texte-discret" data-style="margin-top:-10px; margin-bottom:20px;">Si la structure compte plusieurs praticiens ou salariés, ces champs doivent couvrir l'ensemble de l'équipe, pas seulement vos propres trajets.</p>`
     }
-    <div data-style="display:flex; gap:18px; flex-wrap:wrap;">
+    <div class="ligne-champs">
       <div class="champ"><label class="libelle">Mode de transport principal domicile-travail</label><select class="champ-select" data-champ-select="modeDomTrav">${optionsMode(true)}</select></div>
       <div class="champ"><label class="libelle">Distance aller (km)</label>${champNombreHtml("kmAllerJour", d.kmAllerJour)}</div>
       <div class="champ"><label class="libelle">Jours travaillés / semaine</label>${champNombreHtml("joursSemaine", d.joursSemaine, { step: 0.5 })}</div>
       <div class="champ"><label class="libelle">Semaines travaillées / an${badgeLive(det.domTrav, "domTrav")}</label>${champNombreHtml("semainesAn", d.semainesAn, { max: 52 })}</div>
     </div>
     <hr class="separateur" />
-    <div data-style="display:flex; gap:18px; flex-wrap:wrap;">
+    <div class="ligne-champs">
       <div class="champ"><label class="libelle">Km parcourus par an en visites professionnelles</label><div class="aide">Domicile de patients/clients, EHPAD, chantiers, rendez-vous extérieurs — pour l'ensemble de la structure.</div>${champNombreHtml("kmVisitesAn", d.kmVisitesAn)}</div>
       <div class="champ"><label class="libelle">Mode de transport principal pour ces visites${badgeLive(det.visites, "visites")}</label><select class="champ-select" data-champ-select="modeVisites">${optionsMode(true)}</select></div>
     </div>
     <hr class="separateur" />
-    <div data-style="display:flex; gap:18px; flex-wrap:wrap;">
+    <div class="ligne-champs">
       <div class="champ"><label class="libelle">Congrès / formations / représentations par an</label>${champNombreHtml("nbCongresAn", d.nbCongresAn)}</div>
       <div class="champ"><label class="libelle">Mode de transport principal</label>
         <select class="champ-select" data-champ-select="modeCongres">
@@ -287,7 +288,7 @@ export function renderStepLocal(el, { data, famille, zone, resultats, ctx }) {
     ${
       l.aLocal
         ? `
-      <div data-style="display:flex; gap:18px; flex-wrap:wrap;">
+      <div class="ligne-champs">
         <div class="champ"><label class="libelle">Surface du ${famille.lieuLabel} (m²)</label>${champNombreHtml("surface", l.surface)}</div>
         <div class="champ"><label class="libelle">Énergie principale de chauffage</label>
           <select class="champ-select" data-champ-select="energieChauffage">
@@ -297,7 +298,7 @@ export function renderStepLocal(el, { data, famille, zone, resultats, ctx }) {
           </select>
         </div>
       </div>
-      <p class="texte-discret" data-style="margin-top:-8px; margin-bottom:16px;">Par défaut, la consommation est estimée à partir de ratios ADEME adaptés à votre activité (Bâtiment - Chiffres clés). Vous pouvez saisir vos consommations réelles si vous les connaissez.</p>
+      <p class="texte-discret" data-style="margin-top:-8px; margin-bottom:16px;">Par défaut, la consommation est estimée à partir de ratios ADEME adaptés à votre activité (déclarations OPERAT 2024 du dispositif Éco Énergie Tertiaire). Vous pouvez saisir vos consommations réelles si vous les connaissez.</p>
       <div data-style="display:flex; gap:14px; margin-bottom:8px;">${badgeLive(det.localElec, "localElec")}${badgeLive(det.localChauffage, "localChauffage")}</div>
 
       <div class="champ"><label class="libelle"><input type="checkbox" data-champ-case="consoElecConnue" ${l.consoElecConnue ? "checked" : ""} data-style="margin-right:8px;" />Je connais ma consommation réelle d'électricité (factures)</label>
@@ -339,7 +340,7 @@ export function renderStepNumerique(el, { data, resultats, ctx }) {
   const n = data.numerique;
   const det = resultats.detail;
   el.innerHTML = `
-    <div data-style="display:flex; gap:18px; flex-wrap:wrap;">
+    <div class="ligne-champs">
       <div class="champ"><label class="libelle">Ordinateurs fixes${badgeLive(det.numOrdisFixes, "numOrdisFixes")}</label>${champNombreHtml("nbOrdisFixes", n.nbOrdisFixes)}</div>
       <div class="champ"><label class="libelle">Ordinateurs portables${badgeLive(det.numOrdisPortables, "numOrdisPortables")}</label>${champNombreHtml("nbOrdisPortables", n.nbOrdisPortables)}</div>
       <div class="champ"><label class="libelle">Écrans supplémentaires${badgeLive(det.numEcrans, "numEcrans")}</label>${champNombreHtml("nbEcransSuppl", n.nbEcransSuppl)}</div>
@@ -347,9 +348,9 @@ export function renderStepNumerique(el, { data, resultats, ctx }) {
     <div class="champ">
       <label class="libelle">Niveau d'usage numérique quotidien (mails, cloud, visio, stockage)${badgeLive(det.numUsage, "numUsage")}</label>
       <select class="champ-select" data-champ-select="usage">
-        <option value="faible" ${n.usage === "faible" ? "selected" : ""}>Faible — peu de visio, peu de stockage cloud</option>
-        <option value="moyen" ${n.usage === "moyen" ? "selected" : ""}>Moyen — usage courant</option>
-        <option value="fort" ${n.usage === "fort" ? "selected" : ""}>Fort — beaucoup de visio, gros volumes de données</option>
+        <option value="faible" ${n.usage === "faible" ? "selected" : ""}>Faible — une vingtaine de mails par jour, pas de visio</option>
+        <option value="moyen" ${n.usage === "moyen" ? "selected" : ""}>Moyen — une cinquantaine de mails par jour, 2 h de visio par semaine</option>
+        <option value="fort" ${n.usage === "fort" ? "selected" : ""}>Fort — plus de 100 mails par jour, 1 h de visio par jour, gros fichiers</option>
       </select>
     </div>
   `;
@@ -372,6 +373,7 @@ export function renderStepMateriel(el, { data, famille, resultats, ctx }) {
   data.pharmacien = data.pharmacien || { caMedicaments: 0, caParapharmacie: 0 };
   el.innerHTML = `
     <p class="texte-discret" data-style="margin-top:-8px; margin-bottom:20px;">Postes adaptés à votre famille de métier (<strong>${famille.label}</strong>). Une estimation en euros dépensés par an suffit.</p>
+    <div class="ligne-champs">
     ${famille.consommables
       .map(
         (c) => `
@@ -379,14 +381,17 @@ export function renderStepMateriel(el, { data, famille, resultats, ctx }) {
     `,
       )
       .join("")}
+    </div>
     ${
       estPharmacien
         ? `
       <hr class="separateur" />
       <div class="groupe-champs-titre">Médicaments et parapharmacie vendus</div>
       <p class="texte-discret" data-style="margin-top:-6px; margin-bottom:16px;">Poste spécifique à l'officine : votre chiffre d'affaires HT, réparti entre médicaments et parapharmacie, chacun avec un facteur d'émission propre.</p>
+      <div class="ligne-champs">
       <div class="champ"><label class="libelle">Chiffre d'affaires médicaments (€ HT / an)${badgeLive(det.medicamentsVendus, "medicamentsVendus")}</label>${champNombreHtml("ca_medicaments", data.pharmacien.caMedicaments || 0, { suffix: "€ HT / an" })}</div>
       <div class="champ"><label class="libelle">Chiffre d'affaires parapharmacie (€ HT / an)${badgeLive(det.parapharmacie, "parapharmacie")}</label>${champNombreHtml("ca_parapharmacie", data.pharmacien.caParapharmacie || 0, { suffix: "€ HT / an" })}</div>
+      </div>
     `
         : ""
     }
@@ -407,8 +412,10 @@ export function renderStepMateriel(el, { data, famille, resultats, ctx }) {
           presc.active
             ? `
           <div data-style="margin-top:18px;">
+            <div class="ligne-champs">
             <div class="champ"><label class="libelle">Dépense totale de médicaments prescrits, pour l'ensemble de la patientèle de la structure (€ / an)${badgeLive(det.prescriptionsMedicaments, "prescriptionsMedicaments")}</label>${champNombreHtml("presc_medicaments", presc.depenseMedicaments || 0, { suffix: "€ / an" })}</div>
             <div class="champ"><label class="libelle">Dépense totale d'actes prescrits — examens complémentaires, dispositifs (€ / an)${badgeLive(det.prescriptionsActes, "prescriptionsActes")}</label>${champNombreHtml("presc_actes", presc.depenseActes || 0, { suffix: "€ / an" })}</div>
+            </div>
             <p class="texte-discret" data-style="margin-top:-6px;">Cumulez tous les praticiens prescripteurs de la structure, pas un seul. Une première approche à affiner : utilisez les montants que vous connaissez le mieux (ex. volume de prescriptions habituel), même approximatifs.</p>
           </div>`
             : ""
@@ -431,6 +438,7 @@ export function renderStepMateriel(el, { data, famille, resultats, ctx }) {
           ? `
         <div data-style="margin-top:18px;">
           <div data-style="font-weight:600; font-size:13.5px; margin-bottom:10px;">Gros matériel (valeur d'achat totale, en euros)</div>
+          <div class="ligne-champs">
           ${(famille.grosMateriel || [])
             .map(
               (g) => `
@@ -438,6 +446,7 @@ export function renderStepMateriel(el, { data, famille, resultats, ctx }) {
           `,
             )
             .join("")}
+          </div>
           <div data-style="font-weight:600; font-size:13.5px; margin-top:8px; margin-bottom:10px;">Mobilier professionnel (bureau, tables, chaises…)</div>
           <div class="champ"><label class="libelle">Valeur d'achat totale du mobilier récent${badgeLive(det.mobilier, "mobilier")}</label>${champNombreHtml("mobilier", inv.mobilier || 0, { suffix: "€ (valeur d'achat)" })}</div>
         </div>`
@@ -483,13 +492,13 @@ export function renderStepDechets(el, { data, famille, resultats, ctx }) {
       nbEquipe > 1
         ? `
       <div class="encadre-info" data-style="margin-bottom:18px;">
-        <strong>⚠️ ${nbEquipe} personnes dans la structure.</strong>
+        <strong>${nbEquipe} personnes dans la structure.</strong>
         <div data-style="font-size:12.5px; color:var(--lc-vert-info); margin-top:4px; line-height:1.5;">Estimez le volume de déchets pour <strong>l'ensemble de la structure</strong>, pas seulement le vôtre.</div>
       </div>
     `
         : ""
     }
-    <div data-style="display:grid; grid-template-columns:1fr 1fr; gap:0 18px;">
+    <div class="ligne-champs">
       ${champDechet("plastique", "Plastique")}
       ${champDechet("metal", "Métal (hors aluminium)")}
       ${champDechet("papier", "Papier")}
@@ -533,12 +542,13 @@ export function renderStepAlimentation(el, { data, resultats, ctx }) {
       nbEquipe > 1
         ? `
       <div class="encadre-info" data-style="margin-bottom:18px;">
-        <strong>⚠️ ${nbEquipe} personnes dans la structure.</strong>
+        <strong>${nbEquipe} personnes dans la structure.</strong>
         <div data-style="font-size:12.5px; color:var(--lc-vert-info); margin-top:4px; line-height:1.5;">Comptez le nombre de repas professionnels pour <strong>l'ensemble de l'équipe</strong> (tous les praticiens et salariés cumulés), pas seulement les vôtres.</div>
       </div>
     `
         : `<p class="texte-discret" data-style="margin-top:-6px; margin-bottom:16px;">Si la structure compte plusieurs praticiens ou salariés, ce total doit couvrir toute l'équipe.</p>`
     }
+    <div class="ligne-champs">
     <div class="champ">
       <label class="libelle">Repas professionnels (déjeuners sur site ou au restaurant) par semaine, pour l'ensemble de la structure : <span id="valeur-repas">${a.repasParSemaine}</span> <span class="texte-discret" data-style="font-weight:400;">/ ${maxRepas} max</span>${badgeLive(resultats.detail.alimentation, "alimentation")}</label>
       <input type="range" min="0" max="${maxRepas}" value="${Math.min(a.repasParSemaine, maxRepas)}" data-champ-range="repasParSemaine" id="range-repas" />
@@ -546,6 +556,7 @@ export function renderStepAlimentation(el, { data, resultats, ctx }) {
     <div class="champ">
       <label class="libelle">Part de repas végétariens : <span id="valeur-vege">${a.partVegetarienne}</span>%</label>
       <input type="range" min="0" max="100" value="${a.partVegetarienne}" data-champ-range="partVegetarienne" id="range-vege" />
+    </div>
     </div>
   `;
   el.querySelector("#range-repas").addEventListener("input", (e) => {
@@ -563,12 +574,14 @@ export function renderStepServices(el, { data, resultats, ctx }) {
   const s = data.services;
   const det = resultats.detail;
   el.innerHTML = `
+    <div class="ligne-champs">
     <div class="champ"><label class="libelle">Comptabilité, banque, assurance, cotisations, courrier (€ / an)${badgeLive(det.servicesCompta, "servicesCompta")}</label>
       <div class="aide">Regroupez ces postes pour aller vite : un ratio moyen d'émission par euro dépensé est appliqué.</div>
       ${champNombreHtml("servicesAn", s.servicesAn)}
     </div>
     <div class="champ"><label class="libelle">Prestataires et sous-traitance (€ / an)${badgeLive(det.servicesSousTraitance, "servicesSousTraitance")}</label>${champNombreHtml("sousTraitanceAn", s.sousTraitanceAn)}</div>
     <div class="champ"><label class="libelle">Nombre de colis / livraisons reçus ou envoyés par an${badgeLive(det.fret, "fret")}</label>${champNombreHtml("nbColisAn", s.nbColisAn)}</div>
+    </div>
   `;
   attacherChampsNombre(el, ctx.onChangeServicesLive);
 }

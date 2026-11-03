@@ -18,6 +18,7 @@
  * Utilisé par : main-msp.js (rendreEcran après chaque modification d'état).
  */
 import { ETAPES } from "./ui/commun.js";
+import { calculerBilanDepuisEtat, chargerDonneesCalcul } from "./etat-msp.js";
 import { attacherEcouteurs } from "./ui/evenements.js";
 import { relierLibelles } from "../../shared/js/accessibilite.js";
 import { attacherTooltipsGraphes } from "./ui/infobulles.js";
@@ -97,6 +98,7 @@ export function rendreEcran(etat) {
 
   relierLibelles(app);
   attacherEcouteurs(app);
+  attacherInfoTotal(app);
   attacherTooltipsGraphes(app);
 }
 
@@ -116,25 +118,69 @@ export function calculerAvancement(etat) {
   return complet;
 }
 
+// Total en cours : calculé avec ce qui est déjà saisi, une fois les données
+// de calcul (communes, APL) chargées en arrière-plan ; « — » tant que le
+// calcul n'est pas possible (commune pas encore choisie, par exemple).
+let chargementLance = false;
+let explicationTotalOuverte = false;
+function totalEnCours(etat) {
+  try {
+    const r = calculerBilanDepuisEtat(etat, new Date().getFullYear());
+    return Number.isFinite(r.empreinteTotale) ? r.empreinteTotale / 1000 : null;
+  } catch (e) {
+    if (!chargementLance) {
+      chargementLance = true;
+      chargerDonneesCalcul()
+        .then(() => rendreEcran(etat))
+        .catch(() => {});
+    }
+    return null;
+  }
+}
+
 function rendreNav(etat) {
   const complet = calculerAvancement(etat);
   const nbEtapesCompletes = Object.values(complet).filter(Boolean).length;
   const pourcentage = Math.round((nbEtapesCompletes / ETAPES.length) * 100);
+  const total = totalEnCours(etat);
+  const totalTexte =
+    total === null
+      ? "—"
+      : `${total.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} tCO2e/an`;
 
   return `
   <div class="barre-avancement" role="progressbar" aria-valuenow="${pourcentage}" aria-valuemin="0" aria-valuemax="100">
     <div class="barre-avancement-remplissage" data-style="width:${pourcentage}%"></div>
   </div>
-  <nav class="nav-etapes">${ETAPES.map((label, i) => {
+  <div class="nav-etapes">
+  <nav class="nav-etapes-liste" aria-label="Étapes">${ETAPES.map((label, i) => {
     const n = i + 1;
     const classes = ["etape"];
     if (n === etat.ecranActuel) classes.push("active");
     if (complet[n]) classes.push("complete");
-    const puce = complet[n] ? "✓" : n;
-    return `<button class="${classes.join(" ")}" data-action="aller-ecran" data-numero="${n}">
-      <span class="etape-puce">${puce}</span><span class="etape-label">${label}</span>
+    return `<button class="${classes.join(" ")}" data-action="aller-ecran" data-numero="${n}"${n === etat.ecranActuel ? ' aria-current="step"' : ""}>
+      <span class="etape-puce">${n}</span><span class="etape-label">${label}</span>${complet[n] ? '<span class="visuellement-cache"> (complète)</span>' : ""}
     </button>`;
-  }).join("")}</nav>`;
+  }).join("")}</nav>
+    <div class="bloc-total">
+      <span class="total-en-cours" aria-live="polite">Total en cours <strong>${totalTexte}</strong></span>
+      <button type="button" class="bouton-info" id="btn-info-total" aria-expanded="${explicationTotalOuverte}" aria-controls="explication-total" aria-label="Qu'est-ce que le total en cours ?">i</button>
+    </div>
+  </div>
+  <div class="explication-total" id="explication-total"${explicationTotalOuverte ? "" : " hidden"}>
+    <strong>Total en cours</strong> : l'empreinte annuelle estimée de la structure, recalculée à chaque saisie à partir des informations déjà renseignées. Il se précise au fil des étapes (praticiens, staff, postes mutualisés) ; il s'affiche dès que la commune est choisie. Le résultat complet est présenté à l'étape Résultats. Unité : tonnes d'équivalent CO2 par an (tCO2e/an).
+  </div>`;
+}
+
+/** Ouvre ou ferme l'explication du total en cours (état conservé entre deux rendus). */
+function attacherInfoTotal(app) {
+  const bouton = app.querySelector("#btn-info-total");
+  if (!bouton) return;
+  bouton.addEventListener("click", () => {
+    explicationTotalOuverte = !explicationTotalOuverte;
+    bouton.setAttribute("aria-expanded", String(explicationTotalOuverte));
+    app.querySelector("#explication-total").hidden = !explicationTotalOuverte;
+  });
 }
 
 function rendreEcranCourant(etat) {

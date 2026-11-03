@@ -55,7 +55,7 @@ body {
 .conteneur {
   max-width: 720px;
   margin: 0 auto;
-  padding: 40px 20px 90px;
+  padding: 56px 20px 90px;
 }
 
 /* 3. Page d'index du blog --------------------------------------------------- */
@@ -66,23 +66,19 @@ body {
   max-width: 780px;
 }
 .entete {
-  text-align: center;
-  margin-bottom: 44px;
-}
-.entete img {
-  height: 40px;
-  margin-bottom: 18px;
+  margin-bottom: 48px;
 }
 .entete h1 {
   font-family: var(--serif);
-  font-size: 32px;
-  margin: 0 0 10px;
+  font-size: clamp(36px, 5.6vw, 60px);
+  line-height: 1.06;
+  margin: 0 0 18px;
 }
 .entete p {
-  color: var(--discret);
-  font-size: 15px;
-  max-width: 520px;
-  margin: 0 auto;
+  color: var(--texte);
+  font-size: 18px;
+  max-width: 34em;
+  margin: 0;
 }
 .qui-sommes-nous {
   background: var(--carte);
@@ -115,24 +111,20 @@ body {
   text-decoration: none;
   color: inherit;
   display: block;
-  transition:
-    box-shadow 0.15s,
-    transform 0.15s;
+  transition: border-color 0.15s;
 }
 .carte-article:hover {
-  box-shadow: 0 8px 22px rgba(27, 43, 38, 0.1);
-  transform: translateY(-1px);
+  border-color: var(--vert);
 }
 .carte-article .date {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--lc-ambre-texte);
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vert);
 }
 .carte-article h2 {
   font-family: var(--serif);
-  font-size: 21px;
+  font-size: 24px;
+  line-height: 1.2;
   margin: 8px 0 8px;
   color: var(--encre);
 }
@@ -159,19 +151,17 @@ body {
 
 /* 4. Articles ---------------------------------------------------------------- */
 .eyebrow {
-  font-size: 12.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: var(--lc-ambre-texte);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vert);
 }
 /* Titre d'article : enfant direct du conteneur (le titre de l'index, dans
    .entete, garde sa propre règle). */
 .conteneur > h1 {
   font-family: var(--serif);
-  font-size: 32px;
-  margin: 10px 0 6px;
-  line-height: 1.25;
+  font-size: clamp(32px, 4.8vw, 46px);
+  margin: 14px 0 14px;
+  line-height: 1.1;
 }
 .meta-article {
   font-size: 13px;
@@ -179,14 +169,15 @@ body {
   margin-bottom: 30px;
 }
 article p {
-  font-size: 16px;
+  font-size: 17px;
   color: var(--texte);
   margin: 0 0 18px;
 }
 article h2 {
   font-family: var(--serif);
-  font-size: 23px;
-  margin: 40px 0 14px;
+  font-size: 28px;
+  line-height: 1.15;
+  margin: 48px 0 16px;
 }
 article h3 {
   font-family: var(--serif);

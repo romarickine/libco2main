@@ -50,7 +50,8 @@
   --police-mono: var(--lc-police-mono);
 
   /* Rayons et espacements */
-  --rayon-carte: 18px;
-  --rayon-bouton: 12px;
-  --ombre-carte: 0 8px 24px rgba(27, 43, 38, 0.07);
+  --rayon-carte: var(--lc-rayon-carte);
+  --rayon-bouton: var(--lc-rayon-bouton);
+  --rayon-champ: 10px; /* champs de saisie, alertes, cartes internes */
+  --ombre-carte: none; /* cadres plats depuis la refonte du 03/11/2026 */
 }

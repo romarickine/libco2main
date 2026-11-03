@@ -148,9 +148,9 @@ export const FE_ENERGIE = {
   },
   reseau_chaleur: {
     label: "Réseau de chaleur urbain",
-    value: 0.113,
+    value: 0.108,
     source:
-      "SOURCÉ — FEDENE / SNCU, Enquête des réseaux de chaleur et de froid, édition 2024 (données 2023), p. 34 : « la moyenne s'établit à 113 g/kWh en 2023 » (analyse de cycle de vie ; 91 g en émissions directes). Rapport : reseaux-chaleur.cerema.fr. L'édition 2025 (données 2024) annonce 109 g/kWh (chiffre relayé par la Banque des Territoires, rapport non consulté) : la valeur la plus haute est conservée (règle R3). Moyenne nationale : le contenu d'un réseau donné peut s'en écarter nettement (liste par réseau : arrêté DPE du 5 juillet 2024 ; la Base Carbone donne aussi une valeur par réseau).",
+      "SOURCÉ — FEDENE / SNCU, Enquête nationale des réseaux de chaleur et de froid, restitution des données 2025 (communiqué FEDENE du 22/10/2026) : contenu moyen de 108 gCO2e/kWh en analyse de cycle de vie, millésime le plus récent (règle R1). Série : 113 g en 2023 (édition 2024, p. 35 ; 91 g en émissions directes), 109 g en 2024 (synthèse de l'édition 2025, p. 3 et 7). Moyenne nationale : le contenu d'un réseau donné peut s'en écarter nettement (liste par réseau : arrêté DPE du 5 juillet 2024 ; la Base Carbone donne aussi une valeur par réseau). Remplace 0,113.",
   },
   pac: {
     label: "Pompe à chaleur (électrique)",
@@ -165,19 +165,33 @@ export function feChauffage(energie) {
   return f.valueChauffage ?? f.value;
 }
 
-// SOURCÉ (seconde main) — ADEME/CEREN, Bâtiment - Chiffres clés 2012 (kWh/m²/an
-// par type d'activité tertiaire), extrait du classeur de calcul kinéCO2
-// (feuille "BDD sources"). La Base Carbone V23.6 publie des consommations du
-// même type (« Tertiaire, santé », ids 23753 à 23764, données 2014) mais pas
-// avec le même découpage par activité : valeurs conservées, à recouper.
+// SOURCÉ — consommation totale par m² : ADEME, Observatoire de la
+// performance énergétique, de la réduction des émissions de gaz à effet de
+// serre et de la qualité de l'air dans le tertiaire (déclarations OPERAT du
+// dispositif Éco Énergie Tertiaire), jeu « Consommation tertiaire par
+// activité », data.ademe.fr, Licence Ouverte, mis à jour le 31/10/2026 :
+// année 2024 (la plus récente complète, règle R1), tous vecteurs, consommation
+// ajustée du climat, kWh/m²/an. « Santé libérale » 172 (1 015 déclarations),
+// « Bureaux » 121, « Commerce et service de détail » 120, tout le tertiaire
+// 130. Partage chauffage / autres usages : SDES-CEREN, « Données sur les
+// consommations d'énergie du tertiaire en 2020 », consommations 2019 par
+// branche (NAF) : part du chauffage 42,6 % (86, santé humaine), 46,7 % (69-71,
+// activités juridiques, comptables, de conseil, d'architecture), 36,7 % (47,
+// commerce de détail), 42,1 % (ensemble du tertiaire). Remplace les ratios
+// ADEME/CEREN « Bâtiment - Chiffres clés 2012 » repris du classeur kinéCO2.
+// Limites : OPERAT ne couvre que les bâtiments de 1 000 m² et plus ; les
+// « autres usages » comprennent l'eau chaude et la cuisson, comptées ici au
+// facteur de l'électricité.
 export const RATIOS_ENERGIE_PAR_ACTIVITE = {
-  sante: { chauffage: 128, elec: 71 }, // catégorie ADEME "Santé"
-  juridique: { chauffage: 138, elec: 127 }, // catégorie ADEME "Bureaux"
-  conseil: { chauffage: 138, elec: 127 }, // catégorie ADEME "Bureaux"
-  archi: { chauffage: 138, elec: 127 }, // catégorie ADEME "Bureaux"
-  artisanat_art: { chauffage: 103, elec: 130 }, // catégorie ADEME "Commerces" (proxy le plus proche disponible pour un atelier/point de vente)
-  autre: { chauffage: 120, elec: 86 }, // catégorie ADEME "Moyenne toutes branches" (repli générique)
+  sante: { chauffage: 73, elec: 99 }, // OPERAT « Santé libérale » 172 × 42,6 % (NAF 86)
+  juridique: { chauffage: 57, elec: 64 }, // OPERAT « Bureaux » 121 × 46,7 % (NAF 69-71)
+  conseil: { chauffage: 57, elec: 64 }, // idem
+  archi: { chauffage: 57, elec: 64 }, // idem
+  artisanat_art: { chauffage: 44, elec: 76 }, // OPERAT « Commerce et service de détail » 120 × 36,7 % (NAF 47) — atelier/point de vente
+  autre: { chauffage: 55, elec: 75 }, // OPERAT tout le tertiaire 130 × 42,1 % (repli générique)
 };
+export const RATIOS_ENERGIE_SOURCE =
+  "SOURCÉ — consommation totale : ADEME, Observatoire du tertiaire (déclarations OPERAT, dispositif Éco Énergie Tertiaire), jeu « Consommation tertiaire par activité » (data.ademe.fr, mis à jour le 31/10/2026), année 2024, tous vecteurs, consommation ajustée du climat : santé libérale 172 kWh/m²/an (1 015 déclarations), bureaux 121, commerce et service de détail 120, ensemble du tertiaire 130. Part du chauffage : SDES-CEREN, « Données sur les consommations d'énergie du tertiaire en 2020 » (données 2019 par branche) : santé humaine 42,6 %, activités juridiques, de conseil et d'architecture 46,7 %, commerce de détail 36,7 %, ensemble 42,1 %. Limites : OPERAT ne couvre que les bâtiments de 1 000 m² et plus ; les autres usages comprennent l'eau chaude et la cuisson, comptées au facteur de l'électricité. Remplace les ratios ADEME/CEREN « Bâtiment - Chiffres clés 2012 » (128+71, 138+127, 103+130, 120+86).";
 
 // --- Numérique -------------------------------------------------------------
 // Empreinte de FABRICATION par appareil (kgCO2e/unité). Table commune aux
@@ -198,6 +212,38 @@ export const FACTEURS_NUMERIQUE_FABRICATION = {
   },
 };
 
+// Facteurs unitaires d'usage numérique, gCO2e, phases réseaux et centres de
+// données (ADEME : Impact CO2, src/data/categories/usagenumerique.ts, version
+// du 22/10/2026 ; modèle publicodes-acv-numerique, version du 19/08/2026).
+// - courriel : transmission 0,036 + construction 0,935 + usage 0,118 des
+//   centres de données = 1,09 g ;
+// - recherche web : 0,020 + 0,340 + 0,226 + construction des réseaux 0,030
+//   = 0,62 g ;
+// - Go transféré : réseau fixe France 9,27 g/Go (NegaOctet, box comprise)
+//   + centres de données 1,95 Wh/Go (données Netflix 2019 reprises par
+//   l'ADEME) × électricité 2024 ;
+// - visio HD : 3 Go/h par participant, 2 participants, + construction des
+//   centres de données 0,24 g/h.
+export const JOURS_OUVRES_AN = 220; // ESTIMÉ (convention)
+export const USAGE_NUMERIQUE_UNITAIRE = {
+  mail: 1.09,
+  recherche: 0.62,
+  get go() {
+    return 9.27 + 1.95 * FE_ENERGIE.electricite.value;
+  },
+  get visioHeureHD() {
+    return 2 * 3 * this.go + 0.24;
+  },
+};
+// ESTIMÉ — volumes quotidiens de chaque palier (aucune source ne publie de
+// paliers). « fort » reprend les 117,7 courriels envoyés et reçus par jour et
+// par personne (Radicati, valeur par défaut du modèle ADEME).
+export const USAGE_NUMERIQUE_PALIERS = {
+  faible: { mails: 20, recherches: 10, visioHeures: 0, go: 0.1 },
+  moyen: { mails: 50, recherches: 30, visioHeures: 0.4, go: 0.5 },
+  fort: { mails: 118, recherches: 60, visioHeures: 1, go: 3 },
+};
+
 // Émissions ANNUELLES utilisées par Cab (kgCO2e/an et par appareil) :
 // fabrication ÷ durée d'amortissement, plus un forfait d'usage.
 export const FE_NUMERIQUE = {
@@ -210,16 +256,25 @@ export const FE_NUMERIQUE = {
   get ecran_an() {
     return FACTEURS_NUMERIQUE_FABRICATION.ecranSupplementaire.valeur / DUREE_AMORTISSEMENT_ANS;
   },
-  // ESTIMÉ (ordre de grandeur recoupé) — aucune source ne publie de paliers
-  // faible/moyen/fort. Le niveau « moyen » (40) est cohérent avec l'usage
-  // d'un poste de travail européen : environ 33 kgCO2e/an (12,5 % de 265
-  // kgCO2e/an, équipements de bureau et centres de données ; rapport WeNR
-  // 2021, Institut du Numérique Responsable). Avec l'électricité française,
-  // peu carbonée, la valeur réelle est probablement plus basse : maintenu
-  // par prudence.
-  usage_an: { faible: 15, moyen: 40, fort: 90 },
+  // Usage hors terminaux (réseaux et centres de données), kgCO2e/an pour le
+  // cabinet. La fabrication des appareils est comptée ci-dessus et leur
+  // électricité dans le poste local : seules les phases « transmission » et
+  // « centres de données » sont prises ici. Facteurs unitaires SOURCÉS (ADEME,
+  // modèle publicodes-acv-numerique et données d'Impact CO2, sources NegaOctet) ;
+  // volumes de chaque palier ESTIMÉS (scénarios explicités dans
+  // USAGE_NUMERIQUE_PALIERS), 220 jours ouvrés par an (convention).
+  get usage_an() {
+    const u = USAGE_NUMERIQUE_UNITAIRE;
+    const parJour = (p) => p.mails * u.mail + p.recherches * u.recherche + p.visioHeures * u.visioHeureHD + p.go * u.go;
+    const an = (p) => Math.round((parJour(p) * JOURS_OUVRES_AN) / 1000);
+    return {
+      faible: an(USAGE_NUMERIQUE_PALIERS.faible),
+      moyen: an(USAGE_NUMERIQUE_PALIERS.moyen),
+      fort: an(USAGE_NUMERIQUE_PALIERS.fort),
+    };
+  },
   usageSource:
-    "ESTIMÉ — paliers non publiés ; le niveau moyen (40 kgCO2e/an) est cohérent avec les 33 kgCO2e/an d'usage d'un poste de travail européen (WeNR 2021, Institut du Numérique Responsable : 12,5 % de 265 kgCO2e/an).",
+    "Facteurs unitaires SOURCÉS — ADEME, Impact CO2 et modèle publicodes-acv-numerique (sources NegaOctet), phases réseaux et centres de données seulement (la fabrication des appareils est comptée à part et leur électricité dans le local) : courriel 1,09 gCO2e ; recherche web 0,62 g ; transfert de données sur réseau fixe en France 9,27 g/Go (box comprise) + centres de données 1,95 Wh/Go ; visioconférence HD à deux 3 Go/h par participant, soit 56 g/h. Volumes ESTIMÉS (aucune source ne publie de paliers) : faible = 20 courriels, 10 recherches, 0,1 Go par jour ; moyen = 50 courriels, 30 recherches, 2 h de visio HD par semaine, 0,5 Go par jour ; fort = 118 courriels (moyenne Radicati reprise par l'ADEME), 60 recherches, 1 h de visio HD et 3 Go par jour ; 220 jours ouvrés par an (convention). Écart signalé : l'approche globale ADEME-Arcep (2025) donne 434 kgCO2e par habitant et par an, terminaux compris ; la part réseaux et centres de données de l'usage reste de l'ordre de quelques dizaines de kilos. Remplace 15 / 40 / 90 (estimés).",
 };
 
 // --- Alimentation --------------------------------------------------------
@@ -264,16 +319,16 @@ export const FE_MONETAIRE = {
   actes_medicaux: 0.082,
 };
 
-// SOURCÉ (partiel) — ordre de grandeur de 1 kgCO2e par colis livré, tous
-// maillons compris (emballage, entrepôts, transports, déplacements des
-// clients) : environ 1 MtCO2e pour le commerce en ligne en France (étude
-// ADEME / ministère de la Transition écologique « Commerce en ligne : impacts
-// environnementaux de la logistique, des transports et des déplacements »,
-// synthèse 2023) rapporté à environ 1 milliard de colis par an. Ratio déduit,
-// non publié tel quel par l'ADEME.
-export const FE_FRET_COLIS = 1.0;
+// SOURCÉ (facteur) — ADEME, Impact CO2, comparateur « Livraison de colis »,
+// tiré de l'étude ADEME / ministère de la Transition écologique « Commerce en
+// ligne : impacts environnementaux de la logistique, des transports et des
+// déplacements » (2023) : colis de 1 kg livré à domicile (ou au cabinet)
+// 0,72 kgCO2e (commande et préparation, stockage et transit, dernier
+// kilomètre). ESTIMÉ (poids) : aucun poids moyen publié ; 1 kg est le premier
+// cas type de l'étude (2 kg : 1,08 ; 15 kg : 7,16). Remplace 1,0 (ratio déduit).
+export const FE_FRET_COLIS = 0.72;
 export const FE_FRET_COLIS_SOURCE =
-  "SOURCÉ (partiel) — ≈ 1 MtCO2e/an pour le commerce en ligne en France (synthèse de l'étude ADEME / ministère de la Transition écologique « Commerce en ligne : impacts environnementaux de la logistique, des transports et des déplacements », 2023) rapporté à ≈ 1 milliard de colis par an ; ratio déduit, non publié tel quel.";
+  "SOURCÉ (facteur) — ADEME, Impact CO2, « Livraison de colis » (étude ADEME / ministère de la Transition écologique « Commerce en ligne : impacts environnementaux de la logistique, des transports et des déplacements », 2023) : colis de 1 kg livré à domicile ou au cabinet, 0,72 kgCO2e. Retrait en point relais en voiture : 1,65 ; à pied : 0,66. ESTIMÉ (poids) : aucun poids moyen publié ; 1 kg est le premier cas type de l'étude (2 kg : 1,08 kgCO2e ; 15 kg : 7,16). Remplace 1,0 (ratio déduit).";
 
 // Facteurs de TRAITEMENT EN FIN DE VIE des déchets courants (kgCO2e/kg),
 // à ne pas confondre avec la fabrication des produits (déjà captée par le
@@ -350,10 +405,14 @@ export const FE_DASRI = {
 // qui couvrent l'électromédical (règle R3). Remplace 0,19.
 export const FE_GROS_MATERIEL_STANDARD = 0.231;
 // Équipements massifs (plateformes, appareils de rééducation en acier) :
-// SOURCÉ (non publié) — rapport kinéCO2, tableau des immobilisations (sources
-// Decathlon / ADEME) : 0,72 kgCO2e/€. Aucune source publique trouvée ; valeur
-// conservée car plus haute que tous les ratios monétaires ADEME applicables.
-export const FE_GROS_MATERIEL_MASSIF = 0.72;
+// SOURCÉ (indirect) — intensité carbone d'un fabricant-distributeur
+// d'articles de sport (Decathlon, Déclaration de performance extra-financière
+// 2023, p. 30) : 0,67 kgCO2e par € de chiffre d'affaires HT, tous scopes
+// (2022 : 0,75 ; fabrication seule : 0,50). Millésime le plus récent publié
+// (règle R1). Plus haut que les ratios monétaires ADEME applicables
+// (« Produits métalliques » 317, id 43425 ; « Machines et équipements » 273,
+// id 43355). Remplace 0,72 (rapport kinéCO2, non publié).
+export const FE_GROS_MATERIEL_MASSIF = 0.67;
 // SOURCÉ — Base Carbone V23.6, ratio monétaire « Machines et équipements »
 // 2023 : 273 kgCO2e/k€ HT (id 43355). Familles hors santé. Valeur inchangée.
 export const FE_GROS_MATERIEL_BUREAU_INDUSTRIEL = 0.273;
@@ -381,15 +440,15 @@ export const AUTRES_FACTEURS = [
   { groupe: "Achats (ratios monétaires)", label: "Juridique, conseil de gestion", valeur: FE_MONETAIRE.juridique_conseil_gestion, unite: "kgCO2e/€ HT", source: `SOURCÉ — ${BC}, « Services juridiques et comptables / services des sièges sociaux / conseil de gestion » 2023 : 67 kgCO2e/k€, id 43545.` },
   { groupe: "Achats (ratios monétaires)", label: "Informatique, conseil IT", valeur: FE_MONETAIRE.informatique_conseil, unite: "kgCO2e/€ HT", source: `SOURCÉ — ${BC}, « Programmation, conseil IT / services d'information » 2023 : 75 kgCO2e/k€, id 43445.` },
   { groupe: "Achats (ratios monétaires)", label: "Consommables (fournitures, linge, petit matériel)", valeur: FE_MONETAIRE.biens_consommables, unite: "kgCO2e/€ HT", source: `SOURCÉ — ${BC}, « Papier et carton » 2023 : 357 kgCO2e/k€, id 43370. Catégorie précise pour les fournitures administratives, moins pour les consommables de soin (limite assumée).` },
-  { groupe: "Achats (ratios monétaires)", label: "Médicaments (vendus ou prescrits)", valeur: FE_MONETAIRE.medicaments, unite: "kgCO2e/€ HT", source: `SOURCÉ — ${BC}, « Produits pharmaceutiques de base et préparations pharmaceutiques » 2023 : 194 kgCO2e/k€, id 43435. The Shift Project (note technique du 18/04/2023) retenait 500 kgCO2e/k€, valeur antérieure de la même base ADEME : la version la plus récente est retenue (règle R1).` },
+  { groupe: "Achats (ratios monétaires)", label: "Médicaments (vendus ou prescrits)", valeur: FE_MONETAIRE.medicaments, unite: "kgCO2e/€ HT", source: `SOURCÉ — ${BC}, « Produits pharmaceutiques de base et préparations pharmaceutiques » 2023 : 194 kgCO2e/k€, id 43435. Seul facteur construit sur des données françaises (comptes SDES/INSEE de la branche, euros 2023 hors taxes, incertitude annoncée de 80 %) ; série du même élément en baisse (219 à 194 selon le millésime). The Shift Project (note technique du 18/04/2023) retenait 500 kgCO2e/k€ (id 25019, élément archivé de la même base) : la version la plus récente est retenue (règle R1). Les valeurs étrangères publiées (NHS Angleterre ≈ 0,72 kgCO2e/€ ; Pays-Bas ≈ 1,2, lues de seconde main) reposent sur d'autres prix et d'autres mix. Base de prix à vérifier : le facteur s'applique à des € hors taxes au prix de la branche ; un chiffre d'affaires d'officine au prix public peut le surestimer.` },
   { groupe: "Achats (ratios monétaires)", label: "Actes médicaux prescrits (hors médicaments)", valeur: FE_MONETAIRE.actes_medicaux, unite: "kgCO2e/€ HT", source: `SOURCÉ — ${BC}, « Services de santé humaine » 2023 : 82 kgCO2e/k€, id 43505 (proxy).` },
   { groupe: "Fret", label: "Colis livré", valeur: FE_FRET_COLIS, unite: "kgCO2e/colis", source: FE_FRET_COLIS_SOURCE },
   { groupe: "Immobilisations", label: "Matériel médical standard", valeur: FE_GROS_MATERIEL_STANDARD, unite: "kgCO2e/€ HT", source: `SOURCÉ — ${BC}, « Autres produits manufacturés » 2023 : 231 kgCO2e/k€, id 43365 (comprend les instruments et fournitures à usage médical) ; valeur la plus haute face au rapport kinéCO2 (0,19) et aux produits électroniques et optiques 2023 (216, id 43420).` },
-  { groupe: "Immobilisations", label: "Équipements massifs (plateformes, appareils en acier)", valeur: FE_GROS_MATERIEL_MASSIF, unite: "kgCO2e/€ HT", source: "SOURCÉ (non publié) — rapport kinéCO2, tableau des immobilisations (sources Decathlon / ADEME). Aucune source publique trouvée ; conservé car plus haut que tous les ratios monétaires ADEME applicables." },
+  { groupe: "Immobilisations", label: "Équipements massifs (plateformes, appareils en acier)", valeur: FE_GROS_MATERIEL_MASSIF, unite: "kgCO2e/€ HT", source: "SOURCÉ (indirect) — Decathlon, Déclaration de performance extra-financière 2023, p. 30 : 0,67 kgCO2e par € de chiffre d'affaires HT, tous scopes (2022 : 0,75 ; fabrication seule : 0,50), millésime le plus récent publié (règle R1). Intensité d'un fabricant-distributeur d'articles de sport, appliquée faute de facteur propre aux appareils de rééducation ; plus haute que les ratios ADEME « Produits métalliques » (0,317, id 43425) et « Machines et équipements » (0,273, id 43355). Remplace 0,72 (rapport kinéCO2, non publié)." },
   { groupe: "Immobilisations", label: "Machines et équipements (familles hors santé)", valeur: FE_GROS_MATERIEL_BUREAU_INDUSTRIEL, unite: "kgCO2e/€ HT", source: `SOURCÉ — ${BC}, « Machines et équipements » 2023 : 273 kgCO2e/k€, id 43355.` },
   { groupe: "Immobilisations", label: "Mobilier", valeur: FE_MOBILIER, unite: "kgCO2e/€ HT", source: `SOURCÉ — ${BC}, « Meubles » 2023 : 231 kgCO2e/k€, id 43360 (millésime le plus récent, règle R1).` },
   { groupe: "Immobilisations", label: "Durée d'amortissement par défaut", valeur: DUREE_AMORTISSEMENT_ANS, unite: "ans", source: "ESTIMÉ (convention) — durée par défaut du rapport kinéCO2 (tableau 7) ; aucune convention publiée par l'ADEME ou l'Association pour la transition Bas Carbone trouvée ; la méthode BEGES v5 ne fixe pas de durée." },
-  { groupe: "Local", label: "Consommation par défaut (sans facture), par m² : santé / bureaux / commerces / moyenne", valeur: `${RATIOS_ENERGIE_PAR_ACTIVITE.sante.chauffage}+${RATIOS_ENERGIE_PAR_ACTIVITE.sante.elec} / ${RATIOS_ENERGIE_PAR_ACTIVITE.juridique.chauffage}+${RATIOS_ENERGIE_PAR_ACTIVITE.juridique.elec} / ${RATIOS_ENERGIE_PAR_ACTIVITE.artisanat_art.chauffage}+${RATIOS_ENERGIE_PAR_ACTIVITE.artisanat_art.elec} / ${RATIOS_ENERGIE_PAR_ACTIVITE.autre.chauffage}+${RATIOS_ENERGIE_PAR_ACTIVITE.autre.elec}`, unite: "kWh/m²/an (chauffage + électricité)", source: "SOURCÉ (seconde main) — ADEME/CEREN, Bâtiment - Chiffres clés 2012, via le classeur kinéCO2. La Base Carbone V23.6 publie des consommations du même type (« Tertiaire, santé », ids 23753 à 23764, données 2014) avec un autre découpage : à recouper." },
+  { groupe: "Local", label: "Consommation par défaut (sans facture), par m² : santé / bureaux / commerces / moyenne", valeur: `${RATIOS_ENERGIE_PAR_ACTIVITE.sante.chauffage}+${RATIOS_ENERGIE_PAR_ACTIVITE.sante.elec} / ${RATIOS_ENERGIE_PAR_ACTIVITE.juridique.chauffage}+${RATIOS_ENERGIE_PAR_ACTIVITE.juridique.elec} / ${RATIOS_ENERGIE_PAR_ACTIVITE.artisanat_art.chauffage}+${RATIOS_ENERGIE_PAR_ACTIVITE.artisanat_art.elec} / ${RATIOS_ENERGIE_PAR_ACTIVITE.autre.chauffage}+${RATIOS_ENERGIE_PAR_ACTIVITE.autre.elec}`, unite: "kWh/m²/an (chauffage + autres usages)", source: RATIOS_ENERGIE_SOURCE },
 ];
 
 /* ----------------------------------------------------------------------------
@@ -677,7 +736,7 @@ export const ACTIONS = [
     poste: "deplacements_pro",
     titre: "Basculer les trajets courts (< 5 km) vers le vélo ou le vélo à assistance électrique",
     source:
-      "SOURCÉ (gain unitaire) — vélo à assistance électrique 0,011 kgCO2e/km contre voiture thermique 0,256 (Base Carbone V23.6, ids 28331 et 43791) : −96 % par km basculé. ESTIMÉ (part adressable) : plafond de 50 % du poste, la part des kilomètres en trajets courts n'étant pas connue.",
+      "SOURCÉ (gain unitaire) — vélo à assistance électrique 0,011 kgCO2e/km contre voiture thermique 0,256 (Base Carbone V23.6, ids 28331 et 43791) : −96 % par km basculé. ESTIMÉ (part adressable) : plafond de 50 % du poste, signalé. Repères consultés : un tiers des actifs travaillent à 5 km ou moins, et 60 % d'entre eux y vont en voiture (Insee Première n° 1835, janvier 2021) ; les déplacements de moins de 10 km font 71 % des déplacements mais moins de 13 % des kilomètres (SDES, enquête mobilité des personnes 2019, publication du 29/08/2024). Aucune part des kilomètres sous 5 km n'est publiée : 50 % est élevé, sauf pour une activité très locale (visites à domicile).",
     hasPct: true,
     defaultPct: 30,
     maxReduction: 0.5,
@@ -690,7 +749,7 @@ export const ACTIONS = [
     poste: "deplacements_pro",
     titre: "Covoiturer ou mutualiser les trajets vers congrès, formations et réunions professionnelles",
     source:
-      "SOURCÉ (calcul exact) — à deux par voiture, les émissions par personne d'un trajet sont divisées par deux (−50 %). ESTIMÉ (part adressable) : plafond de 25 % du poste (la moitié des trajets professionnels covoiturables).",
+      "SOURCÉ (calcul exact) — à deux par voiture, les émissions par personne d'un trajet sont divisées par deux (−50 %). ESTIMÉ (part adressable) : plafond de 25 % du poste, signalé. Repère consulté : 67 % des déplacements professionnels en voiture de longue distance se font seul au volant (SDES-CGDD, Datalab Essentiel « Se déplacer en voiture : seul, à plusieurs ou en covoiturage ? », juillet 2022) ; c'est un potentiel, pas un taux atteignable mesuré.",
     hasPct: true,
     defaultPct: 40,
     maxReduction: 0.25,
@@ -716,7 +775,7 @@ export const ACTIONS = [
     poste: "deplacements_pro",
     titre: "Remplacer une partie des déplacements pour congrès/formations par de la visioconférence",
     source:
-      "SOURCÉ (gain unitaire) — Tao Y. et al., « Trend towards virtual and hybrid conferences may be an effective climate change mitigation strategy », Nature Communications 12, 2021 (doi:10.1038/s41467-021-27251-2) : un congrès virtuel réduit l'empreinte carbone de 94 %. ESTIMÉ (part adressable) : au plus 40 % des déplacements de congrès/formation remplaçables, soit 0,94 × 0,4 ≈ 37 % du poste. Remplace 40 % (estimé).",
+      "SOURCÉ (gain unitaire) — Tao Y. et al., « Trend towards virtual and hybrid conferences may be an effective climate change mitigation strategy », Nature Communications 12, 2021 (doi:10.1038/s41467-021-27251-2) : un congrès virtuel réduit l'empreinte carbone de 94 %. ESTIMÉ (part adressable) : au plus 40 % des déplacements de congrès/formation remplaçables, soit 0,94 × 0,4 ≈ 37 % du poste, signalé. La même étude donne environ −2/3 pour un congrès hybride avec la moitié des participants à distance (lu de seconde main) : ordre de grandeur cohérent, pas une mesure de la part remplaçable.",
     hasPct: true,
     defaultPct: 25,
     maxReduction: 0.37,
@@ -732,7 +791,7 @@ export const ACTIONS = [
     poste: "deplacements_patientele",
     titre: "Développer la téléconsultation ou les rendez-vous à distance quand c'est pertinent",
     source:
-      "SOURCÉ (gain unitaire) — Holmner Å. et al., « Carbon footprint of telemedicine solutions », PLoS One 9(9), 2014 (doi:10.1371/journal.pone.0105040) : une téléconsultation émet 40 à 70 fois moins qu'une visite physique, soit environ −97,5 % du déplacement évité. ESTIMÉ (part adressable) : au plus 30 % des consultations réalisables à distance, soit 0,975 × 0,3 ≈ 29 % du poste. Remplace 30 % (estimé).",
+      "SOURCÉ (gain unitaire) — Holmner Å. et al., « Carbon footprint of telemedicine solutions », PLoS One 9(9), 2014 (doi:10.1371/journal.pone.0105040) : une téléconsultation émet 40 à 70 fois moins qu'une visite physique, soit environ −97,5 % du déplacement évité. Part adressable : 29 % (0,975 × 0,3) est un plafond de potentiel, signalé. Pratique réelle : 2,2 % des consultations des généralistes libéraux en téléconsultation en 2023 (3,7 % en 2021 ; DREES, Études et Résultats n° 1366, février 2026). Potentiel : 51 % des consultations vidéo jugées aussi adaptées ou mieux que le présentiel par les généralistes norvégiens (Johnsen T. M. et al., J Med Internet Res, 2021), sur des consultations déjà orientées vers la vidéo.",
     hasPct: true,
     defaultPct: 20,
     maxReduction: 0.29,
@@ -745,10 +804,10 @@ export const ACTIONS = [
     poste: "deplacements_patientele",
     titre: "Inciter la patientèle/clientèle aux mobilités actives (marche, vélo)",
     source:
-      "SOURCÉ (gain unitaire) — marche 0 et vélo 0,006 kgCO2e/km contre voiture thermique 0,256 (voir FE_TRANSPORT) : −98 à −100 % par trajet reporté. ESTIMÉ (part adressable) : plafond de 30 % du poste.",
+      "SOURCÉ — méta-analyse de 141 études : les mesures douces (plans de mobilité, conseil, campagnes) font passer la part des déplacements sans voiture de 39 % à 46 %, soit −11,5 % des trajets en voiture (Möser G., Bamberg S., Journal of Environmental Psychology 28(1), 2008, p. 10-26, lu via son résumé). Meilleurs cas : −18 % de trajets en voiture chez les employeurs britanniques les plus avancés (Cairns S. et al., Transportation Research Part A 44(7), 2010). Revue récente : effet moyen faible et très variable (Okraszewska R. et al., Transportation Research Part D 131, 2024). Borne basse retenue (règle R3) : 11,5 % du poste, chaque trajet reporté vers la marche ou le vélo évitant 98 à 100 % de ses émissions. Ces études portent sur des salariés, pas sur une patientèle. Remplace 30 % (estimé).",
     hasPct: true,
     defaultPct: 20,
-    maxReduction: 0.3,
+    maxReduction: 0.115,
     coutKg: "≈ 0 €/kgCO2e évité (communication)",
     coutNet: { min: 0, max: 0, calcul: "Affichage et conseil, sans dépense notable." },
     coutAbattement: "Non publié.",
@@ -758,7 +817,7 @@ export const ACTIONS = [
     poste: "deplacements_patientele",
     titre: "Faciliter le covoiturage pour la patientèle/clientèle",
     source:
-      "SOURCÉ (calcul exact) — à deux par voiture, les émissions par personne sont divisées par deux (−50 %). ESTIMÉ (part adressable) : plafond de 25 % du poste.",
+      "SOURCÉ (calcul exact) — à deux par voiture, les émissions par personne sont divisées par deux (−50 %). ESTIMÉ (part adressable) : plafond de 25 % du poste, signalé et probablement optimiste. Repères consultés : 50 % des déplacements en voiture pour se soigner ou faire une démarche se font seul, et le covoiturage déclaré ne représente que 4 % des déplacements des passagers en mobilité locale (SDES-CGDD, juillet 2022) ; le plan national vise un triplement (Cerema, « Covoiturage : tous à bord », 2023). Aucun taux atteignable mesuré.",
     hasPct: true,
     defaultPct: 25,
     maxReduction: 0.25,
@@ -771,10 +830,10 @@ export const ACTIONS = [
     poste: "deplacements_patientele",
     titre: "Afficher en salle d'attente une carte isochrone comparant marche/vélo et voiture autour du cabinet",
     source:
-      'ESTIMÉ — outil de visualisation concret pour appuyer l\'action « inciter aux mobilités actives » : <a href="../iso/" target="_blank" rel="noopener">La carte du sans-voiture</a>, un autre outil Lib&CO2, génère gratuitement une carte des zones plus rapidement accessibles à pied, à vélo ou en vélo électrique qu\'en voiture autour de votre cabinet — calculée sur le vrai réseau de rues et le relief réel, pas à vol d\'oiseau. Effet non chiffré par une étude ; estimé par analogie avec les actions de communication déjà présentes.',
+      "ESTIMÉ — outil de visualisation concret pour appuyer l'action « inciter aux mobilités actives » : <a href=\"../iso/\" target=\"_blank\" rel=\"noopener\">La carte du sans-voiture</a>, un autre outil Lib&CO2, génère gratuitement une carte des zones plus rapidement accessibles à pied, à vélo ou en vélo électrique qu'en voiture autour de votre cabinet — calculée sur le vrai réseau de rues et le relief réel, pas à vol d'oiseau. Aucune étude ne chiffre l'effet d'un affichage seul. Plafond de 11,5 %, signalé : c'est l'effet moyen de l'ensemble des mesures douces (Möser et Bamberg, 2008), plus intensives qu'une affiche ; borne haute probablement optimiste (effet faible selon Okraszewska et al., 2024). Remplace 12 %.",
     hasPct: true,
     defaultPct: 15,
-    maxReduction: 0.12,
+    maxReduction: 0.115,
     coutKg: "≈ 0 €/kgCO2e évité (carte gratuite, impression)",
     coutNet: { min: 0, max: 0, calcul: "La carte du sans-voiture est gratuite ; seul reste le coût d'impression." },
     coutAbattement: "Non publié.",
@@ -804,8 +863,8 @@ export const ACTIONS = [
     hasPct: false,
     defaultPct: 100,
     maxReduction: 0.5,
-    coutKg: "≈ −0,35 à +0,16 €/kgCO2e évité (−0,35 si la chaudière était à remplacer, avec aides ; +0,16 si elle fonctionnait encore, sans aides)",
-    coutNet: { min: -0.35, max: 0.16, calcul: "Calcul pour un local de 60 m² (ratio santé 128 kWh/m² de chauffage, soit 7 680 kWh de gaz par an) : pompe à chaleur air-eau 15 287 € TTC en moyenne, 9 961 € de reste à charge après aides ; chaudière gaz neuve 8 736 € ; rendement de chauffage d'une chaudière gaz 82 % ; maintenance 200 €/an (PAC) contre 150 €/an (gaz) ; COP saisonnier mesuré 2,9 (ADEME et Enertech, Mesure des performances de 100 PAC air/eau et eau/eau installées en maisons individuelles, octobre 2025 : p. 7, p. 73-74 et tableau 18 p. 155). Amortie sur 17 ans (fiche CEE BAR-TH-171). Gaz à 0,146 €/kWh (CRE), 0,195 €/kWh TTC (EDF, grille Tarif Bleu non résidentiel en vigueur au 1er août 2026, option Base 6 kVA : 13,18 c€/kWh HT + accise 3,062 c€/kWh, TVA 20 % non récupérable pour une activité de soins exonérée). Émissions : gaz 0,243, électricité de chauffage 0,115 kgCO2e/kWh ; 1 617 kgCO2e évités et 695 € économisés par an. Chaudière qui fonctionne encore : −0,04 €/kg avec aides, +0,16 sans. Chaudière à remplacer de toute façon (seul l'écart avec une chaudière neuve compte) : −0,35 €/kg avec aides, −0,16 sans." },
+    coutKg: "≈ −0,30 à +0,60 €/kgCO2e évité (−0,30 si la chaudière était à remplacer, avec aides ; +0,60 si elle fonctionnait encore, sans aides)",
+    coutNet: { min: -0.30, max: 0.60, calcul: "Calcul pour un local de 60 m² (ratio santé 73 kWh/m² de chauffage, OPERAT 2024 et SDES-CEREN, soit 4 380 kWh de gaz par an) : pompe à chaleur air-eau 15 287 € TTC en moyenne, 9 961 € de reste à charge après aides ; chaudière gaz neuve 8 736 € ; rendement de chauffage d'une chaudière gaz 82 % ; maintenance 200 €/an (PAC) contre 150 €/an (gaz) ; COP saisonnier mesuré 2,9 (ADEME et Enertech, Mesure des performances de 100 PAC air/eau et eau/eau installées en maisons individuelles, octobre 2025 : p. 7, p. 73-74 et tableau 18 p. 155). Amortie sur 17 ans (fiche CEE BAR-TH-171). Gaz à 0,146 €/kWh (CRE), 0,195 €/kWh TTC (EDF, grille Tarif Bleu non résidentiel en vigueur au 1er août 2026, option Base 6 kVA : 13,18 c€/kWh HT + accise 3,062 c€/kWh, TVA 20 % non récupérable pour une activité de soins exonérée). Émissions : gaz 0,243, électricité de chauffage 0,115 kgCO2e/kWh ; 922 kgCO2e évités et 396 € d'énergie économisés par an. Chaudière qui fonctionne encore : +0,26 €/kg avec aides, +0,60 sans. Chaudière à remplacer de toute façon (seul l'écart avec une chaudière neuve compte) : −0,30 €/kg avec aides, +0,04 sans. Avec l'ancien ratio (128 kWh/m², 2012), la fourchette était de −0,35 à +0,16." },
     coutAbattement: "DG Trésor / DGEC, « Les coûts d'abattement : euros dépensés par tonne de CO2eq éliminée », septembre 2024, tableau 2 p. 8 (coûts privés, euros 2024, actualisation 7 %) : passage d'une chaudière gaz à une PAC +0,06 €/kg (logement classé F) à +0,15 €/kg (classé D) ; depuis le fioul −0,13 à −0,07 €/kg.",
   },
   {
@@ -872,10 +931,11 @@ export const ACTIONS = [
     poste: "numerique",
     titre: "Limiter le stockage cloud superflu et la vidéo HD par défaut",
     source:
-      "ESTIMÉ — gain non chiffré par une étude. Ordre de grandeur : les centres de données représentent 46 % de l'empreinte du numérique en France (ADEME-Arcep, mise à jour 2025) ; la vidéo en ligne, 20 % des émissions du numérique mondial (The Shift Project, 2019).",
+      "SOURCÉ (calcul) — appliqué à l'usage numérique seul (réseaux et centres de données). Passer la visio de la HD (3 Go/h) à la définition standard (0,7 Go/h) divise ses données par 4,3 (ADEME, modèle publicodes-acv-numerique), soit −77 % ; la visio pèse environ 23 % de l'usage dans les paliers moyen et fort de l'outil : 0,77 × 0,23 ≈ 17 %. Le stockage en ligne pèse moins de 1 % dans les facteurs ADEME. Recoupé : −95 % de l'empreinte de la vidéo en passant de la HD à la définition standard (Obringer R. et al., Resources, Conservation & Recycling 167, 2021). Volumes des paliers estimés (voir FE_NUMERIQUE). Remplace 20 % (estimé).",
+    detailKey: "numUsage",
     hasPct: true,
     defaultPct: 40,
-    maxReduction: 0.2,
+    maxReduction: 0.17,
     coutKg: "≈ 0 €/kgCO2e évité (réglages)",
     coutNet: { min: 0, max: 0, calcul: "Réglages, sans dépense." },
     coutAbattement: "Non publié.",
@@ -901,7 +961,7 @@ export const ACTIONS = [
     poste: "materiel",
     titre: "Réduire les consommables à usage unique au profit de solutions réutilisables",
     source:
-      "SOURCÉ (partiel) — Booth A. et al., « The carbon footprints of single-use and reusable medical devices: a systematic review », BMJ Open 15(12), 2025 : dans 39 études sur 47, le dispositif réutilisable a une empreinte plus faible (ex. blouses chirurgicales −66 %, tenues de bloc −31 %). ESTIMÉ (part adressable) : plafond de 20 % du poste, les articles remplaçables n'en représentant qu'une partie.",
+      "SOURCÉ (partiel) — Booth A. et al., « The carbon footprints of single-use and reusable medical devices: a systematic review », BMJ Open 15(12), 2025 : dans 39 études sur 47, le dispositif réutilisable a une empreinte plus faible (ex. blouses chirurgicales −66 %, tenues de bloc −31 %). ESTIMÉ (part adressable) : plafond de 20 % du poste, signalé, les articles remplaçables n'en représentant qu'une partie (aucune source qualifiée sur cette part, revue du 03/11/2026).",
     hasPct: true,
     defaultPct: 30,
     maxReduction: 0.2,
@@ -915,7 +975,7 @@ export const ACTIONS = [
     poste: "materiel",
     titre: "Choisir des fournisseurs/matières à faible empreinte (écolabels, circuits courts)",
     source:
-      "ESTIMÉ — aucun chiffre publié transposable n'a été trouvé (revue du 06/10/2026).",
+      "ESTIMÉ — aucun chiffre publié transposable n'a été trouvé (revues du 06/10/2026 et du 03/11/2026).",
     hasPct: true,
     defaultPct: 30,
     maxReduction: 0.15,
@@ -960,7 +1020,7 @@ export const ACTIONS = [
     poste: "services",
     titre: "Choisir des prestataires (banque, assurance, comptabilité) engagés bas-carbone",
     source:
-      "ESTIMÉ — les chiffres publiés sur l'empreinte des banques (Oxfam France / Les Amis de la Terre, 2019) portent sur les émissions financées par l'épargne, pas sur l'achat d'un service ; aucun chiffre transposable trouvé.",
+      "ESTIMÉ — les chiffres publiés sur l'empreinte des banques (Oxfam France / Les Amis de la Terre, 2019) portent sur les émissions financées par l'épargne, pas sur l'achat d'un service ; aucun chiffre transposable trouvé (revues du 06/10/2026 et du 03/11/2026).",
     hasPct: true,
     defaultPct: 40,
     maxReduction: 0.15,
@@ -973,7 +1033,7 @@ export const ACTIONS = [
     poste: "services",
     titre: "Dématérialiser les échanges avec les prestataires et réduire le courrier papier",
     source:
-      "ESTIMÉ — non chiffré par une étude pour le courrier professionnel (revue du 06/10/2026).",
+      "ESTIMÉ — non chiffré par une étude pour le courrier professionnel (revues du 06/10/2026 et du 03/11/2026).",
     hasPct: true,
     defaultPct: 50,
     maxReduction: 0.1,
@@ -986,7 +1046,7 @@ export const ACTIONS = [
     poste: "services",
     titre: "Limiter la sous-traitance aux besoins essentiels et privilégier des prestataires locaux",
     source:
-      "ESTIMÉ — non chiffré par une étude (revue du 06/10/2026).",
+      "ESTIMÉ — non chiffré par une étude (revues du 06/10/2026 et du 03/11/2026).",
     hasPct: true,
     defaultPct: 20,
     maxReduction: 0.1,
@@ -999,9 +1059,9 @@ export const ACTIONS = [
   {
     id: "fr1",
     poste: "fret",
-    titre: "Grouper les commandes et éviter les livraisons express",
+    titre: "Grouper les commandes auprès des fournisseurs",
     source:
-      "ESTIMÉ — grouper n commandes en un colis réduit à peu près d'autant le nombre de colis (environ 1 kgCO2e chacun, voir FE_FRET_COLIS). Réserve : la synthèse de l'étude ADEME / ministère de la Transition écologique sur le commerce en ligne (2023) n'a pas pu démontrer d'écart entre livraison standard et express.",
+      "ESTIMÉ — grouper n commandes en un colis réduit à peu près d'autant le nombre de colis (0,72 kgCO2e chacun, voir FE_FRET_COLIS) ; plafond de 30 % du poste, signalé, aucune étude ne mesurant la part de commandes regroupables. La synthèse de l'étude ADEME / ministère de la Transition écologique sur le commerce en ligne (2023) ne démontre pas d'avantage systématique de la livraison standard sur la livraison express : ce volet a été retiré de l'action.",
     hasPct: true,
     defaultPct: 50,
     maxReduction: 0.3,
@@ -1013,12 +1073,12 @@ export const ACTIONS = [
   {
     id: "fr2",
     poste: "fret",
-    titre: "Privilégier les points relais à la livraison à domicile/au cabinet",
+    titre: "Retirer les colis en point relais à pied ou à vélo plutôt que les faire livrer au cabinet",
     source:
-      "SOURCÉ (partiel) — la synthèse de l'étude ADEME / ministère de la Transition écologique sur le commerce en ligne (2023) ne montre pas d'avantage systématique du point relais : il n'y en a que si le colis est retiré à pied, à vélo ou sur un trajet déjà fait. Une étude commanditée par un réseau de points relais (EcoCO2 pour Mondial Relay, 2024) annonce −64 %, non généralisable. Plafond abaissé à 10 % par prudence. Remplace 20 % (estimé).",
+      "SOURCÉ — ADEME, Impact CO2, « Livraison de colis » (étude ADEME / ministère de la Transition écologique sur le commerce en ligne, 2023), colis de 1 kg : retrait en point relais à pied ou à vélo 0,66 kgCO2e contre 0,72 livré au cabinet, soit −9 % ; retrait en voiture (7 km aller-retour) 1,65, soit plus du double. Le gain n'existe donc que si le colis est retiré à pied, à vélo ou sur un trajet déjà fait. Une étude commanditée par un réseau de points relais (EcoCO2 pour Mondial Relay, 2024) annonce −64 %, non généralisable. Remplace 10 % (estimé).",
     hasPct: true,
     defaultPct: 40,
-    maxReduction: 0.1,
+    maxReduction: 0.09,
     coutKg: "négatif (point relais moins cher)",
     coutNet: { min: null, max: null, calcul: "Colissimo 2026, 1 kg : 8,89 € en point retrait contre 9,59 € à domicile (La Poste)." },
     coutSansChiffre: "rentable",

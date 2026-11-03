@@ -30,7 +30,7 @@ import { rendrePiedNavigation } from "../ui-msp.js";
 export function rendreAccueil() {
   return `
   <section class="ecran ecran-accueil">
-    <h2>Bienvenue</h2>
+    <h2>L'empreinte carbone de votre maison de santé.</h2>
     <p class="accueil-texte">Lib&amp;CO2 MSP estime, en ordre de grandeur, l'empreinte carbone annuelle de votre maison de santé pluriprofessionnelle et de chaque praticien qui y exerce. Un seul répondant complète le formulaire pour toute la structure. Comptez environ 15 à 20 minutes si les informations sont sous la main.</p>
     <button data-action="aller-ecran" data-numero="1" class="bouton-principal bouton-large">Commencer</button>
   </section>`;
@@ -47,6 +47,7 @@ export function rendreProfil(etat) {
   <section class="ecran">
     <h2>1. Profil de la structure</h2>
     <p class="aide">Ce bilan est pensé pour être rempli par une seule personne, au nom de l'ensemble de la structure — pas un par praticien.</p>
+    <div class="ligne-double aligne-haut">
     <label>Nom de la MSP (optionnel)
       <input type="text" data-path="structureMSP.nom" value="${echapperHtml(s.nom)}">
     </label>
@@ -55,6 +56,7 @@ export function rendreProfil(etat) {
       <div id="resultats-commune" class="autocomplete-resultats"></div>
       ${s.commune ? `<p class="commune-selectionnee">✓ Commune sélectionnée (code INSEE ${echapperHtml(s.commune)})</p>` : '<p class="aide">Sélectionnez une commune dans la liste de suggestions qui apparaît sous le champ — un nom simplement tapé sans clic sur une suggestion ne sera pas pris en compte.</p>'}
     </label>
+    </div>
     <label>Surface totale de la structure (m²)
       <input type="number" min="0" data-path="structureMSP.surfaceTotale" value="${s.surfaceTotale ?? ""}">
     </label>
@@ -100,15 +102,17 @@ export function rendreLocalBatiment(etat) {
           ${ENERGIES.map((e) => `<option value="${e}" ${l.energieChauffage === e ? "selected" : ""}>${LABELS_ENERGIES[e]}</option>`).join("")}
         </select>
       </label>
-      <p class="aide">Sans consommation réelle saisie ci-dessous, l'énergie est estimée à partir de la surface totale et du ratio ADEME/CEREN "locaux commerciaux" (103 kWh/m²/an chauffage, 130 kWh/m²/an électricité).</p>
+      <p class="aide">Sans consommation réelle saisie ci-dessous, l'énergie est estimée à partir de la surface totale et du ratio ADEME « Santé libérale » (déclarations OPERAT 2024 : 73 kWh/m²/an de chauffage, 99 kWh/m²/an pour les autres usages).</p>
       <details data-details-key="local-conso-reelle">
         <summary><span>Consommation réelle (optionnel, sinon estimation par ratio)</span></summary>
+        <div class="ligne-double">
         <label>Électricité (kWh/an)
           <input type="number" min="0" data-path="structureMSP.local.consoReelle.elec_kWh" value="${l.consoReelle?.elec_kWh ?? ""}">
         </label>
         <label>Chauffage (kWh/an)
           <input type="number" min="0" data-path="structureMSP.local.consoReelle.chauffage_kWh" value="${l.consoReelle?.chauffage_kWh ?? ""}">
         </label>
+        </div>
       </details>
     </div>
     ${rendrePiedNavigation(etat)}
@@ -207,30 +211,30 @@ function rendreCartePraticien(p, i) {
       <button data-action="supprimer-praticien" data-id="${p.id}" class="bouton-danger">Supprimer</button>
     </div>
 
+    <div class="ligne-double">
     <label>Profession
       <select data-path="praticiens.${i}.professionAPL">
         ${PROFESSIONS_APL.map((pr) => `<option value="${pr.valeur ?? ""}" ${p.professionAPL === pr.valeur ? "selected" : ""}>${pr.label}</option>`).join("")}
       </select>
     </label>
+    <label>Surface dédiée (m²)
+      <input type="number" min="0" data-path="praticiens.${i}.surfaceDediee" value="${p.surfaceDediee}">
+    </label>
+    </div>
     <div class="ligne-double">
       <label>Nombre d'actes annuel<input type="number" min="0" data-path="praticiens.${i}.nbActesAnnuel" value="${p.nbActesAnnuel}"></label>
       <label>Part au lieu fixe (%)<input type="number" min="0" max="100" data-path="praticiens.${i}.partLieuFixe" value="${p.partLieuFixe}"></label>
     </div>
-    <label>Surface dédiée (m²)
-      <input type="number" min="0" data-path="praticiens.${i}.surfaceDediee" value="${p.surfaceDediee}">
-    </label>
 
     <h4 class="section-titre">Déplacements</h4>
 
     <div class="sous-carte">
       <p class="sous-carte-titre">Trajet domicile-travail</p>
-      <div class="ligne-double">
+      <div class="ligne-triple">
         <label>Distance (km aller)<input type="number" min="0" data-path="praticiens.${i}.distanceDomicileTravail" value="${p.distanceDomicileTravail}"></label>
         <label>Jours travaillés/semaine<input type="number" min="0" max="7" data-path="praticiens.${i}.joursTravaillesSemaine" value="${p.joursTravaillesSemaine}"></label>
+        <label>Semaines travaillées/an<input type="number" min="0" max="52" data-path="praticiens.${i}.semainesTravailleesAn" value="${p.semainesTravailleesAn}"></label>
       </div>
-      <label>Semaines travaillées/an
-        <input type="number" min="0" max="52" data-path="praticiens.${i}.semainesTravailleesAn" value="${p.semainesTravailleesAn}">
-      </label>
       ${rendreBlocModes(p, i, "modesDomicileTravail", "Modes de transport")}
     </div>
 
@@ -418,16 +422,14 @@ export function rendrePostesMutualises(etat) {
   <section class="ecran">
     <h2>5. Postes mutualisés</h2>
     <p class="alerte">Ces montants doivent couvrir l'ensemble de la structure — additionnez les frais de tous les praticiens et pas seulement les vôtres. Ils seront ensuite réventilés automatiquement vers chaque praticien au prorata de son nombre d'actes annuel.</p>
-    <label>Matériel de secrétariat — montant annuel de consommables (€)
-      <input type="number" min="0" data-path="postesMutualises.materielSecretariat.montantAnnuelConsommables" value="${pm.materielSecretariat.montantAnnuelConsommables}">
-    </label>
     <div class="ligne-double">
+      <label>Matériel de secrétariat — consommables (€/an)<input type="number" min="0" data-path="postesMutualises.materielSecretariat.montantAnnuelConsommables" value="${pm.materielSecretariat.montantAnnuelConsommables}"></label>
       <label>Comptabilité / banque / assurance (€/an)<input type="number" min="0" data-path="postesMutualises.services.comptaBanqueAssurance" value="${pm.services.comptaBanqueAssurance}"></label>
-      <label>Sous-traitance (€/an)<input type="number" min="0" data-path="postesMutualises.services.sousTraitance" value="${pm.services.sousTraitance}"></label>
     </div>
-    <label>Nombre de colis reçus/an
-      <input type="number" min="0" data-path="postesMutualises.fret.nbColisAn" value="${pm.fret.nbColisAn}">
-    </label>
+    <div class="ligne-double">
+      <label>Sous-traitance (€/an)<input type="number" min="0" data-path="postesMutualises.services.sousTraitance" value="${pm.services.sousTraitance}"></label>
+      <label>Nombre de colis reçus/an<input type="number" min="0" data-path="postesMutualises.fret.nbColisAn" value="${pm.fret.nbColisAn}"></label>
+    </div>
 
     <div class="carte">
       <h3 class="carte-titre">Déchets courants de la structure</h3>

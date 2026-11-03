@@ -7,9 +7,9 @@
 import "../../shared/js/styles-dynamiques.js";
 import { initUI } from "./ui.js";
 
-// La bibliothèque de carte Leaflet est chargée depuis unpkg par index.html (avec contrôle d'intégrité)
-// (variable globale L). Si ce chargement échoue (réseau coupé, bloqueur,
-// CDN indisponible), on l'explique à l'utilisateur plutôt que de laisser une
+// La bibliothèque de carte Leaflet est chargée par index.html depuis le site
+// (shared/vendor/leaflet/, avec contrôle d'intégrité ; variable globale L).
+// Si ce chargement échoue (fichier manquant, réseau coupé), on l'explique à l'utilisateur plutôt que de laisser une
 // page vide et une erreur visible seulement dans la console.
 if (typeof window.L === "undefined") {
   const zone = document.getElementById("map");

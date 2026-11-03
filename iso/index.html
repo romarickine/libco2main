@@ -33,26 +33,27 @@
   "publisher": { "@type": "Organization", "name": "Lib&CO2", "url": "https://libco2.fr/" }
 }
 </script>
-<!-- Leaflet depuis unpkg avec contrôle d'intégrité (SRI, empreintes publiées sur leafletjs.com/download, relevées le 03/10/2026).
-     Écart assumé au cahier « aucun CDN tiers » en attendant la copie locale dans shared/vendor/leaflet/. -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous" />
+<!-- Leaflet 1.9.4 hébergé sur le site (shared/vendor/leaflet/, copie du 03/11/2026), avec contrôle
+     d'intégrité : empreintes identiques à celles publiées pour la version officielle. -->
+<link rel="stylesheet" href="../shared/vendor/leaflet/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" />
 <link rel="stylesheet" href="../shared/css/tokens.css" />
 <link rel="stylesheet" href="css/variables.css">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <a class="lien-evitement" href="#layout">Aller au contenu</a>
-<header>
-  <div class="header-title">
-    <a href="../index.html" class="brand-badge" title="Retour à Lib&CO2">🌿 Un outil Lib&amp;CO2</a>
-    <h1>La carte du sans-voiture</h1>
-    <p>Où marcher, pédaler ou rouler en vélo électrique est plus rapide que la voiture — calculé sur le vrai réseau de rues et le relief réel, pas à vol d'oiseau.</p>
+<header class="lc-entete">
+  <a class="lc-entete-logo" href="../"><img width="486" height="100" src="../shared/assets/logo/logo-libco2-recadre.png" alt="Lib&amp;CO2, accueil" /></a>
+  <div class="lc-entete-section">
+    <h1 class="lc-entete-nom">La carte du sans-voiture</h1>
+    <p class="lc-entete-desc">Où la marche et le vélo battent la voiture</p>
   </div>
-  <nav class="header-nav">
-    <a href="../cab/">Lib&amp;CO2 Cab</a>
-    <a href="../msp/">Lib&amp;CO2 MSP</a>
+  <nav class="lc-entete-nav" aria-label="Autres outils">
+    <a href="../cab/">Cab</a>
+    <a href="../msp/">MSP</a>
+    <a href="../blog/">Blog</a>
+    <button id="openMethodology" class="lc-entete-bouton" type="button">Méthodologie et hypothèses</button>
   </nav>
-  <button id="openMethodology" class="methodology-btn">ℹ️ Méthodologie &amp; hypothèses</button>
 </header>
 
 <div class="modal-overlay" id="methodologyOverlay">
@@ -147,8 +148,8 @@
 </div>
 
 <div class="mobile-tabs" id="mobileTabs">
-  <button id="tabFormButton" class="active">📋 Paramètres</button>
-  <button id="tabMapButton">🗺️ Carte</button>
+  <button id="tabFormButton" class="active">Paramètres</button>
+  <button id="tabMapButton">Carte</button>
 </div>
 
 <main id="layout" class="show-sidebar">
@@ -217,7 +218,7 @@
           <option value="print300" selected>Impression A1 — 300 DPI (recommandé)</option>
         </select>
       </div>
-      <button id="exportButton" class="geo-btn st-d3acf5">📥 Télécharger l'image (JPG)</button>
+      <button id="exportButton" class="geo-btn st-d3acf5">Télécharger l'image (JPG)</button>
       <p class="hint" id="exportStatus"></p>
       <p class="hint offre-impression">Besoin d'un tirage grand format (affiche, panneau rigide, bâche ou toile) livré sur place, ou de cartes pour plusieurs sites ? <a data-offre="cartes" href="mailto:libetco2@gmail.com?subject=Lib%26CO2%20-%20cartes%20du%20sans-voiture%20imprim%C3%A9es">Écrivez à Lib&amp;CO2</a> — un premier échange est sans engagement.</p>
     </div>
@@ -239,7 +240,7 @@
   <div id="map"></div>
 </main>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous"></script>
+<script src="../shared/vendor/leaflet/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="></script>
 <script type="module" src="js/main.js"></script>
 <script type="module" src="../shared/js/liens-contact.js"></script>
 </body>

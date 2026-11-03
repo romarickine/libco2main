@@ -40,10 +40,12 @@ import {
 // les modes tarés < 5 mots par mode restent identiques au socle individuel.
 const MOTIF_MSP = "autres_motifs_personnels";
 
-// Ratio énergie local MSP : catégorie ADEME "Commerces" (choix éditorial de Romaric,
-// plutôt que la catégorie "Santé" du socle individuel). Correspond exactement à
-// l'entrée déjà présente dans RATIOS_ENERGIE_PAR_ACTIVITE.artisanat_art (103/130).
-const RATIO_LOCAL_MSP = RATIOS_ENERGIE_PAR_ACTIVITE.artisanat_art;
+// Ratio énergie local MSP : catégorie « Santé libérale » des déclarations
+// OPERAT 2024 de l'ADEME (172 kWh/m²/an, part du chauffage 42,6 % d'après
+// SDES-CEREN, santé humaine) : 73 kWh/m²/an de chauffage + 99 pour les autres
+// usages, comme pour les cabinets de santé dans Cab. Remplace le 03/11/2026
+// la catégorie « Commerce et service de détail » (choix du porteur du projet).
+const RATIO_LOCAL_MSP = RATIOS_ENERGIE_PAR_ACTIVITE.sante;
 
 // ---------------------------------------------------------------------------
 // 1. POSTE LOCAL (énergie + bâtiment)

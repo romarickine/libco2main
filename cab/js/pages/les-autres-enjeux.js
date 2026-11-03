@@ -13,7 +13,6 @@ const ENJEUX = [
 const grille = document.getElementById("grille-enjeux");
 grille.innerHTML = ENJEUX.map((e, i) => `
   <div class="pe-carte" data-i="${i}">
-    <div class="icone">${e.icone}</div>
     <div class="titre">${e.titre}</div>
     <div class="resume">${e.resume}</div>
     <div class="detail">${e.detail}</div>

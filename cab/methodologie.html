@@ -32,6 +32,19 @@
 </head>
 <body>
   <a class="lien-evitement" href="#contenu">Aller au contenu</a>
+  <header class="lc-entete">
+    <a class="lc-entete-logo" href="../"><img width="486" height="100" src="../shared/assets/logo/logo-libco2-recadre.png" alt="Lib&amp;CO2, accueil" /></a>
+    <div class="lc-entete-section">
+      <p class="lc-entete-nom">Méthodologie</p>
+      <p class="lc-entete-desc">Facteurs d'émission et sources</p>
+    </div>
+    <nav class="lc-entete-nav" aria-label="Autres outils">
+      <a href="../cab/">Cab</a>
+      <a href="../msp/">MSP</a>
+      <a href="../iso/">Carte du sans-voiture</a>
+      <a href="../blog/">Blog</a>
+    </nav>
+  </header>
   <main id="contenu" class="page-methodo">
     <nav class="methodo-retours" aria-label="Retour aux outils">
       <a href="index.html" class="lien-retour">‹ Lib&CO2 Cab</a>
@@ -39,7 +52,6 @@
     </nav>
 
     <header class="methodo-hero">
-      <img width="600" height="199" class="methodo-logo" src="../shared/assets/logo/logo-libco2.png" alt="Lib&CO2" />
       <h1>Méthodologie et facteurs d'émission</h1>
       <p>Lib&CO2 Cab (professionnels libéraux) et Lib&CO2 MSP (maisons de santé) utilisent les mêmes facteurs d'émission : deux saisies identiques donnent le même résultat. Cette page en donne la liste complète, avec la source de chaque valeur. Elle est générée à partir du fichier de facteurs de l'outil : ce qui est affiché ici est exactement ce que le calcul utilise.</p>
     </header>
@@ -112,6 +124,17 @@
 
     <section aria-labelledby="t-historique">
       <h2 id="t-historique">Historique des révisions</h2>
+      <h3>3 novembre 2026 — dernières valeurs estimées remplacées par des sources</h3>
+      <ul>
+        <li><strong>Consommation du local par m² (sans facture)</strong> : déclarations OPERAT 2024 de l'ADEME (dispositif Éco Énergie Tertiaire) par activité, partagées entre chauffage et autres usages avec les données SDES-CEREN 2019 par branche. Santé 128 + 71 → 73 + 99 kWh/m²/an ; bureaux 138 + 127 → 57 + 64 ; commerces 103 + 130 → 44 + 76 ; moyenne 120 + 86 → 55 + 75. Les anciennes valeurs dataient de 2012. Limite : OPERAT ne couvre que les bâtiments de 1 000 m² et plus.</li>
+        <li><strong>Réseau de chaleur</strong> : 0,113 → 0,108 kgCO2e/kWh (enquête FEDENE / SNCU, données 2025).</li>
+        <li><strong>Usage numérique</strong> : paliers recalculés avec les facteurs de l'ADEME (courriel, recherche web, données transférées, visioconférence ; réseaux et centres de données seulement, la fabrication et l'électricité des appareils étant comptées ailleurs) : 15 / 40 / 90 → 6 / 22 / 55 kgCO2e/an. Les volumes de chaque palier restent des hypothèses, décrites dans le formulaire.</li>
+        <li><strong>Colis</strong> : 1,0 → 0,72 kgCO2e par colis de 1 kg livré au cabinet (ADEME, Impact CO2, étude 2023 sur le commerce en ligne). Le poids reste une hypothèse.</li>
+        <li><strong>Équipements massifs</strong> : 0,72 → 0,67 kgCO2e/€ (intensité carbone publiée par Decathlon pour 2023), à la place d'une valeur non publiée.</li>
+        <li><strong>Actions</strong> : mobilités actives de la patientèle 30 % → 11,5 % (méta-analyse Möser et Bamberg, 2008) ; affichage de la carte du sans-voiture 12 % → 11,5 % au plus ; vidéo en définition standard 20 % de tout le poste numérique → 17 % de l'usage seul (calcul avec les facteurs ADEME) ; « grouper les commandes » sans le volet « éviter l'express », que l'étude ADEME ne confirme pas. Les autres parts estimées sont conservées, signalées, avec les repères consultés (Insee, SDES, DREES, Cerema).</li>
+        <li>Effet sur un cabinet type (40 m², gaz, usage numérique moyen) : −6 % (santé) à −11 % (bureaux) sur le total, surtout par le local.</li>
+        <li><strong>Lib&amp;CO2 MSP</strong> : le local d'une maison de santé est désormais estimé avec la catégorie « Santé libérale » (73 + 99 kWh/m²/an) au lieu de « Commerce et service de détail » (44 + 76), soit +43 % sur la consommation par défaut.</li>
+      </ul>
       <h3>21 octobre 2026 — prix revus à la source</h3>
       <ul>
         <li>Tous les prix repris d'une source secondaire ont été vérifiés dans le document d'origine : électricité au Tarif Bleu <em>non résidentiel</em>, celui d'un cabinet (grille EDF du 1er août 2026, 0,195 €/kWh TTC) ; carburants 2025 (Insee : gazole 1,64 €/L, SP95-E10 1,70 €/L) ; écart de prix voiture électrique / thermique (baromètre Institut mobilités en transition et C-Ways 2025 : 2 900 à 5 200 €) ; pompe à chaleur (rapport ADEME et Enertech d'octobre 2025, qui donne aussi le coût d'une chaudière gaz neuve, 8 736 €) ; repas végétarien (Observatoire de la restauration collective bio et durable 2020 : −15 % sur le coût des denrées, et non −25 %) ; gaspillage alimentaire (guide ADEME 2017).</li>
@@ -121,7 +144,7 @@
       </ul>
       <h3>6 octobre 2026 — revue complète des sources</h3>
       <ul>
-        <li>Tous les facteurs rattachés à un élément précis de la Base Carbone (identifiant cité) ; les valeurs reprises de seconde main ont été vérifiées à la source quand elle était accessible (exceptions signalées : équipements massifs du rapport kinéCO2, ratios de consommation par m²).</li>
+        <li>Tous les facteurs rattachés à un élément précis de la Base Carbone (identifiant cité) ; les valeurs reprises de seconde main ont été vérifiées à la source quand elle était accessible (exceptions signalées alors : équipements massifs du rapport kinéCO2, ratios de consommation par m², sourcés depuis le 3 novembre 2026).</li>
         <li><strong>Déplacements</strong> : voiture thermique 0,218 → 0,256 kgCO2e/km (motorisation moyenne 2023) ; hybride 0,16 → 0,232 ; deux-roues 0,087 → 0,217 ; bus 0,122 → 0,202 ; TER 0,0313 → 0,0277 ; train grandes lignes 0,003 → 0,0075 ; avion court-courrier 0,225 → 0,289, moyen-courrier 0,185 → 0,236.</li>
         <li><strong>Énergie</strong> : chauffage électrique et pompe à chaleur 0,052 → 0,115 kgCO2e/kWh (facteur hivernal) ; électricité spécifique 0,052 → 0,0519 ; fioul 0,324 → 0,325.</li>
         <li><strong>Déchets</strong> : les flux triés incluent désormais les procédés de recyclage et la combustion des plastiques fossiles (plastique 0,041 → 1,907 kgCO2e/kg ; papier et carton 0,028 → 0,737 ; verre 0,02 → 0,496 ; aluminium 0,11 → 0,311 ; DEEE 0,802 → 1,995).</li>

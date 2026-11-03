@@ -55,7 +55,7 @@
   --interligne-dense: 1.5;
 
   /* Rayons et espacements */
-  --rayon-carte: 14px;
-  --rayon-bouton: 10px;
-  --ombre-carte: 0 6px 18px rgba(27, 43, 38, 0.1);
+  --rayon-carte: var(--lc-rayon-carte);
+  --rayon-bouton: var(--lc-rayon-bouton);
+  --ombre-carte: none; /* cadres plats depuis la refonte du 03/11/2026 */
 }

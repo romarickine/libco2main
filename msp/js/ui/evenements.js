@@ -58,7 +58,7 @@ export function attacherEcouteurs(app) {
       // passer silencieusement une valeur impossible, puis on ramène à 52.
       if (input.dataset.path.endsWith(".semainesTravailleesAn") && valeur > 52) {
         afficherBulle(
-          "👀 Wow, vous travaillez beaucoup sur une année ! Une année ne comporte que 52 semaines — on ramène la valeur à 52.",
+          "Une année ne comporte que 52 semaines — on ramène la valeur à 52.",
         );
         valeur = 52;
         input.value = 52;

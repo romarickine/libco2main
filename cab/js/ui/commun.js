@@ -10,7 +10,9 @@
  * (Découpé de ui.js en septembre 2026 : un fichier par responsabilité.)
  */
 
-// Petites icônes (glyphes unicode sobres, pas de dépendance externe).
+// Pictogrammes des familles et postes. Plus affichés depuis la refonte du
+// 03/11/2026 (les émojis alourdissaient l'interface) ; conservés pour un
+// usage éventuel.
 export const ICONES = {
   sante: "🩺",
   juridique: "⚖️",
@@ -128,4 +130,13 @@ export function lienifier(texte) {
     const href = url.startsWith("http") ? url : `https://${url}`;
     return `<a href="${href}" target="_blank" rel="noopener">${url}</a>`;
   });
+}
+
+/**
+ * Total en cours, à la française : « 7,74 tCO2e/an ».
+ * @param {number} totalT  Total en tCO2e/an.
+ * @returns {string}
+ */
+export function formatTotal(totalT) {
+  return `${fmt(totalT, 2)} tCO2e/an`;
 }

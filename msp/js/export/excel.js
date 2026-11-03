@@ -454,17 +454,17 @@ export function exporterExcel(etat) {
   lignesEnergie.push(
     ligneExcel([
       celluleTexte("Ratio local MSP — chauffage"),
-      celluleNombre(RATIOS_ENERGIE_PAR_ACTIVITE.artisanat_art.chauffage),
+      celluleNombre(RATIOS_ENERGIE_PAR_ACTIVITE.sante.chauffage),
       celluleTexte("kWh/m²/an"),
-      celluleTexte("ADEME/CEREN, catégorie Commerces"),
+      celluleTexte("ADEME, déclarations OPERAT 2024, santé libérale ; part du chauffage SDES-CEREN"),
     ]),
   );
   lignesEnergie.push(
     ligneExcel([
-      celluleTexte("Ratio local MSP — électricité"),
-      celluleNombre(RATIOS_ENERGIE_PAR_ACTIVITE.artisanat_art.elec),
+      celluleTexte("Ratio local MSP — autres usages (électricité)"),
+      celluleNombre(RATIOS_ENERGIE_PAR_ACTIVITE.sante.elec),
       celluleTexte("kWh/m²/an"),
-      celluleTexte("ADEME/CEREN, catégorie Commerces"),
+      celluleTexte("ADEME, déclarations OPERAT 2024, santé libérale ; part du chauffage SDES-CEREN"),
     ]),
   );
   lignesEnergie.push(

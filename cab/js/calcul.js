@@ -53,7 +53,8 @@ export function calculDeplacementsPatientele({ zone, motifId, nbActesAn, partCab
 // Calcule l'empreinte du local professionnel (énergie), y compris un
 // éventuel local déporté. Les ratios de consommation par défaut (à défaut
 // de facture connue) varient selon l'activité de la famille de métier
-// (ADEME/CEREN, Bâtiment - Chiffres clés 2012 : Santé, Bureaux, Commerces...).
+// (ADEME, déclarations OPERAT 2024, partage chauffage SDES-CEREN 2019 : voir
+// RATIOS_ENERGIE_PAR_ACTIVITE).
 // Entrée : data.local, familleId (clé de RATIOS_ENERGIE_PAR_ACTIVITE)
 // Sortie : { elec, chauffage, deporte, total } en kgCO2e/an
 export function calculLocal(l, familleId) {

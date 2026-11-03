@@ -78,7 +78,7 @@ async function genererCanvasAffiche(etat) {
   ctx.fillStyle = "white";
   ctx.textAlign = "left";
   ctx.font = "600 30px Fraunces, Georgia, serif";
-  ctx.fillText("Bilan carbone", texteX, 66);
+  ctx.fillText("Empreinte carbone", texteX, 66);
   ctx.font = "400 18px Inter, sans-serif";
   ctx.fillText(etat.structureMSP.nom || "Maison de santé pluriprofessionnelle", texteX, 98);
   ctx.font = "400 14px Inter, sans-serif";

@@ -24,7 +24,7 @@ h3,
 h4 {
   font-family: var(--police-serif);
   color: var(--couleur-encre);
-  font-weight: 600;
+  font-weight: 700;
   overflow-wrap: break-word;
   word-break: break-word;
 }
@@ -39,43 +39,6 @@ button {
    h1 > h2 (écran) > h3/.carte-titre (carte) > h4/résumé déroulant (sous-section)
    > .sous-titre-bloc > corps de texte (label, 0.88rem) > .aide (texte fin)
    --------------------------------------------------------------------- */
-
-.entete {
-  background: var(--couleur-primaire);
-  color: white;
-  padding: 1.5rem 1.2rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-.entete-logo-fond {
-  flex-shrink: 0;
-  background: white;
-  border-radius: var(--rayon-carte);
-  padding: 0.5rem 0.8rem;
-  display: flex;
-  align-items: center;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
-}
-.entete-logo {
-  display: block;
-  height: 32px;
-  width: auto;
-}
-.entete-textes {
-  min-width: 0;
-}
-.entete h1 {
-  margin: 0 0 0.3rem;
-  font-size: 1.5rem;
-  color: white;
-}
-.sous-titre {
-  margin: 0;
-  opacity: 0.92;
-  font-size: 0.95rem;
-  font-family: var(--police-texte);
-}
 
 /* ---------------------------------------------------------------------
    NAVIGATION — barre de progression fine + pastilles d'étape légères
@@ -96,9 +59,11 @@ button {
 .nav-etapes {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
-  padding: 0.7rem 1.2rem;
-  background: rgba(251, 250, 247, 0.92);
+  align-items: center;
+  gap: 0.6rem;
+  padding: 12px 32px;
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom: 1px solid var(--couleur-bordure-legere);
   backdrop-filter: blur(6px);
   position: sticky;
   top: 0;
@@ -112,7 +77,7 @@ button {
   background: transparent;
   border-radius: 999px;
   padding: 0.35rem 0.7rem 0.35rem 0.35rem;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-family: var(--police-texte);
   color: var(--couleur-discret);
   cursor: pointer;
@@ -121,8 +86,8 @@ button {
     color 0.15s ease;
 }
 .etape.active {
-  background: var(--couleur-primaire-fond);
-  color: var(--couleur-primaire);
+  background: var(--couleur-primaire);
+  color: #fff;
   font-weight: 600;
 }
 .etape:hover:not(.active) {
@@ -136,19 +101,67 @@ button {
   align-items: center;
   justify-content: center;
   font-size: 0.72rem;
-  font-family: var(--police-mono);
-  font-weight: 700;
+  font-family: var(--police-texte);
+  font-weight: 600;
   background: var(--couleur-bordure-legere);
   color: var(--couleur-discret);
   flex-shrink: 0;
 }
 .etape.complete .etape-puce {
-  background: var(--couleur-accent-vert);
-  color: white;
+  background: #cde0f0;
+  color: #004f87;
 }
 .etape.active .etape-puce {
-  background: var(--couleur-primaire);
-  color: white;
+  background: #fff;
+  color: var(--couleur-primaire);
+}
+.nav-etapes-liste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.bloc-total {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.total-en-cours {
+  font-size: 0.85rem;
+  color: var(--couleur-discret);
+  white-space: nowrap;
+}
+.total-en-cours strong {
+  font-size: 1rem;
+  color: var(--couleur-encre);
+}
+.bouton-info {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--couleur-primaire);
+  background: #fff;
+  color: var(--couleur-primaire);
+  font: 700 13px/1 var(--police-texte);
+  cursor: pointer;
+}
+.bouton-info:hover,
+.bouton-info[aria-expanded="true"] {
+  background: var(--couleur-primaire-fond);
+}
+.explication-total {
+  max-width: 720px;
+  margin: 1rem auto 0;
+  padding: 14px 16px;
+  border: 1px solid var(--couleur-bordure);
+  border-radius: 12px;
+  background: var(--lc-fond-bande);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--couleur-texte);
 }
 @media (max-width: 600px) {
   .etape-label {
@@ -162,9 +175,11 @@ button {
   padding: 1.8rem 1.2rem 1rem;
 }
 .ecran h2 {
-  color: var(--couleur-primaire);
+  color: var(--couleur-encre);
   margin-top: 0;
-  font-size: 1.3rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.15;
 }
 
 label {
@@ -180,8 +195,8 @@ label select {
   width: 100%;
   margin-top: 0.4rem;
   padding: 0.65rem 0.8rem;
-  border: 1.5px solid var(--couleur-bordure-legere);
-  border-radius: var(--rayon-bouton);
+  border: 1px solid var(--lc-bordure-champ);
+  border-radius: var(--rayon-champ);
   font-size: 1rem;
   font-family: var(--police-texte);
   font-weight: 400;
@@ -190,6 +205,25 @@ label select {
   transition:
     border-color 0.15s ease,
     background 0.15s ease;
+}
+/* Cases de saisie réduites de moitié pour aérer le formulaire (03/11/2026) :
+   un nombre ou un nom court n'a pas besoin de toute la largeur. Les listes
+   déroulantes prennent la largeur de leur plus long libellé, au moins la moitié
+   de la colonne. */
+label input[type="number"],
+label input[type="text"] {
+  width: 50%;
+  min-width: 150px;
+}
+label select {
+  width: auto;
+  min-width: 50%;
+  max-width: 100%;
+}
+/* Champ de recherche de commune : garde la largeur de sa colonne pour que la
+   saisie et les suggestions restent lisibles. */
+label input#recherche-commune {
+  width: 100%;
 }
 label input:focus,
 label select:focus {
@@ -202,13 +236,33 @@ label select:focus {
 
 .ligne-double {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0 1.2rem;
 }
 .ligne-triple {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 0.6rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 1rem;
+}
+/* Champs d'une même ligne alignés par le bas quand les libellés n'ont pas la
+   même longueur. */
+.ligne-double > label,
+.ligne-triple > label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.ligne-double > label > :is(input, select):last-child,
+.ligne-triple > label > :is(input, select):last-child {
+  margin-top: auto;
+}
+.ligne-double > label > :is(input, select),
+.ligne-triple > label > :is(input, select) {
+  margin-top: 0;
+}
+/* Ligne dont un champ est suivi d'une aide : alignement par le haut. */
+.ligne-double.aligne-haut > label > :is(input, select):last-child {
+  margin-top: 0;
 }
 @media (max-width: 600px) {
   .ligne-double,
@@ -316,8 +370,8 @@ details[open] summary {
 .ligne-materiel input,
 .ligne-materiel select {
   padding: 0.45rem 0.6rem;
-  border: 1.5px solid var(--couleur-bordure-legere);
-  border-radius: var(--rayon-bouton);
+  border: 1px solid var(--lc-bordure-champ);
+  border-radius: var(--rayon-champ);
   font-family: var(--police-texte);
   background: #fdfcfa;
 }
@@ -354,8 +408,8 @@ details[open] summary {
 .ligne-mode-transport select,
 .ligne-mode-transport input {
   padding: 0.45rem 0.6rem;
-  border: 1.5px solid var(--couleur-bordure-legere);
-  border-radius: var(--rayon-bouton);
+  border: 1px solid var(--lc-bordure-champ);
+  border-radius: var(--rayon-champ);
   font-family: var(--police-texte);
   background: #fdfcfa;
 }
@@ -384,7 +438,6 @@ details[open] summary {
   color: white;
   padding: 0.8rem 1.6rem;
   font-size: 1rem;
-  box-shadow: 0 6px 18px rgba(0, 113, 193, 0.28);
 }
 .bouton-principal:hover {
   background: #005a9a;
@@ -399,7 +452,6 @@ details[open] summary {
 }
 .bouton-ajouter-praticien {
   background: var(--couleur-accent-vert);
-  box-shadow: 0 6px 18px rgba(46, 103, 62, 0.28);
   width: 100%;
   margin: 0.4rem 0 1rem;
 }
@@ -435,7 +487,7 @@ details[open] summary {
 
 .autocomplete-resultats {
   border: none;
-  border-radius: var(--rayon-bouton);
+  border-radius: var(--rayon-champ);
   max-height: 200px;
   overflow-y: auto;
   background: var(--couleur-carte);
@@ -519,11 +571,9 @@ th {
   flex: 1;
   padding: 0.85rem;
   text-align: center;
-  box-shadow: 0 4px 16px rgba(22, 35, 32, 0.08);
 }
 .pied-navigation .bouton-principal {
   flex: 2;
-  box-shadow: 0 6px 20px rgba(0, 113, 193, 0.3);
 }
 
 .bouton-large {
@@ -593,7 +643,7 @@ th {
   border: none;
   color: var(--couleur-encre);
   padding: 0.75rem 1rem;
-  border-radius: var(--rayon-bouton);
+  border-radius: var(--rayon-champ);
   font-size: 0.9rem;
   margin-bottom: 1rem;
 }
@@ -610,12 +660,11 @@ th {
 .chiffre-cle {
   flex: 1;
   min-width: 160px;
-  background: linear-gradient(135deg, var(--couleur-primaire) 0%, #005a9a 100%);
+  background: var(--couleur-primaire);
   border-radius: var(--rayon-carte);
   padding: 1.3rem 1.4rem;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 10px 28px rgba(0, 113, 193, 0.25);
 }
 .chiffre-cle-valeur {
   font-family: var(--police-serif);
@@ -748,7 +797,7 @@ th {
 /* ---- Solutions ---- */
 .carte-action {
   border: none;
-  border-radius: var(--rayon-bouton);
+  border-radius: var(--rayon-champ);
   padding: 1rem 1.1rem;
   margin-bottom: 0.8rem;
   background: var(--couleur-fond);
@@ -797,7 +846,7 @@ th {
 }
 .action-curseur {
   background: white;
-  border-radius: var(--rayon-bouton);
+  border-radius: var(--rayon-champ);
   padding: 0.75rem 0.85rem;
   margin: 0.5rem 0;
 }
@@ -815,14 +864,14 @@ th {
 /* Proposition d'accompagnement en fin de pistes d'action (discrète). */
 .carte-accompagnement {
   text-align: center;
-  border-left: 4px solid var(--couleur-primaire);
+  background: var(--lc-fond-bande);
 }
 .carte-accompagnement .bouton-principal {
   display: inline-block;
   text-decoration: none;
 }
 .carte-invitation {
-  background: linear-gradient(135deg, var(--couleur-primaire-fond) 0%, var(--couleur-accent-vert-fond) 100%);
+  background: var(--lc-fond-bande);
   text-align: center;
 }
 .carte-invitation .carte-titre {
@@ -834,15 +883,21 @@ th {
 
 /* ---- Écran d'accueil ---- */
 .ecran-accueil {
-  max-width: 480px;
+  max-width: 720px;
   margin: 3.5rem auto;
-  text-align: center;
 }
 .ecran-accueil h2 {
-  font-size: 1.7rem;
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  line-height: 1.06;
+  margin-bottom: 1.4rem;
+}
+.ecran-accueil .bouton-large {
+  width: auto;
+  padding-left: 2rem;
+  padding-right: 2rem;
 }
 .accueil-texte {
-  font-size: 1.02rem;
+  font-size: 1.15rem;
   line-height: 1.65;
   color: var(--couleur-texte);
   margin-bottom: 2rem;
