@@ -520,3 +520,14 @@ a {
 .fond-carte-alerte button:hover {
   background: var(--moss-dark);
 }
+
+/* Message si la feuille de style de Leaflet n'est pas appliquée (main.js). */
+.alerte-carte {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--danger);
+  background: var(--panel);
+  color: var(--danger);
+  font-family: var(--sans);
+  font-size: 13.5px;
+}

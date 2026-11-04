@@ -21,4 +21,20 @@ if (typeof window.L === "undefined") {
   }
 } else {
   initUI();
+  verifierStylesLeaflet();
+}
+
+// Feuille de style de Leaflet refusée (empreinte d'intégrité différente du
+// fichier en ligne, fichier manquant) : sans elle, les tuiles s'empilent hors
+// du cadre de la carte (constaté le 04/11/2026). On le signale clairement.
+function verifierStylesLeaflet() {
+  const zone = document.getElementById("map");
+  if (!zone || getComputedStyle(zone).overflow !== "visible") return;
+  console.error("Leaflet : feuille de style leaflet.css non appliquée (empreinte integrity ou fichier manquant).");
+  const alerte = document.createElement("p");
+  alerte.setAttribute("role", "alert");
+  alerte.className = "alerte-carte";
+  alerte.textContent =
+    "La carte ne peut pas s\u2019afficher correctement : un fichier de mise en forme n\u2019a pas pu être chargé. Rechargez la page ; si le problème persiste, écrivez-nous.";
+  (document.getElementById("layout") || zone).before(alerte);
 }
