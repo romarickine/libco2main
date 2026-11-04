@@ -450,13 +450,10 @@ details[open] summary {
   box-shadow: none;
   cursor: not-allowed;
 }
+/* Même bleu que les autres boutons de MSP (couleur de l'outil, 03/11/2026). */
 .bouton-ajouter-praticien {
-  background: var(--couleur-accent-vert);
   width: 100%;
   margin: 0.4rem 0 1rem;
-}
-.bouton-ajouter-praticien:hover {
-  background: #24522f;
 }
 .bouton-secondaire {
   background: var(--couleur-primaire-fond);
