@@ -17,7 +17,7 @@ const EARTH_RADIUS = 6371000;
 const SEUIL_RUE_CALME_KMH = 30;
 // Passes de lissage des altitudes BD TOPO® (voir lisserAltitudes) : 1, retenue après
 // comparaison sur 4 sites le 06/10/2026 (docs/validation-lissage-altitudes.md). [Estimé]
-const PASSES_LISSAGE_ALTITUDE = 1;
+export const PASSES_LISSAGE_ALTITUDE = 1;
 // En contexte urbain : au-delà de cette vitesse, voie rapide, sens unique maintenu pour le vélo (seuil de cadrage, non sourcé).
 const SEUIL_VOIE_RAPIDE_URBAINE_KMH = 50;
 /**
@@ -560,40 +560,14 @@ export function sensUniqueApplique(edge, mode, urbain = false) {
 export function buildAdjacency(graph, elevations, mode, nodeDegrees, nodeIncidentEdges, { urbain = false } = {}) {
   const adjacency = new Map();
   const junctionDelay = JUNCTION_DELAY_SECONDS[mode] || 0;
-  const otherEndpoint = (e, nodeId) => (e.from === nodeId ? e.to : e.from);
+  const couts = {};
   const addDirected = (from, to, cost, length, edge) => {
     if (!adjacency.has(from)) {
       adjacency.set(from, []);
     }
-    // Une pénalité n'est comptée que si une AUTRE route de hiérarchie
-    // comparable CROISE réellement la trajectoire à ce nœud (vrai carrefour à
-    // négocier) — ni quand toutes les autres sont nettement moins importantes
-    // (priorité évidente), ni quand l'unique route de rang comparable est en
-    // fait le prolongement tout droit du même itinéraire (le tronçon suivant
-    // d'une route continue a toujours le même rang que celui qu'on vient de
-    // parcourir, donc toujours "comparable" à tort si on ne regarde pas aussi
-    // la direction).
     let delay = 0;
-    if ((nodeDegrees.get(to) || 0) >= 3) {
-      const arrivingRank = edgeRank(edge);
-      const [fromLon, fromLat] = graph.nodeCoords.get(from);
-      const [toLon, toLat] = graph.nodeCoords.get(to);
-      const arrivalBearing = bearingRad(fromLon, fromLat, toLon, toLat);
-      const others = nodeIncidentEdges.get(to) || [];
-      const hasComparable = others.some((other) => {
-        if (other === edge) {
-          return false;
-        }
-        const [otherLon, otherLat] = graph.nodeCoords.get(otherEndpoint(other, to));
-        const otherBearing = bearingRad(toLon, toLat, otherLon, otherLat);
-        if (angleDiffRad(arrivalBearing, otherBearing) < STRAIGHT_THROUGH_TOLERANCE_RAD) {
-          return false;
-        } // prolongement tout droit, pas un croisement
-        return edgeRank(other) <= arrivingRank + JUNCTION_RANK_THRESHOLD;
-      });
-      if (hasComparable) {
-        delay = junctionDelay;
-      }
+    if ((nodeDegrees.get(to) || 0) >= 3 && croisementComparable(graph, edge, from, to, nodeIncidentEdges)) {
+      delay = junctionDelay;
     }
     adjacency.get(from).push({ to, cost: cost + delay, length, delay });
   };
@@ -601,48 +575,97 @@ export function buildAdjacency(graph, elevations, mode, nodeDegrees, nodeInciden
     if (!isEdgeUsable(edge, mode)) {
       continue;
     }
-    const elevA = elevations.get(edge.from) ?? 0;
-    const elevB = elevations.get(edge.to) ?? 0;
-    // Plafonnée à ±35% : au-delà, c'est presque toujours une anomalie de
-    // données (décalage d'altimétrie, valeur aberrante) plutôt qu'une vraie
-    // pente de rue — sans ce garde-fou, une seule valeur d'altitude fausse
-    // peut réduire la vitesse calculée à quasi zéro sur les arêtes voisines et
-    // effondrer tout le calcul (zones réduites à quelques hexagones).
-    const rawGrade = (elevB - elevA) / edge.length;
-    const grade = Math.max(-0.35, Math.min(0.35, rawGrade));
-
-    let costForward, costBackward;
-    if (mode === "car") {
-      const speedKmh = edge.vitesse || BDTOPO_DEFAULT_SPEED[edge.nature] || BDTOPO_DEFAULT_SPEED_FALLBACK;
-      const cost = edge.length / ((speedKmh * 1000) / 3600);
-      costForward = cost;
-      costBackward = cost;
-    } else if (mode === "walk") {
-      const factor = surfaceFactor(edge.nature, "walk");
-      costForward = edge.length / ((toblerWalkingSpeed(grade) * factor * 1000) / 3600);
-      costBackward = edge.length / ((toblerWalkingSpeed(-grade) * factor * 1000) / 3600);
-    } else {
-      const isElectric = mode === "ebike";
-      const factor = surfaceFactor(edge.nature, mode);
-      costForward = edge.length / ((parkinRotheramCyclingSpeed(grade, isElectric) * factor * 1000) / 3600);
-      costBackward = edge.length / ((parkinRotheramCyclingSpeed(-grade, isElectric) * factor * 1000) / 3600);
+    coutsArete(edge, penteArete(edge, elevations), mode, urbain, couts);
+    if (!couts.backwardOnly) {
+      addDirected(edge.from, edge.to, couts.costForward, edge.length, edge);
     }
-
-    // Le sens de circulation (SENS) de la BD TOPO® est défini pour les
-    // véhicules légers. Il s'applique à la voiture et, depuis le 01/10/2026,
-    // au vélo et au VAE (voir sensUniqueApplique) ; la marche reste
-    // bidirectionnelle sur chaque tronçon.
-    const oneWay = sensUniqueApplique(edge, mode, urbain);
-    const forwardOnly = oneWay && edge.sens === "Sens direct";
-    const backwardOnly = oneWay && edge.sens === "Sens inverse";
-    if (!backwardOnly) {
-      addDirected(edge.from, edge.to, costForward, edge.length, edge);
-    }
-    if (!forwardOnly) {
-      addDirected(edge.to, edge.from, costBackward, edge.length, edge);
+    if (!couts.forwardOnly) {
+      addDirected(edge.to, edge.from, couts.costBackward, edge.length, edge);
     }
   }
   return adjacency;
+}
+
+/** Pénalité de carrefour d'un mode (secondes). */
+export function delaiCarrefour(mode) {
+  return JUNCTION_DELAY_SECONDS[mode] || 0;
+}
+
+/**
+ * Pente d'un tronçon (de `from` vers `to`), plafonnée à ±35% : au-delà, c'est
+ * presque toujours une anomalie de données (décalage d'altimétrie, valeur
+ * aberrante) plutôt qu'une vraie pente de rue — sans ce garde-fou, une seule
+ * valeur d'altitude fausse peut réduire la vitesse calculée à quasi zéro sur
+ * les arêtes voisines et effondrer tout le calcul (zones réduites à quelques
+ * hexagones). Indépendante du mode : calculée une fois par tronçon.
+ */
+export function penteArete(edge, elevations) {
+  const elevA = elevations.get(edge.from) ?? 0;
+  const elevB = elevations.get(edge.to) ?? 0;
+  const rawGrade = (elevB - elevA) / edge.length;
+  return Math.max(-0.35, Math.min(0.35, rawGrade));
+}
+
+/**
+ * Coûts (secondes) d'un tronçon praticable dans chaque sens pour un mode, et
+ * sens interdits. Écrit dans `out` (réutilisé, pour ne pas créer un objet par
+ * tronçon) : { costForward, costBackward, forwardOnly, backwardOnly }.
+ */
+export function coutsArete(edge, grade, mode, urbain, out = {}) {
+  if (mode === "car") {
+    const speedKmh = edge.vitesse || BDTOPO_DEFAULT_SPEED[edge.nature] || BDTOPO_DEFAULT_SPEED_FALLBACK;
+    const cost = edge.length / ((speedKmh * 1000) / 3600);
+    out.costForward = cost;
+    out.costBackward = cost;
+  } else if (mode === "walk") {
+    const factor = surfaceFactor(edge.nature, "walk");
+    out.costForward = edge.length / ((toblerWalkingSpeed(grade) * factor * 1000) / 3600);
+    out.costBackward = edge.length / ((toblerWalkingSpeed(-grade) * factor * 1000) / 3600);
+  } else {
+    const isElectric = mode === "ebike";
+    const factor = surfaceFactor(edge.nature, mode);
+    out.costForward = edge.length / ((parkinRotheramCyclingSpeed(grade, isElectric) * factor * 1000) / 3600);
+    out.costBackward = edge.length / ((parkinRotheramCyclingSpeed(-grade, isElectric) * factor * 1000) / 3600);
+  }
+  // Le sens de circulation (SENS) de la BD TOPO® est défini pour les
+  // véhicules légers. Il s'applique à la voiture et, depuis le 01/10/2026,
+  // au vélo et au VAE (voir sensUniqueApplique) ; la marche reste
+  // bidirectionnelle sur chaque tronçon.
+  const oneWay = sensUniqueApplique(edge, mode, urbain);
+  out.forwardOnly = oneWay && edge.sens === "Sens direct";
+  out.backwardOnly = oneWay && edge.sens === "Sens inverse";
+  return out;
+}
+
+/**
+ * Une pénalité de carrefour n'est comptée, en arrivant au nœud `to` par
+ * `edge` depuis `from`, que si une AUTRE route de hiérarchie comparable CROISE
+ * réellement la trajectoire à ce nœud (vrai carrefour à négocier) — ni quand
+ * toutes les autres sont nettement moins importantes (priorité évidente), ni
+ * quand l'unique route de rang comparable est en fait le prolongement tout
+ * droit du même itinéraire (le tronçon suivant d'une route continue a
+ * toujours le même rang que celui qu'on vient de parcourir, donc toujours
+ * "comparable" à tort si on ne regarde pas aussi la direction). Indépendant
+ * du mode (seule la durée de la pénalité en dépend) : le moteur sur tableaux
+ * (moteur-csr.js) le calcule une fois par tronçon et par sens.
+ */
+export function croisementComparable(graph, edge, from, to, nodeIncidentEdges) {
+  const arrivingRank = edgeRank(edge);
+  const [fromLon, fromLat] = graph.nodeCoords.get(from);
+  const [toLon, toLat] = graph.nodeCoords.get(to);
+  const arrivalBearing = bearingRad(fromLon, fromLat, toLon, toLat);
+  const others = nodeIncidentEdges.get(to) || [];
+  return others.some((other) => {
+    if (other === edge) {
+      return false;
+    }
+    const [otherLon, otherLat] = graph.nodeCoords.get(other.from === to ? other.to : other.from);
+    const otherBearing = bearingRad(toLon, toLat, otherLon, otherLat);
+    if (angleDiffRad(arrivalBearing, otherBearing) < STRAIGHT_THROUGH_TOLERANCE_RAD) {
+      return false;
+    } // prolongement tout droit, pas un croisement
+    return edgeRank(other) <= arrivingRank + JUNCTION_RANK_THRESHOLD;
+  });
 }
 
 /**

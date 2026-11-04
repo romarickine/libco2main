@@ -47,6 +47,12 @@ export const DELAY_CAR_MIN_RURAL = 4;
 //    tous les deux 14 km alors que les zones intermédiaires en restent très
 //    en-deçà — c'est le filet de sécurité ci-dessous qui les couvre, pas le
 //    choix du rayon initial.
+//    - très dense (≥300, ex. Paris 1er 311, relevé du 04/11/2026 : la zone VAE
+//      touchait le bord à 11,5 km et le calcul était entièrement refait à
+//      15 km, 139 s perdues sur 306) : directement NETWORK_RADIUS_MAX_M. Seuil
+//      [Estimé] placé au-dessus de Lyon Croix-Rousse (287, qui tient en
+//      11,34 km) ; Paris République (217) reste au palier dense et passe par
+//      le filet de sécurité.
 //
 // 2) Si ce premier essai ne suffit pas à couvrir entièrement une zone
 //    (marche/vélo/VAE tronquée en bord de rayon, ou téléchargement du
@@ -55,6 +61,7 @@ export const DELAY_CAR_MIN_RURAL = 4;
 //    garantit un résultat complet même quand la sonde sous-estime le rayon
 //    nécessaire.
 export const NETWORK_RADIUS_PROBE_M = 1000;
+export const RADIUS_TIER_VERY_DENSE_MIN_JUNCTIONS = 300;
 export const RADIUS_TIER_DENSE_MIN_JUNCTIONS = 150;
 export const RADIUS_TIER_DENSE_M = 11500;
 export const RADIUS_TIER_INTERMEDIATE_MIN_JUNCTIONS = 30;

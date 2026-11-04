@@ -1,3 +1,4 @@
+import { lireCache, ecrireCache } from "./cache-tuiles.js";
 // ==========================================================================
 // Accès réseau : réseau routier BD TOPO IGN (WFS, par lot), altimétrie IGN
 // (par lot), géocodage IGN
@@ -47,7 +48,10 @@ async function enParallele(taches, max) {
 // Requêtes simultanées au plus [Estimé : assez pour ne pas ralentir, assez peu
 // pour ne pas saturer ; à ajuster après mesure en conditions réelles].
 const WFS_EN_COURS_MAX = 4;
-const ALTI_EN_COURS_MAX = 2;
+// Altimétrie : 4 en cours au plus (une réponse prend 2,6 à 5,4 s pour 4 000
+// points, relevé du 04/11/2026 à Paris) : le débit reste sous
+// ALTI_REQUETES_PAR_SECONDE, donc sous la limite de 5/s.
+const ALTI_EN_COURS_MAX = 4;
 const ALTI_REQUETES_PAR_SECONDE = 4; // 80 % de la limite de 5/s (marge du cahier carto)
 
 const rateLimiter = (() => {
@@ -178,6 +182,12 @@ async function fetchIGNRoadsPage(bbox, pageSize, startIndex, maxAttempts = 6) {
     startIndex;
 
   if (cachePagesWfs.has(url)) return cachePagesWfs.get(url);
+  const garde = await lireCache(url);
+  if (garde) {
+    if (cachePagesWfs.size >= CACHE_PAGES_MAX) cachePagesWfs.delete(cachePagesWfs.keys().next().value);
+    cachePagesWfs.set(url, garde);
+    return garde;
+  }
   let lastError;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await attendrePause("wfs");
@@ -241,6 +251,7 @@ async function fetchIGNRoadsPage(bbox, pageSize, startIndex, maxAttempts = 6) {
     const page = { features: json.features || [], numberMatched: json.numberMatched, url, extrait: rawText.slice(0, 300) };
     if (cachePagesWfs.size >= CACHE_PAGES_MAX) cachePagesWfs.delete(cachePagesWfs.keys().next().value);
     cachePagesWfs.set(url, page);
+    ecrireCache(url, page);
     return page;
   }
   throw new Error(
@@ -313,6 +324,70 @@ async function fetchAllIGNRoadPages(bbox, wfsPageSize, onWaveDone) {
   return { features: allFeatures, last, truncated };
 }
 
+// ---------------------------------------------------------------------------
+// Téléchargement par tuiles fixes (04/11/2026). Une grande emprise demandée
+// d'un bloc oblige le serveur à paginer loin (startIndex 182 400 à Paris :
+// 3 s avant la première réponse, contre 0,6 s pour la première page) et ne
+// se réutilise pas d'une adresse à l'autre. L'emprise est donc découpée selon
+// une grille fixe de TUILE_LON × TUILE_LAT degrés (environ 3 km × 2,8 km),
+// chaque tuile étant rognée au bord de l'emprise : les tuiles intérieures
+// sont les mêmes pour toutes les adresses voisines (cache, voir
+// cache-tuiles.js), et une tuile ne demande qu'une ou deux pages.
+// Même réseau qu'une demande d'un bloc : le WFS renvoie un tronçon dès qu'il
+// touche l'emprise, donc la réunion des morceaux d'une partition donne les
+// mêmes tronçons que l'emprise entière (vérifié le 04/11/2026 sur le vrai
+// service, 6 villes, partition irrégulière 3 × 3 : 0 tronçon en plus ou en
+// moins sur 1 273 à 2 642), doublons retirés par fusionnerTroncons.
+// Mesure du même jour à Paris : tuile de 0,03° × 0,02° (1 500 à 2 600
+// tronçons) servie en 0,15 à 0,35 s.
+// ---------------------------------------------------------------------------
+const TUILE_LON = 0.04;
+const TUILE_LAT = 0.025;
+const TUILES_EN_COURS_MAX = 8; // le débit reste borné par wfsRateLimiter
+
+/** Morceaux (grille fixe rognée à l'emprise) dont la réunion est exactement l'emprise. */
+export function decouperEmprise(e) {
+  const morceaux = [];
+  const i0 = Math.floor(e.minLon / TUILE_LON),
+    i1 = Math.floor(e.maxLon / TUILE_LON);
+  const j0 = Math.floor(e.minLat / TUILE_LAT),
+    j1 = Math.floor(e.maxLat / TUILE_LAT);
+  for (let j = j0; j <= j1; j++) {
+    const minLat = Math.max(e.minLat, j * TUILE_LAT),
+      maxLat = Math.min(e.maxLat, (j + 1) * TUILE_LAT);
+    if (!(maxLat > minLat)) continue;
+    for (let i = i0; i <= i1; i++) {
+      const minLon = Math.max(e.minLon, i * TUILE_LON),
+        maxLon = Math.min(e.maxLon, (i + 1) * TUILE_LON);
+      if (!(maxLon > minLon)) continue;
+      morceaux.push({ minLon, minLat, maxLon, maxLat });
+    }
+  }
+  return morceaux;
+}
+
+/** Tous les tronçons d'une emprise, morceau par morceau (voir decouperEmprise). */
+async function fetchEmpriseParTuiles(emprise, ordreAxes, wfsPageSize, onProgress) {
+  const morceaux = decouperEmprise(emprise);
+  let faits = 0;
+  const resultats = await enParallele(
+    morceaux.map((m) => async () => {
+      const r = await fetchAllIGNRoadPages(texteBbox(m, ordreAxes), wfsPageSize);
+      faits++;
+      if (onProgress) onProgress(faits / morceaux.length);
+      return r;
+    }),
+    TUILES_EN_COURS_MAX,
+  );
+  const features = [];
+  let truncated = false;
+  for (const r of resultats) {
+    for (const f of r.features) features.push(f);
+    truncated = truncated || r.truncated;
+  }
+  return { features, truncated, last: resultats.length ? resultats[resultats.length - 1].last : { url: "", extrait: "" } };
+}
+
 /** Emprise carrée (degrés) d'un rayon autour d'un point. */
 export function empriseCarree(lon, lat, radiusMeters) {
   const dLat = radiusMeters / 111320;
@@ -368,9 +443,13 @@ export async function fetchIGNRoads(lon, lat, radiusMeters, wfsPageSize, onWaveD
   // L'ordre des axes attendu par BBOX avec SRSNAME=EPSG:4326 varie selon les
   // implémentations WFS (lon,lat "GIS classique" vs lat,lon "ISO strict") —
   // on essaie les deux avant d'abandonner, plutôt que de deviner à l'aveugle.
+  // lat,lon d'abord : c'est l'ordre du WFS de l'IGN (relevé du 04/11/2026 :
+  // lon,lat renvoie 0 tronçon, une requête perdue à chaque calcul). Un carré
+  // lat,lon lu comme lon,lat tombe en mer (latitude ≈ 2°) : 0 tronçon, et
+  // l'autre ordre est alors essayé.
   const essais = [];
-  for (const ordreAxes of ["lonlat", "latlon"]) {
-    const essai = await fetchAllIGNRoadPages(texteBbox(emprise, ordreAxes), wfsPageSize, onWaveDone);
+  for (const ordreAxes of ["latlon", "lonlat"]) {
+    const essai = await fetchEmpriseParTuiles(emprise, ordreAxes, wfsPageSize, onWaveDone);
     essais.push(essai);
     if (essai.features.length > 0) {
       const features = fusionnerTroncons(essai.features);
@@ -387,11 +466,11 @@ export async function fetchIGNRoads(lon, lat, radiusMeters, wfsPageSize, onWaveD
 
   throw new Error(
     "Le WFS IGN a répondu sans erreur mais sans aucun tronçon, avec les deux ordres d\u2019axes testés. " +
-      "Essai 1 (lon,lat) : " +
+      "Essai 1 (lat,lon) : " +
       essais[0].last.url +
       " → " +
       essais[0].last.extrait +
-      " | Essai 2 (lat,lon) : " +
+      " | Essai 2 (lon,lat) : " +
       essais[1].last.url +
       " → " +
       essais[1].last.extrait,
@@ -431,7 +510,7 @@ export async function etendreIGNRoads(precedent, lon, lat, radiusMeters, wfsPage
   const listes = [precedent.features];
   let truncated = false;
   for (let i = 0; i < bandes.length; i++) {
-    const r = await fetchAllIGNRoadPages(texteBbox(bandes[i], precedent.ordreAxes), wfsPageSize, (f) => {
+    const r = await fetchEmpriseParTuiles(bandes[i], precedent.ordreAxes, wfsPageSize, (f) => {
       if (onWaveDone) onWaveDone((i + f) / bandes.length);
     });
     listes.push(r.features);
@@ -548,7 +627,13 @@ export async function fetchElevations(pointsDemandes, onChunkDone) {
   // en paramètres d'URL dépasserait largement les limites de longueur d'URL
   // (souvent 2 à 8 Ko selon les navigateurs/serveurs/proxies) — le corps
   // d'une requête POST n'a pas cette contrainte.
-  const chunkSize = 4000;
+  // Lots répartis à parts égales et, s'il y a assez de points (1 000 par lot
+  // au moins), au moins autant de lots que de requêtes simultanées permises :
+  // 6 000 points partent en 4 lots de 1 500 traités ensemble plutôt qu'en un
+  // lot de 4 000 suivi d'un de 2 000. Chaque point reçoit la même altitude,
+  // quel que soit son lot.
+  const nLots = Math.max(Math.ceil(points.length / 4000), Math.min(ALTI_EN_COURS_MAX, Math.ceil(points.length / 1000)));
+  const chunkSize = Math.max(1, Math.ceil(points.length / Math.max(1, nLots)));
   const chunks = [];
   for (let i = 0; i < points.length; i += chunkSize) {
     chunks.push(points.slice(i, i + chunkSize));

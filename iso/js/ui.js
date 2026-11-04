@@ -3,7 +3,8 @@
 // (Leaflet est chargé globalement via <script> dans index.html — pas un
 // module ES6, d'où l'usage direct de la variable globale L.)
 // ==========================================================================
-import { calculerCarte } from "./calcul-carte.js";
+import { calculerCarteArrierePlan } from "./calcul-arriere-plan.js";
+import { creerCoucheTuiles, surveillerFondDeCarte, suivreTailleCarte } from "./fond-carte.js";
 import { geocodeAddress, fetchAddressSuggestions } from "./ign-api.js";
 import { exportMapImage } from "./export-image.js";
 import { echapperHtml } from "../../shared/js/echappement.js";
@@ -29,7 +30,7 @@ function reglagesIlotsDepuisUrl() {
   if (Number.isFinite(poches)) r.pochesVoitureMax = poches;
   return r;
 }
-import { URBAN_CLASSIFICATION_RADIUS_M, findNearestNode, haversineMeters, estimateCarTime } from "./graph.js";
+import { URBAN_CLASSIFICATION_RADIUS_M, haversineMeters } from "./graph.js";
 
 /**
  * Démarre l'interface : carte Leaflet (fonds IGN), formulaire d'adresse avec
@@ -39,15 +40,21 @@ import { URBAN_CLASSIFICATION_RADIUS_M, findNearestNode, haversineMeters, estima
  */
 export function initUI() {
   const map = L.map("map").setView([46.6, 2.2], 6);
-  const planIgn = L.tileLayer(
-    "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}",
+  // Fond IGN : tuiles redemandées en cas d'échec, message si certaines
+  // manquent encore (fond-carte.js). Jeu de tuiles PM_0_19, niveaux 0 à 19
+  // (GetCapabilities du WMTS, 04/11/2026).
+  const CoucheTuiles = creerCoucheTuiles(L);
+  const planIgn = new CoucheTuiles(
+    "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM_0_19&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}",
     { attribution: "&copy; IGN - Géoplateforme", maxZoom: 19 },
   );
-  const satellite = L.tileLayer(
-    "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}",
+  const satellite = new CoucheTuiles(
+    "https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&FORMAT=image/jpeg&TILEMATRIXSET=PM_0_19&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}",
     { attribution: "&copy; IGN - Géoplateforme", maxZoom: 19 },
   );
   planIgn.addTo(map);
+  surveillerFondDeCarte(L, map, [planIgn, satellite]);
+  suivreTailleCarte(map);
   L.control.layers({ "Plan IGN": planIgn, "Satellite (orthophotos IGN)": satellite }).addTo(map);
 
   // Pas de marqueur tant qu'aucun point de départ n'a été choisi (adresse
@@ -266,7 +273,7 @@ export function initUI() {
 
     try {
       const { computation, probeJunctionCount, probeChosenRadiusMeters, usedRadiusMeters, radiusRetried } =
-        await calculerCarte({
+        await calculerCarteArrierePlan({
           lon,
           lat,
           direction,
@@ -461,22 +468,26 @@ export function initUI() {
   // est que l'usager puisse valider en un coup d'œil la cohérence de la carte.
   let diagnosticMarker = null;
   const MODE_LABELS = { Walk: "Marche", Bike: "Vélo", Ebike: "Vélo électrique" };
-  map.on("click", (e) => {
+  map.on("click", async (e) => {
     if (!lastComputation || !lastComputation.diagnostics) {
       document.getElementById("diagnosticOutput").style.display = "block";
       document.getElementById("diagnosticOutput").innerHTML = '<p class="hint">Lancez d’abord un calcul.</p>';
       return;
     }
-    const { graph, carTimes, carDistances, carJunctionDelays, carIndex, modeTimesByKey, modeDefs, nodeDegrees } =
-      lastComputation.diagnostics;
+    const calcul = lastComputation;
     const clickLon = e.latlng.lng,
       clickLat = e.latlng.lat;
-    const nearestNode = findNearestNode(graph, clickLon, clickLat);
-    if (nearestNode == null) {
+    // Données calculées là où se trouve le réseau (worker, voir inspection.js).
+    let info;
+    try {
+      info = await calcul.diagnostics.inspecter(clickLon, clickLat);
+    } catch {
       return;
     }
-    const [nodeLon, nodeLat] = graph.nodeCoords.get(nearestNode);
-    const snapDistance = haversineMeters(clickLon, clickLat, nodeLon, nodeLat);
+    if (!info || calcul !== lastComputation) {
+      return;
+    }
+    const { nodeLon, nodeLat, snapDistance, carDirect, carEffective, carNetworkDistance } = info;
 
     if (diagnosticMarker) {
       map.removeLayer(diagnosticMarker);
@@ -489,16 +500,12 @@ export function initUI() {
     }).addTo(map);
 
     const straightLineFromOrigin = haversineMeters(lastComputation.lon, lastComputation.lat, nodeLon, nodeLat);
-    const carDirect = carTimes.get(nearestNode);
     // Aller-retour : deux trajets, donc deux accès (vélo ou stationnement) et
-    // deux comblements à pied jusqu'au réseau voiture, comme dans le calcul
-    // des zones (facteurTrajets, isochrones.js).
+    // deux comblements à pied jusqu'au réseau voiture (facteurTrajets, isochrones.js).
     const allerRetour = lastComputation.direction === "aller-retour";
-    const facteurTrajets = allerRetour ? 2 : 1;
-    const carEffective = estimateCarTime(carTimes, carIndex, nearestNode, graph.nodeCoords, facteurTrajets);
+    const facteurTrajets = info.facteurTrajets;
     const carIsFallback = carDirect === undefined && carEffective !== Infinity;
     const carIsUnreachable = carEffective === Infinity;
-    const carNetworkDistance = carDistances.get(nearestNode); // distance réellement parcourue par la voiture (le long du chemin le plus rapide trouvé), pas à vol d'oiseau
 
     // --- Affichage principal : temps total porte-à-porte (délai d'accès
     // inclus) pour chaque mode, directement comparable à la voiture, sans
@@ -529,8 +536,8 @@ export function initUI() {
       enTete.map((t) => '<th data-style="text-align:left;">' + t + "</th>").join("") +
       "</tr>";
     const carTotalSeconds = carIsUnreachable ? null : carEffective + delayCarSeconds;
-    for (const mode of modeDefs) {
-      const mt = modeTimesByKey[mode.key].get(nearestNode);
+    for (const mode of info.modes) {
+      const mt = mode.temps;
       const ownDelaySeconds = delayCarSeconds - mode.carPenalty * facteurTrajets;
       if (mt === undefined) {
         html += "<tr><td>" + (MODE_LABELS[mode.key] || mode.key) + '</td><td colspan="3">hors budget-temps</td></tr>';
@@ -580,8 +587,8 @@ export function initUI() {
     let advancedHtml = "";
     advancedHtml +=
       "Degré du nœud (arêtes qui s’y rejoignent) : " +
-      (nodeDegrees.get(nearestNode) || 0) +
-      ((nodeDegrees.get(nearestNode) || 0) >= 3
+      info.degre +
+      (info.degre >= 3
         ? " — compté comme carrefour (pénalité voiture appliquée)"
         : " — pas un carrefour") +
       "<br>";
@@ -599,7 +606,7 @@ export function initUI() {
       if (carNetworkDistance !== undefined) {
         const detourRatio = carNetworkDistance / straightLineFromOrigin;
         const impliedSpeed = carNetworkDistance / 1000 / (carDirect / 3600);
-        const junctionDelaySum = carJunctionDelays.get(nearestNode) || 0;
+        const junctionDelaySum = info.carJunctionDelay;
         const junctionCount = Math.round(junctionDelaySum / 6); // 6 s par carrefour pour la voiture
         const junctionShare = junctionDelaySum / carDirect;
         advancedHtml +=
@@ -636,7 +643,7 @@ export function initUI() {
     // absent. Le "rang" est celui utilisé pour décider si une pénalité de
     // carrefour s'applique — utile pour comprendre pourquoi un croisement
     // compte ou non.
-    const incidentEdges = graph.edges.filter((e) => e.from === nearestNode || e.to === nearestNode).slice(0, 6);
+    const incidentEdges = info.troncons;
     if (incidentEdges.length > 0) {
       advancedHtml += "<br><strong>Tronçons connectés à ce nœud (données brutes)</strong>";
       advancedHtml +=
@@ -656,8 +663,8 @@ export function initUI() {
 
     advancedHtml +=
       '<br><br><table data-style="width:100%;"><tr><th data-style="text-align:left;">Mode</th><th data-style="text-align:left;">Temps</th><th data-style="text-align:left;">Seuil à battre</th><th data-style="text-align:left;">Résultat</th></tr>';
-    for (const mode of modeDefs) {
-      const mt = modeTimesByKey[mode.key].get(nearestNode);
+    for (const mode of info.modes) {
+      const mt = mode.temps;
       const seuil = carEffective === Infinity ? Infinity : carEffective + mode.carPenalty * facteurTrajets;
       const label = mt === undefined ? "hors budget-temps" : (mt / 60).toFixed(1) + " min";
       const seuilLabel = seuil === Infinity ? "—" : (seuil / 60).toFixed(1) + " min";

@@ -8,6 +8,7 @@ import { computeIsochronesNetwork, probeJunctionDensity } from "./isochrones.js"
 import { setWfsMaxRequestsPerSecond } from "./ign-api.js";
 import {
   NETWORK_RADIUS_PROBE_M,
+  RADIUS_TIER_VERY_DENSE_MIN_JUNCTIONS,
   RADIUS_TIER_DENSE_MIN_JUNCTIONS,
   RADIUS_TIER_DENSE_M,
   RADIUS_TIER_INTERMEDIATE_MIN_JUNCTIONS,
@@ -27,6 +28,7 @@ import {
  * @returns {number} rayon en mètres
  */
 export function choisirRayonInitial(junctionCount) {
+  if (junctionCount >= RADIUS_TIER_VERY_DENSE_MIN_JUNCTIONS) return NETWORK_RADIUS_MAX_M;
   if (junctionCount >= RADIUS_TIER_DENSE_MIN_JUNCTIONS) return RADIUS_TIER_DENSE_M;
   if (junctionCount >= RADIUS_TIER_INTERMEDIATE_MIN_JUNCTIONS) return RADIUS_TIER_INTERMEDIATE_M;
   return RADIUS_TIER_SPARSE_M;
@@ -97,7 +99,8 @@ export async function calculerCarte({ lon, lat, modes, direction, ilots, onEtat 
   let radiusRetried = false;
   const reseauPrecedent = computation.reseau;
   delete computation.reseau;
-  if (estTronque(computation)) {
+  // (Déjà au rayon maximal : un nouvel essai donnerait le même résultat.)
+  if (estTronque(computation) && usedRadiusMeters < NETWORK_RADIUS_MAX_M) {
     radiusRetried = true;
     usedRadiusMeters = NETWORK_RADIUS_MAX_M;
     computation = await computeIsochronesNetwork({

@@ -4,25 +4,33 @@
 import { dijkstra } from "./dijkstra.js";
 import {
   parseIGNRoadsToGraph,
-  buildAdjacency,
   transposeAdjacency,
   isEdgeUsable,
   findNearestNode,
   computeNodeDegrees,
-  checkRawConnectivity,
-  connectedWinningNodes,
-  allWinningNodes,
   analyzeFrontier,
+  estimateCarTime,
   haversineMeters,
   classifyUrbanContext,
   buildCarReachabilityIndex,
   computeNodeIncidentEdges,
-  completerAltitudes,
-  lisserAltitudes,
   noeudCarrossableProche,
   CAR_GAP_FALLBACK_SPEED_MS,
   CAR_GAP_MAX_SEARCH_RING,
 } from "./graph.js";
+import {
+  preparerReseau,
+  adjacenceCSR,
+  tempsSelonDirectionCSR,
+  versMap,
+  ValeursParNoeud,
+  cacheTempsVoiture,
+  gagnantsConnexesCSR,
+  tousGagnantsCSR,
+  connexiteBruteCSR,
+  completerAltitudesCSR,
+  lisserAltitudesCSR,
+} from "./moteur-csr.js";
 import { filtrerIlots, trousACombler, NATURES_DEGRADEES } from "./ilots.js";
 import { HexGrid, traceOuterBoundaries, buildPolygonsWithHoles, smoothPolygonsWithHoles } from "./hexgrid.js";
 import { fetchIGNRoads, etendreIGNRoads, fetchElevations } from "./ign-api.js";
@@ -46,7 +54,9 @@ import { DELAY_BIKE_MIN, DELAY_CAR_MIN_URBAN, DELAY_CAR_MIN_RURAL, ILOTS } from 
 const PARKING_SEUIL_NOEUDS = 50;
 
 function yieldToBrowser() {
-  if (document.hidden) {
+  // Dans un Web Worker (calcul-worker.js), rien à repeindre : on rend
+  // seulement la main pour laisser passer les messages.
+  if (typeof document === "undefined" || document.hidden) {
     return new Promise((resolve) => {
       const canal = new MessageChannel();
       canal.port1.onmessage = () => {
@@ -202,7 +212,7 @@ export async function computeIsochronesNetwork(opts) {
   // du réseau (1 passe, voir lisserAltitudes dans graph.js).
   onProgress("Altitudes des rues (BD TOPO®)…", 0.22);
   const elevations = new Map(graph.nodeElev || []);
-  const restants = completerAltitudes(graph, elevations);
+  const restants = completerAltitudesCSR(graph, elevations);
   if (restants > 0) {
     const points = [];
     for (const [id, [nlon, nlat]] of graph.nodeCoords) if (!elevations.has(id)) points.push({ id, lon: nlon, lat: nlat });
@@ -211,7 +221,7 @@ export async function computeIsochronesNetwork(opts) {
     });
     for (const [id, z] of altitudes) elevations.set(id, z);
   }
-  lisserAltitudes(graph, elevations);
+  lisserAltitudesCSR(graph, elevations);
   await yieldToBrowser();
 
   const originNode = findNearestNode(graph, lon, lat);
@@ -220,15 +230,22 @@ export async function computeIsochronesNetwork(opts) {
       "Aucune rue trouvée près de ce point dans le rayon interrogé — vérifiez l\u2019adresse ou le point choisi.",
     );
   }
-  const rawConnectivity = checkRawConnectivity(graph, originNode);
+  // Moteur sur tableaux typés (moteur-csr.js) : mêmes résultats que
+  // buildAdjacency + dijkstra, en bien moins de temps sur un grand réseau.
+  const prep = preparerReseau(graph, elevations, nodeDegrees, nodeIncidentEdges);
+  const { ids, index: indexNoeud } = prep.idx;
+  const origineIdx = indexNoeud.get(originNode);
+  const rawConnectivity = connexiteBruteCSR(prep.idx, origineIdx);
 
   onProgress("Calcul des temps de trajet voiture (référence)…", 0.55);
   await yieldToBrowser();
   const maxCarCutoff = Math.max(...modeDefs.map((m) => m.maxTime + m.carPenalty));
-  const carAdjacency = buildAdjacency(graph, elevations, "car", nodeDegrees, nodeIncidentEdges, { urbain: urbanContext.isUrban });
-  let carDistances = new Map();
-  let carJunctionDelays = new Map();
-  let carTimes = tempsSelonDirection(carAdjacency, originNode, maxCarCutoff, direction, carDistances, carJunctionDelays);
+  const urbain = urbanContext.isUrban;
+  const carCSR = adjacenceCSR(prep, "car", { urbain, details: true });
+  const rc = tempsSelonDirectionCSR(carCSR, origineIdx, maxCarCutoff, direction, true);
+  let carTimes = versMap(ids, rc.ordre, rc.temps);
+  let carDistances = new ValeursParNoeud(ids, indexNoeud, rc.ordre, rc.temps, rc.distance);
+  let carJunctionDelays = new ValeursParNoeud(ids, indexNoeud, rc.ordre, rc.temps, rc.delai);
   // Aller-retour : deux trajets, donc deux fois la pénalité d'accès voiture et
   // deux fois le comblement à pied jusqu'au réseau voiture (voir estimateCarTime).
   const facteurTrajets = direction === DIRECTION_ALLER_RETOUR ? 2 : 1;
@@ -246,9 +263,10 @@ export async function computeIsochronesNetwork(opts) {
     const distMax = CAR_GAP_MAX_SEARCH_RING * 200; // même portée que le repli voiture
     const parking = noeudCarrossableProche(graph, lon, lat, new Set(carTimes.keys()), distMax);
     if (parking) {
-      const d2 = new Map(),
-        j2 = new Map();
-      const t2 = tempsSelonDirection(carAdjacency, parking.node, maxCarCutoff, direction, d2, j2);
+      const r2 = tempsSelonDirectionCSR(carCSR, indexNoeud.get(parking.node), maxCarCutoff, direction, true);
+      const t2 = versMap(ids, r2.ordre, r2.temps);
+      const d2 = new ValeursParNoeud(ids, indexNoeud, r2.ordre, r2.temps, r2.distance);
+      const j2 = new ValeursParNoeud(ids, indexNoeud, r2.ordre, r2.temps, r2.delai);
       if (t2.size > carTimes.size) {
         const marche = (facteurTrajets * parking.distanceMeters) / CAR_GAP_FALLBACK_SPEED_MS;
         carTimes = new Map([...t2].map(([n, t]) => [n, t + marche]));
@@ -266,6 +284,16 @@ export async function computeIsochronesNetwork(opts) {
   // plus proche d'un chemin/sentier isolé, sans exploser le nombre de
   // compartiments sur un réseau de 6 à 15 km de rayon (voir les paliers RADIUS_TIER_* et NETWORK_RADIUS_MAX_M dans config.js).
   const carIndex = buildCarReachabilityIndex(carTimes, graph.nodeCoords, 200);
+  // Temps voiture sur tableaux : calculé (ou non) par nœud, et temps effectif
+  // avec repli (estimateCarTime) mis en cache pour les trois modes.
+  const { n: nNoeuds, lon: lonN, lat: latN, de: deA, vers: versA } = prep.idx;
+  const voitureAtteinte = new Uint8Array(nNoeuds);
+  for (const id of carTimes.keys()) voitureAtteinte[indexNoeud.get(id)] = 1;
+  const voitureEffective = cacheTempsVoiture(
+    (i) => estimateCarTime(carTimes, carIndex, ids[i], graph.nodeCoords, facteurTrajets),
+    nNoeuds,
+  );
+  const voitureUtilisable = carCSR.utilisable;
 
   const results = {};
   const hexagonsByMode = {};
@@ -283,24 +311,20 @@ export async function computeIsochronesNetwork(opts) {
   for (const mode of modeDefs) {
     onProgress("Calcul — " + mode.key + "…", progressPerMode[mode.key]);
     await yieldToBrowser();
-    const adjacency = buildAdjacency(graph, elevations, mode.mode, nodeDegrees, nodeIncidentEdges, { urbain: urbanContext.isUrban });
-    const modeTimes = tempsSelonDirection(adjacency, originNode, mode.maxTime, direction);
+    const adjacence = adjacenceCSR(prep, mode.mode, { urbain });
+    const rm = tempsSelonDirectionCSR(adjacence, origineIdx, mode.maxTime, direction);
+    const modeTimes = new ValeursParNoeud(ids, indexNoeud, rm.ordre, rm.temps);
     modeTimesByKey[mode.key] = modeTimes;
     // Parcours de connexité dans le sens de la carte : « j'y vais » remonte le
     // réseau depuis la destination ; départ et aller-retour partent de l'adresse.
-    const adjacenceParcours = direction === DIRECTION_ARRIVEE ? transposeAdjacency(adjacency) : adjacency;
-    const winningNodes = ilotsActifs
-      ? allWinningNodes(modeTimes, carTimes, carIndex, graph.nodeCoords, originNode, mode.carPenalty * facteurTrajets, facteurTrajets)
-      : connectedWinningNodes(
-          adjacenceParcours,
-          modeTimes,
-          carTimes,
-          carIndex,
-          graph.nodeCoords,
-          originNode,
-          mode.carPenalty * facteurTrajets,
-          facteurTrajets,
-        );
+    const adjacenceParcours = direction === DIRECTION_ARRIVEE ? rm.inverse : adjacence;
+    const penalite = mode.carPenalty * facteurTrajets;
+    const gagnants = ilotsActifs
+      ? tousGagnantsCSR(ids, rm.ordre, rm.temps, voitureEffective, origineIdx, penalite, nNoeuds)
+      : gagnantsConnexesCSR(adjacenceParcours, ids, rm.temps, voitureEffective, origineIdx, penalite);
+    const winningNodes = gagnants.ensemble;
+    const gagne = gagnants.drapeaux;
+    const utilisable = adjacence.utilisable;
 
     // Hexagones gagnants ; on note à part les « carrossables », traversés par au
     // moins une voie gagnante où la voiture a un vrai temps calculé : ouverte
@@ -312,39 +336,34 @@ export async function computeIsochronesNetwork(opts) {
     // de proche en proche (l'ancien calcul). Le reste des zones gagnantes forme
     // les îlots, filtrés plus bas, même s'ils touchent cette zone sur la grille.
     const connexes = ilotsActifs
-      ? connectedWinningNodes(
-          adjacenceParcours,
-          modeTimes,
-          carTimes,
-          carIndex,
-          graph.nodeCoords,
-          originNode,
-          mode.carPenalty * facteurTrajets,
-          facteurTrajets,
-        )
+      ? gagnantsConnexesCSR(adjacenceParcours, ids, rm.temps, voitureEffective, origineIdx, penalite).drapeaux
       : null;
     const clesPrincipales = new Set();
     const hexagons = {};
     const hexCarrossables = new Set();
-    for (const edge of graph.edges) {
-      if (!isEdgeUsable(edge, mode.mode)) {
+    for (let e = 0; e < deA.length; e++) {
+      if (!utilisable[e]) {
         continue;
       }
-      if (!winningNodes.has(edge.from) || !winningNodes.has(edge.to)) {
+      const a = deA[e],
+        b = versA[e];
+      if (!gagne[a] || !gagne[b]) {
         continue;
       }
-      const [lon1, lat1] = graph.nodeCoords.get(edge.from);
-      const [lon2, lat2] = graph.nodeCoords.get(edge.to);
+      const lon1 = lonN[a],
+        lat1 = latN[a],
+        lon2 = lonN[b],
+        lat2 = latN[b];
       hexGrid.addSegmentToGrid(hexagons, lon1, lat1, lon2, lat2);
-      if (connexes && connexes.has(edge.from) && connexes.has(edge.to)) {
+      if (connexes && connexes[a] && connexes[b]) {
         hexGrid.clesSegment(clesPrincipales, lon1, lat1, lon2, lat2);
       }
       if (
         ilotsActifs &&
-        !NATURES_DEGRADEES.has(edge.nature) &&
-        isEdgeUsable(edge, "car") &&
-        carTimes.has(edge.from) &&
-        carTimes.has(edge.to)
+        !NATURES_DEGRADEES.has(graph.edges[e].nature) &&
+        voitureUtilisable[e] &&
+        voitureAtteinte[a] &&
+        voitureAtteinte[b]
       ) {
         hexGrid.clesSegment(hexCarrossables, lon1, lat1, lon2, lat2);
       }
@@ -368,10 +387,12 @@ export async function computeIsochronesNetwork(opts) {
       }
       const hexRoutes = new Set();
       const dansCadre = (lo, la) => lo >= minLo && lo <= maxLo && la >= minLa && la <= maxLa;
-      for (const edge of graph.edges) {
-        if (!isEdgeUsable(edge, mode.mode)) continue;
-        const [lon1, lat1] = graph.nodeCoords.get(edge.from);
-        const [lon2, lat2] = graph.nodeCoords.get(edge.to);
+      for (let e = 0; e < deA.length; e++) {
+        if (!utilisable[e]) continue;
+        const lon1 = lonN[deA[e]],
+          lat1 = latN[deA[e]],
+          lon2 = lonN[versA[e]],
+          lat2 = latN[versA[e]];
         if (!dansCadre(lon1, lat1) && !dansCadre(lon2, lat2)) continue;
         hexGrid.clesSegment(hexRoutes, lon1, lat1, lon2, lat2);
       }
@@ -409,8 +430,10 @@ export async function computeIsochronesNetwork(opts) {
     // probable que la vraie frontière (là où la voiture rattraperait le mode)
     // se trouve plus loin, hors de portée des données téléchargées.
     let maxDistanceFromOrigin = 0;
-    for (const nodeId of winningNodes) {
-      const [nlon, nlat] = graph.nodeCoords.get(nodeId);
+    for (let i = 0; i < nNoeuds; i++) {
+      if (!gagne[i]) continue;
+      const nlon = lonN[i],
+        nlat = latN[i];
       // Îlots écartés par le filtre : ils ne doivent pas faire relancer à 15 km.
       if (ilotsActifs && !hexagons[hexGrid.cleDe(nlon, nlat)]) {
         continue;

@@ -493,3 +493,30 @@ a {
 .st-d3acf5 { width:100%; margin-top:6px; }
 .st-d2f1a6 { display:none; margin-top:8px; font-size:12.5px; }
 .st-60d36d { margin-top:20px; }
+
+/* Message « fond de carte incomplet » (fond-carte.js) : cadre fin homogène. */
+.fond-carte-alerte {
+  max-width: 320px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.fond-carte-alerte button {
+  margin-top: 6px;
+  display: block;
+  font: inherit;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--moss);
+  background: var(--moss);
+  color: #fff;
+  cursor: pointer;
+}
+.fond-carte-alerte button:hover {
+  background: var(--moss-dark);
+}

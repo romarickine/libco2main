@@ -15,14 +15,42 @@ function lonLatToPixel(lon, lat, zoom) {
   return { x, y };
 }
 
-function loadTileImage(url) {
+// Une tuile de fond peut échouer ou tarder (service WMTS saturé) : sans
+// nouvel essai, elle laissait un rectangle blanc sur l'image exportée (export
+// Paris du 03/11/2026, zones dessinées sur fond blanc). Chaque tuile a donc
+// un délai maximal et plusieurs essais espacés ; celles qui manquent encore
+// sont redemandées une dernière fois, après une pause, une fois toutes les
+// autres chargées (sauf si le service paraît arrêté : un groupe entier encore
+// en échec arrête les nouveaux essais).
+const TUILE_DELAI_MAX_MS = 15000;
+const TUILE_ESSAIS = 2;
+function chargerTuileUneFois(url) {
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null); // tuile manquante : on continue sans elle plutôt que d'échouer tout l'export
+    const minuterie = setTimeout(() => {
+      img.onload = img.onerror = null;
+      img.src = "";
+      resolve(null);
+    }, TUILE_DELAI_MAX_MS);
+    img.onload = () => {
+      clearTimeout(minuterie);
+      resolve(img);
+    };
+    img.onerror = () => {
+      clearTimeout(minuterie);
+      resolve(null);
+    };
     img.src = url;
   });
+}
+async function loadTileImage(url) {
+  for (let essai = 0; essai < TUILE_ESSAIS; essai++) {
+    if (essai > 0) await new Promise((r) => setTimeout(r, 600 * essai * (0.5 + Math.random())));
+    const img = await chargerTuileUneFois(url);
+    if (img) return img;
+  }
+  return null; // tuile manquante : on continue sans elle plutôt que d'échouer tout l'export
 }
 
 // Libellés selon le sens du trajet (computation.direction ; « depart » par défaut).
@@ -259,7 +287,7 @@ export async function rendreImageCarte(computation, options = {}) {
         layerName +
         "&STYLE=normal&FORMAT=" +
         encodeURIComponent(format) +
-        "&TILEMATRIXSET=PM&TILEMATRIX=" +
+        "&TILEMATRIXSET=PM_0_19&TILEMATRIX=" +
         zoomTiles +
         "&TILEROW=" +
         ty +
@@ -269,21 +297,33 @@ export async function rendreImageCarte(computation, options = {}) {
     }
   }
   // Par petites vagues pour ne pas envoyer des dizaines de requêtes d'un coup
-  let tuilesManquantes = 0;
+  const dessinerTuile = (job, img) => {
+    const px = job.tx * tileSizeScaled - viewMinX,
+      py = job.ty * tileSizeScaled - viewMinY + TITLE_H;
+    ctx.drawImage(img, px, py, tileSizeScaled, tileSizeScaled);
+  };
+  const enEchec = [];
   const waveSize = 8;
   for (let i = 0; i < tileJobs.length; i += waveSize) {
     const wave = tileJobs.slice(i, i + waveSize);
     const images = await Promise.all(wave.map((job) => loadTileImage(job.url)));
-    images.forEach((img, idx) => {
-      if (!img) {
-        tuilesManquantes++;
-        return;
+    images.forEach((img, idx) => (img ? dessinerTuile(wave[idx], img) : enEchec.push(wave[idx])));
+  }
+  // Dernière chance pour les tuiles manquantes, après une pause, par petits
+  // groupes (moins de requêtes simultanées qu'au premier passage).
+  let tuilesManquantes = 0;
+  if (enEchec.length > 0) {
+    onStatus("Nouvel essai pour " + enEchec.length + " tuile(s) de fond manquante(s)…");
+    await new Promise((r) => setTimeout(r, 2000));
+    for (let i = 0; i < enEchec.length; i += 4) {
+      const groupe = enEchec.slice(i, i + 4);
+      const images = await Promise.all(groupe.map((job) => loadTileImage(job.url)));
+      images.forEach((img, idx) => (img ? dessinerTuile(groupe[idx], img) : tuilesManquantes++));
+      if (images.every((img) => !img)) {
+        tuilesManquantes += enEchec.length - (i + groupe.length);
+        break;
       }
-      const job = wave[idx];
-      const px = job.tx * tileSizeScaled - viewMinX,
-        py = job.ty * tileSizeScaled - viewMinY + TITLE_H;
-      ctx.drawImage(img, px, py, tileSizeScaled, tileSizeScaled);
-    });
+    }
   }
 
   // --- Zones isochrones (mêmes couleurs, mêmes règles de trou que la carte en direct) ---
@@ -440,7 +480,7 @@ export async function exportMapImage(computation, basemapChoice, resolutionChoic
     return;
   }
   try {
-    const { blob, addressLabel } = await rendreImageCarte(computation, {
+    const { blob, addressLabel, tuilesManquantes } = await rendreImageCarte(computation, {
       basemap: basemapChoice,
       resolution: resolutionChoice,
       onStatus,
@@ -454,7 +494,13 @@ export async function exportMapImage(computation, basemapChoice, resolutionChoic
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
-    onStatus("Image téléchargée.");
+    onStatus(
+      tuilesManquantes > 0
+        ? "Image téléchargée, mais " +
+            tuilesManquantes +
+            " tuile(s) du fond de carte n’ont pas pu être chargées (zones blanches) : le service IGN est peut-être saturé, réessayez l’export dans un moment."
+        : "Image téléchargée.",
+    );
   } catch (e) {
     console.error(e);
     // Cause la plus probable : le fond de carte IGN ne renvoie pas d'en-tête
