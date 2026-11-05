@@ -36,6 +36,12 @@
   --lc-vert: #2e673e;
   --lc-vert-fonce: #1f4a2c;
   --lc-vert-fond: #2e673e14; /* vert à 8 % d'opacité, pour les fonds teintés */
+  /* Vert clair opaque (05/11/2026, demande du porteur : pages trop sobres) :
+     fond des cases à faire ressortir, avec une bordure fine du même vert un
+     peu plus soutenu sur les quatre côtés. Texte encre : contraste > 12:1 ;
+     vert du logo #2e673e : 6,4:1 (AA). */
+  --lc-vert-clair: #eaf3ed;
+  --lc-vert-clair-bord: #cfe3d5;
   --lc-bleu: #0071c1;
   --lc-bleu-fonce: #005490;
   --lc-bleu-fond: #0071c114;

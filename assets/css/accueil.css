@@ -120,8 +120,8 @@ img.capture[width] {
 .offre {
   display: flex;
   flex-direction: column;
-  background: #fff;
-  border: 1px solid var(--bordure);
+  background: var(--lc-vert-clair);
+  border: 1px solid var(--lc-vert-clair-bord);
   border-radius: var(--lc-rayon-carte);
   padding: 26px;
 }

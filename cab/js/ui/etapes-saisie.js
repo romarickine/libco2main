@@ -21,6 +21,7 @@ import {
   formatTotal,
 } from "./commun.js";
 import { ZONES, chargerCommunes, kmModalTotal } from "../../../shared/js/data/zonage-insee.js";
+import { PLAFONDS, maxPour, raisonPersonnes } from "../../../shared/js/bornes-saisie.js";
 import { echapperHtml } from "../../../shared/js/echappement.js";
 import { activerListeSuggestions, majListeSuggestions } from "../../../shared/js/accessibilite.js";
 
@@ -72,6 +73,20 @@ export function majBadgesEtTotal(resultats) {
 }
 
 // --- Étape 1 : Profil --------------------------------------------------------
+// Bornes des champs (shared/js/bornes-saisie.js) : maxima proportionnels à la
+// taille de la structure, praticiens + salariés (ETP).
+function tailleEquipe(data) {
+  return (data.profil.nbPraticiens || 1) + (data.profil.nbSalaries || 0);
+}
+function bornesPraticiens(data, plafond) {
+  const n = data.profil.nbPraticiens || 1;
+  return { max: maxPour(plafond, n), raison: raisonPersonnes(n).replace("personne", "praticien") };
+}
+function bornesParPersonne(data, plafond) {
+  const n = tailleEquipe(data);
+  return { max: maxPour(plafond, n), raison: raisonPersonnes(n) };
+}
+
 export function renderStepProfil(el, { data, famille, ctx }) {
   const p = data.profil;
   el.innerHTML = `
@@ -107,8 +122,8 @@ export function renderStepProfil(el, { data, famille, ctx }) {
       p.mode !== "seul"
         ? `
       <div class="ligne-champs">
-        <div class="champ"><label class="libelle">Praticiens (ETP) dans la structure</label>${champNombreHtml("nbPraticiens", p.nbPraticiens, { min: 1 })}</div>
-        ${p.mode === "employeur" ? `<div class="champ"><label class="libelle">Salariés (ETP)</label>${champNombreHtml("nbSalaries", p.nbSalaries, { min: 0 })}</div>` : ""}
+        <div class="champ"><label class="libelle">Praticiens (ETP) dans la structure</label>${champNombreHtml("nbPraticiens", p.nbPraticiens, { min: 1, max: PLAFONDS.personnes })}</div>
+        ${p.mode === "employeur" ? `<div class="champ"><label class="libelle">Salariés (ETP)</label>${champNombreHtml("nbSalaries", p.nbSalaries, { min: 0, max: PLAFONDS.personnes })}</div>` : ""}
       </div>`
         : `<div class="texte-discret" data-style="margin-top:-12px; margin-bottom:22px; display:flex; gap:5px;">Vous exercez seul(e) : la structure compte 1 praticien (vous-même).</div>`
     }
@@ -135,7 +150,7 @@ export function renderStepProfil(el, { data, famille, ctx }) {
     <div class="champ">
       <label class="libelle">Nombre total de ${famille.acteLabel} réalisé(e)s par an, pour l'ensemble de ${famille.lieuArticleLe}</label>
       <div class="aide">Ce bilan d'émissions porte sur l'ensemble de ${famille.lieuArticleLe}, pas seulement sur votre propre activité : additionnez les ${famille.acteLabel} de tous les praticiens de la structure.</div>
-      ${champNombreHtml("nbActesAn", p.nbActesAn, { min: 1 })}
+      ${champNombreHtml("nbActesAn", p.nbActesAn, { min: 1, max: maxPour(PLAFONDS.actesParPraticien, p.nbPraticiens || 1), raison: raisonPersonnes(p.nbPraticiens || 1).replace("personne", "praticien") })}
     </div>
 
     <div class="champ">
@@ -159,6 +174,16 @@ export function renderStepProfil(el, { data, famille, ctx }) {
   );
   attacherSelects(el, ctx.onChangeProfil);
   attacherChampsNombre(el, ctx.onChangeProfilLive);
+  // Le maximum d'actes suit le nombre de praticiens saisi sur le même écran.
+  const champPraticiens = el.querySelector('[data-champ-nombre="nbPraticiens"]');
+  const champActes = el.querySelector('[data-champ-nombre="nbActesAn"]');
+  if (champPraticiens && champActes) {
+    champPraticiens.addEventListener("input", () => {
+      const n = Math.max(1, Math.min(PLAFONDS.personnes, Number(champPraticiens.value) || 1));
+      champActes.max = maxPour(PLAFONDS.actesParPraticien, n);
+      champActes.dataset.raisonMax = raisonPersonnes(n).replace("personne", "praticien");
+    });
+  }
   el.querySelector("#range-partCabinet").addEventListener("input", (e) => {
     document.getElementById("valeur-partCabinet").textContent = e.target.value;
     ctx.onChangeProfilLive("partCabinet", Number(e.target.value));
@@ -240,18 +265,18 @@ export function renderStepDeplacements(el, { data, resultats, ctx }) {
     }
     <div class="ligne-champs">
       <div class="champ"><label class="libelle">Mode de transport principal domicile-travail</label><select class="champ-select" data-champ-select="modeDomTrav">${optionsMode(true)}</select></div>
-      <div class="champ"><label class="libelle">Distance aller (km)</label>${champNombreHtml("kmAllerJour", d.kmAllerJour)}</div>
-      <div class="champ"><label class="libelle">Jours travaillés / semaine</label>${champNombreHtml("joursSemaine", d.joursSemaine, { step: 0.5 })}</div>
+      <div class="champ"><label class="libelle">Distance aller (km)</label>${champNombreHtml("kmAllerJour", d.kmAllerJour, bornesParPersonne(data, PLAFONDS.kmDomicileTravailParPersonne))}</div>
+      <div class="champ"><label class="libelle">Jours travaillés / semaine</label>${champNombreHtml("joursSemaine", d.joursSemaine, { step: 0.5, max: 7 })}</div>
       <div class="champ"><label class="libelle">Semaines travaillées / an${badgeLive(det.domTrav, "domTrav")}</label>${champNombreHtml("semainesAn", d.semainesAn, { max: 52 })}</div>
     </div>
     <hr class="separateur" />
     <div class="ligne-champs">
-      <div class="champ"><label class="libelle">Km parcourus par an en visites professionnelles</label><div class="aide">Domicile de patients/clients, EHPAD, chantiers, rendez-vous extérieurs — pour l'ensemble de la structure.</div>${champNombreHtml("kmVisitesAn", d.kmVisitesAn)}</div>
+      <div class="champ"><label class="libelle">Km parcourus par an en visites professionnelles</label><div class="aide">Domicile de patients/clients, EHPAD, chantiers, rendez-vous extérieurs — pour l'ensemble de la structure.</div>${champNombreHtml("kmVisitesAn", d.kmVisitesAn, bornesParPersonne(data, PLAFONDS.kmTourneesParPersonne))}</div>
       <div class="champ"><label class="libelle">Mode de transport principal pour ces visites${badgeLive(det.visites, "visites")}</label><select class="champ-select" data-champ-select="modeVisites">${optionsMode(true)}</select></div>
     </div>
     <hr class="separateur" />
     <div class="ligne-champs">
-      <div class="champ"><label class="libelle">Congrès / formations / représentations par an</label>${champNombreHtml("nbCongresAn", d.nbCongresAn)}</div>
+      <div class="champ"><label class="libelle">Congrès / formations / représentations par an</label>${champNombreHtml("nbCongresAn", d.nbCongresAn, bornesParPersonne(data, PLAFONDS.congresParPersonne))}</div>
       <div class="champ"><label class="libelle">Mode de transport principal</label>
         <select class="champ-select" data-champ-select="modeCongres">
           <option value="voiture_thermique">Voiture thermique</option>
@@ -262,7 +287,7 @@ export function renderStepDeplacements(el, { data, resultats, ctx }) {
           <option value="avion_long">Avion long-courrier</option>
         </select>
       </div>
-      <div class="champ"><label class="libelle">Distance aller-retour moyenne (km)${badgeLive(det.congres, "congres")}</label>${champNombreHtml("kmCongresAR", d.kmCongresAR)}</div>
+      <div class="champ"><label class="libelle">Distance aller-retour moyenne (km)${badgeLive(det.congres, "congres")}</label>${champNombreHtml("kmCongresAR", d.kmCongresAR, { max: PLAFONDS.kmAllerRetourLointain, raison: "(tour de la Terre)" })}</div>
     </div>
   `;
   attacherSelects(el, ctx.onChangeDeplacements);
@@ -289,7 +314,7 @@ export function renderStepLocal(el, { data, famille, zone, resultats, ctx }) {
       l.aLocal
         ? `
       <div class="ligne-champs">
-        <div class="champ"><label class="libelle">Surface du ${famille.lieuLabel} (m²)</label>${champNombreHtml("surface", l.surface)}</div>
+        <div class="champ"><label class="libelle">Surface du ${famille.lieuLabel} (m²)</label>${champNombreHtml("surface", l.surface, bornesParPersonne(data, PLAFONDS.surfaceParPersonne))}</div>
         <div class="champ"><label class="libelle">Énergie principale de chauffage</label>
           <select class="champ-select" data-champ-select="energieChauffage">
             ${Object.entries(FE_ENERGIE)
@@ -302,14 +327,14 @@ export function renderStepLocal(el, { data, famille, zone, resultats, ctx }) {
       <div data-style="display:flex; gap:14px; margin-bottom:8px;">${badgeLive(det.localElec, "localElec")}${badgeLive(det.localChauffage, "localChauffage")}</div>
 
       <div class="champ"><label class="libelle"><input type="checkbox" data-champ-case="consoElecConnue" ${l.consoElecConnue ? "checked" : ""} data-style="margin-right:8px;" />Je connais ma consommation réelle d'électricité (factures)</label>
-        ${l.consoElecConnue ? champNombreHtml("consoElecKwh", l.consoElecKwh, { suffix: "kWh/an" }) : ""}
+        ${l.consoElecConnue ? champNombreHtml("consoElecKwh", l.consoElecKwh, { suffix: "kWh/an", ...bornesParPersonne(data, PLAFONDS.kWhParM2 * PLAFONDS.surfaceParPersonne) }) : ""}
       </div>
       <div class="champ"><label class="libelle"><input type="checkbox" data-champ-case="consoChauffageConnue" ${l.consoChauffageConnue ? "checked" : ""} data-style="margin-right:8px;" />Je connais ma consommation réelle de chauffage (factures)</label>
-        ${l.consoChauffageConnue ? champNombreHtml("consoChauffageKwh", l.consoChauffageKwh, { suffix: "kWh/an" }) : ""}
+        ${l.consoChauffageConnue ? champNombreHtml("consoChauffageKwh", l.consoChauffageKwh, { suffix: "kWh/an", ...bornesParPersonne(data, PLAFONDS.kWhParM2 * PLAFONDS.surfaceParPersonne) }) : ""}
       </div>
       <hr class="separateur" />
       <div class="champ"><label class="libelle"><input type="checkbox" data-champ-case="localDeporte" ${l.localDeporte ? "checked" : ""} data-style="margin-right:8px;" />Utilisez-vous un local déporté (ex : EHPAD, antenne secondaire) ?${badgeLive(det.localDeporte, "localDeporte")}</label>
-        ${l.localDeporte ? champNombreHtml("surfaceDeportee", l.surfaceDeportee, { suffix: "m² approx." }) : ""}
+        ${l.localDeporte ? champNombreHtml("surfaceDeportee", l.surfaceDeportee, { suffix: "m² approx.", ...bornesParPersonne(data, PLAFONDS.surfaceParPersonne) }) : ""}
       </div>
       ${
         p.recoitPublic
@@ -341,9 +366,9 @@ export function renderStepNumerique(el, { data, resultats, ctx }) {
   const det = resultats.detail;
   el.innerHTML = `
     <div class="ligne-champs">
-      <div class="champ"><label class="libelle">Ordinateurs fixes${badgeLive(det.numOrdisFixes, "numOrdisFixes")}</label>${champNombreHtml("nbOrdisFixes", n.nbOrdisFixes)}</div>
-      <div class="champ"><label class="libelle">Ordinateurs portables${badgeLive(det.numOrdisPortables, "numOrdisPortables")}</label>${champNombreHtml("nbOrdisPortables", n.nbOrdisPortables)}</div>
-      <div class="champ"><label class="libelle">Écrans supplémentaires${badgeLive(det.numEcrans, "numEcrans")}</label>${champNombreHtml("nbEcransSuppl", n.nbEcransSuppl)}</div>
+      <div class="champ"><label class="libelle">Ordinateurs fixes${badgeLive(det.numOrdisFixes, "numOrdisFixes")}</label>${champNombreHtml("nbOrdisFixes", n.nbOrdisFixes, bornesParPersonne(data, PLAFONDS.equipementsInfoParPersonne))}</div>
+      <div class="champ"><label class="libelle">Ordinateurs portables${badgeLive(det.numOrdisPortables, "numOrdisPortables")}</label>${champNombreHtml("nbOrdisPortables", n.nbOrdisPortables, bornesParPersonne(data, PLAFONDS.equipementsInfoParPersonne))}</div>
+      <div class="champ"><label class="libelle">Écrans supplémentaires${badgeLive(det.numEcrans, "numEcrans")}</label>${champNombreHtml("nbEcransSuppl", n.nbEcransSuppl, bornesParPersonne(data, PLAFONDS.equipementsInfoParPersonne))}</div>
     </div>
     <div class="champ">
       <label class="libelle">Niveau d'usage numérique quotidien (mails, cloud, visio, stockage)${badgeLive(det.numUsage, "numUsage")}</label>
@@ -377,7 +402,7 @@ export function renderStepMateriel(el, { data, famille, resultats, ctx }) {
     ${famille.consommables
       .map(
         (c) => `
-      <div class="champ"><label class="libelle">${c.label}${badgeLive(det.materiel[c.id], `materiel_${c.id}`)}</label>${champNombreHtml(`materiel_${c.id}`, data.materiel[c.id] || 0, { suffix: "€ / an" })}</div>
+      <div class="champ"><label class="libelle">${c.label}${badgeLive(det.materiel[c.id], `materiel_${c.id}`)}</label>${champNombreHtml(`materiel_${c.id}`, data.materiel[c.id] || 0, { suffix: "€ / an", ...bornesParPersonne(data, PLAFONDS.achatsAnnuelsParPersonne) })}</div>
     `,
       )
       .join("")}
@@ -389,8 +414,8 @@ export function renderStepMateriel(el, { data, famille, resultats, ctx }) {
       <div class="groupe-champs-titre">Médicaments et parapharmacie vendus</div>
       <p class="texte-discret" data-style="margin-top:-6px; margin-bottom:16px;">Poste spécifique à l'officine : votre chiffre d'affaires HT, réparti entre médicaments et parapharmacie, chacun avec un facteur d'émission propre.</p>
       <div class="ligne-champs">
-      <div class="champ"><label class="libelle">Chiffre d'affaires médicaments (€ HT / an)${badgeLive(det.medicamentsVendus, "medicamentsVendus")}</label>${champNombreHtml("ca_medicaments", data.pharmacien.caMedicaments || 0, { suffix: "€ HT / an" })}</div>
-      <div class="champ"><label class="libelle">Chiffre d'affaires parapharmacie (€ HT / an)${badgeLive(det.parapharmacie, "parapharmacie")}</label>${champNombreHtml("ca_parapharmacie", data.pharmacien.caParapharmacie || 0, { suffix: "€ HT / an" })}</div>
+      <div class="champ"><label class="libelle">Chiffre d'affaires médicaments (€ HT / an)${badgeLive(det.medicamentsVendus, "medicamentsVendus")}</label>${champNombreHtml("ca_medicaments", data.pharmacien.caMedicaments || 0, { suffix: "€ HT / an", ...bornesPraticiens(data, PLAFONDS.caMedicamentsParPharmacien) })}</div>
+      <div class="champ"><label class="libelle">Chiffre d'affaires parapharmacie (€ HT / an)${badgeLive(det.parapharmacie, "parapharmacie")}</label>${champNombreHtml("ca_parapharmacie", data.pharmacien.caParapharmacie || 0, { suffix: "€ HT / an", ...bornesPraticiens(data, PLAFONDS.caParapharmacieParPharmacien) })}</div>
       </div>
     `
         : ""
@@ -413,8 +438,8 @@ export function renderStepMateriel(el, { data, famille, resultats, ctx }) {
             ? `
           <div data-style="margin-top:18px;">
             <div class="ligne-champs">
-            <div class="champ"><label class="libelle">Dépense totale de médicaments prescrits, pour l'ensemble de la patientèle de la structure (€ / an)${badgeLive(det.prescriptionsMedicaments, "prescriptionsMedicaments")}</label>${champNombreHtml("presc_medicaments", presc.depenseMedicaments || 0, { suffix: "€ / an" })}</div>
-            <div class="champ"><label class="libelle">Dépense totale d'actes prescrits — examens complémentaires, dispositifs (€ / an)${badgeLive(det.prescriptionsActes, "prescriptionsActes")}</label>${champNombreHtml("presc_actes", presc.depenseActes || 0, { suffix: "€ / an" })}</div>
+            <div class="champ"><label class="libelle">Dépense totale de médicaments prescrits, pour l'ensemble de la patientèle de la structure (€ / an)${badgeLive(det.prescriptionsMedicaments, "prescriptionsMedicaments")}</label>${champNombreHtml("presc_medicaments", presc.depenseMedicaments || 0, { suffix: "€ / an", ...bornesPraticiens(data, PLAFONDS.medicamentsParPraticien) })}</div>
+            <div class="champ"><label class="libelle">Dépense totale d'actes prescrits — examens complémentaires, dispositifs (€ / an)${badgeLive(det.prescriptionsActes, "prescriptionsActes")}</label>${champNombreHtml("presc_actes", presc.depenseActes || 0, { suffix: "€ / an", ...bornesPraticiens(data, PLAFONDS.medicamentsParPraticien) })}</div>
             </div>
             <p class="texte-discret" data-style="margin-top:-6px;">Cumulez tous les praticiens prescripteurs de la structure, pas un seul. Une première approche à affiner : utilisez les montants que vous connaissez le mieux (ex. volume de prescriptions habituel), même approximatifs.</p>
           </div>`
@@ -442,13 +467,13 @@ export function renderStepMateriel(el, { data, famille, resultats, ctx }) {
           ${(famille.grosMateriel || [])
             .map(
               (g) => `
-            <div class="champ"><label class="libelle">${g.label}${badgeLive(det.grosMateriel[g.id], `gros_${g.id}`)}</label>${champNombreHtml(`gros_${g.id}`, inv.gros[g.id] || 0, { suffix: "€ (valeur d'achat)" })}</div>
+            <div class="champ"><label class="libelle">${g.label}${badgeLive(det.grosMateriel[g.id], `gros_${g.id}`)}</label>${champNombreHtml(`gros_${g.id}`, inv.gros[g.id] || 0, { suffix: "€ (valeur d'achat)", ...bornesParPersonne(data, PLAFONDS.materielParPersonne) })}</div>
           `,
             )
             .join("")}
           </div>
           <div data-style="font-weight:600; font-size:13.5px; margin-top:8px; margin-bottom:10px;">Mobilier professionnel (bureau, tables, chaises…)</div>
-          <div class="champ"><label class="libelle">Valeur d'achat totale du mobilier récent${badgeLive(det.mobilier, "mobilier")}</label>${champNombreHtml("mobilier", inv.mobilier || 0, { suffix: "€ (valeur d'achat)" })}</div>
+          <div class="champ"><label class="libelle">Valeur d'achat totale du mobilier récent${badgeLive(det.mobilier, "mobilier")}</label>${champNombreHtml("mobilier", inv.mobilier || 0, { suffix: "€ (valeur d'achat)", ...bornesParPersonne(data, PLAFONDS.mobilierParPersonne) })}</div>
         </div>`
           : ""
       }
@@ -483,7 +508,7 @@ export function renderStepDechets(el, { data, famille, resultats, ctx }) {
   const champDechet = (cle, label) => `
     <div class="champ">
       <label class="libelle">${label} (kg/semaine)${badgeLive(detailDechets[cle], cle)}</label>
-      ${champNombreHtml(cle, d[cle] || 0, { step: 0.5 })}
+      ${champNombreHtml(cle, d[cle] || 0, { step: 0.5, ...bornesParPersonne(data, PLAFONDS.dechetsKgSemaineParPersonne) })}
     </div>`;
 
   el.innerHTML = `
@@ -515,7 +540,7 @@ export function renderStepDechets(el, { data, famille, resultats, ctx }) {
       <div class="encadre-info">
         <div class="champ" data-style="margin-bottom:0;">
           <label class="libelle">DASRI — déchets d'activité de soins à risques infectieux (kg/semaine)${badgeLive(detailDechets.dasri, "dasri")}</label>
-          ${champNombreHtml("dasri", d.dasri || 0, { step: 0.1 })}
+          ${champNombreHtml("dasri", d.dasri || 0, { step: 0.1, ...bornesParPersonne(data, PLAFONDS.dasriKgSemaineParPersonne) })}
         </div>
         <p class="aide" data-style="margin-top:8px; margin-bottom:0;">Matériel piquant/coupant, produits biologiques — incinération à haute température obligatoire (code de la santé publique), bien plus émissive que les déchets courants ci-dessus. Ne comptez ici que le DASRI, pas les déchets ménagers déjà saisis plus haut.</p>
       </div>
@@ -577,10 +602,10 @@ export function renderStepServices(el, { data, resultats, ctx }) {
     <div class="ligne-champs">
     <div class="champ"><label class="libelle">Comptabilité, banque, assurance, cotisations, courrier (€ / an)${badgeLive(det.servicesCompta, "servicesCompta")}</label>
       <div class="aide">Regroupez ces postes pour aller vite : un ratio moyen d'émission par euro dépensé est appliqué.</div>
-      ${champNombreHtml("servicesAn", s.servicesAn)}
+      ${champNombreHtml("servicesAn", s.servicesAn, bornesParPersonne(data, PLAFONDS.servicesParPersonne))}
     </div>
-    <div class="champ"><label class="libelle">Prestataires et sous-traitance (€ / an)${badgeLive(det.servicesSousTraitance, "servicesSousTraitance")}</label>${champNombreHtml("sousTraitanceAn", s.sousTraitanceAn)}</div>
-    <div class="champ"><label class="libelle">Nombre de colis / livraisons reçus ou envoyés par an${badgeLive(det.fret, "fret")}</label>${champNombreHtml("nbColisAn", s.nbColisAn)}</div>
+    <div class="champ"><label class="libelle">Prestataires et sous-traitance (€ / an)${badgeLive(det.servicesSousTraitance, "servicesSousTraitance")}</label>${champNombreHtml("sousTraitanceAn", s.sousTraitanceAn, bornesParPersonne(data, PLAFONDS.servicesParPersonne))}</div>
+    <div class="champ"><label class="libelle">Nombre de colis / livraisons reçus ou envoyés par an${badgeLive(det.fret, "fret")}</label>${champNombreHtml("nbColisAn", s.nbColisAn, bornesParPersonne(data, PLAFONDS.colisParPersonne))}</div>
     </div>
   `;
   attacherChampsNombre(el, ctx.onChangeServicesLive);

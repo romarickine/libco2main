@@ -18,6 +18,7 @@ export function afficherBulle(texte) {
   if (ancienne) ancienne.remove();
   const bulle = document.createElement("div");
   bulle.id = "bulle-avertissement";
+  bulle.setAttribute("role", "status");
   bulle.textContent = texte;
   bulle.style.cssText =
     "position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1B2B26; color:#fff; padding:14px 22px; border-radius:10px; font-size:14px; max-width:min(90vw, 420px); text-align:center; box-shadow:0 8px 24px rgba(0,0,0,.25); z-index:9999; line-height:1.4;";

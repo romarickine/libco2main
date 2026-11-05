@@ -16,7 +16,7 @@
 .table-defilante:focus-visible { outline: 3px solid var(--couleur-accent-bleu); outline-offset: 2px; }
 .table-methodo { border-collapse: collapse; width: 100%; font-size: 13px; }
 .table-methodo th, .table-methodo td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--couleur-bordure-legere); line-height: 1.5; }
-.table-methodo thead th { background: var(--lc-fond-bande); font-size: 13px; font-weight: 600; color: var(--couleur-encre); }
+.table-methodo thead th { background: var(--lc-vert-clair); font-size: 13px; font-weight: 600; color: var(--couleur-encre); }
 .table-methodo tbody th { font-weight: 600; color: var(--couleur-encre); min-width: 160px; }
 .table-methodo td.num { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 600; }
 .table-methodo td:last-child { min-width: 320px; }
@@ -33,3 +33,7 @@
 .statut-cout-gratuit { background: var(--couleur-primaire-fond); color: var(--couleur-primaire); }
 .statut-cout-faible { background: var(--couleur-accent-ambre-fond); color: var(--couleur-ambre-texte); }
 .statut-cout-investissement { background: #b04d4d14; color: #b04d4d; }
+
+/* Lignes des facteurs : intitulé de chaque ligne sur fond vert clair pour
+   repérer les postes dans les longs tableaux (05/11/2026). */
+.table-methodo tbody th { background: var(--lc-vert-clair); }

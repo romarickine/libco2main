@@ -1103,3 +1103,23 @@ input[type="checkbox"] {
 .zone-suggestions {
   max-width: 420px;
 }
+
+/* Message de correction d'une saisie hors bornes (ui/commun.js, 05/11/2026). */
+.message-borne {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--lc-rouge);
+}
+
+/* Points clés de l'accueil de Cab en cases vert clair (05/11/2026). */
+.feature-card {
+  background: var(--lc-vert-clair);
+  border: 1px solid var(--lc-vert-clair-bord);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+.grille-features {
+  gap: 16px;
+  border-top: none;
+}

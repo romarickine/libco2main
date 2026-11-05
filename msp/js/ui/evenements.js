@@ -8,6 +8,7 @@
  * Utilisé par : ui-msp.js (après chaque rendu).
  * (Découpé de ui-msp.js en septembre 2026 : un fichier par responsabilité.)
  */
+import { valeurBornee, messageBorne } from "../../../shared/js/bornes-saisie.js";
 import { FACTEURS_MOBILIER_UNITE } from "../data/facteurs-emission-msp.js";
 import { afficherBulle } from "./infobulles.js";
 import {
@@ -36,6 +37,23 @@ import { telechargerPlanActions } from "../export/plan-actions-rtf.js";
  * à chaque changement, les écouteurs sont reposés à chaque fois.
  * @param {HTMLElement} app  Conteneur de l'application.
  */
+/**
+ * Valeur d'un champ numérique ramenée dans ses bornes (attributs min et max,
+ * voir shared/js/bornes-saisie.js) : aucune valeur négative, pas de valeur
+ * au-delà du plafond. Une correction est expliquée par une bulle. Remplace
+ * l'ancien contrôle propre aux semaines (max 52, désormais un attribut).
+ * @param {HTMLInputElement} input
+ * @returns {number}
+ */
+function valeurNombre(input) {
+  const r = valeurBornee(input);
+  if (r.corrigee) {
+    afficherBulle(messageBorne(input, r.borne));
+    input.value = r.valeur;
+  }
+  return r.valeur;
+}
+
 export function attacherEcouteurs(app) {
   // Sélectionne tout le contenu au focus pour les champs numériques et
   // texte : sans ça, taper dans un champ affichant déjà "0" par défaut
@@ -50,19 +68,8 @@ export function attacherEcouteurs(app) {
         input.type === "checkbox"
           ? input.checked
           : input.type === "number"
-            ? parseFloat(input.value) || 0
+            ? valeurNombre(input)
             : input.value;
-      // Une année ne comporte que 52 semaines : au-delà, la saisie est
-      // presque toujours une erreur de frappe (ou une confusion avec un
-      // nombre de jours). On prévient avec une bulle plutôt que de laisser
-      // passer silencieusement une valeur impossible, puis on ramène à 52.
-      if (input.dataset.path.endsWith(".semainesTravailleesAn") && valeur > 52) {
-        afficherBulle(
-          "Une année ne comporte que 52 semaines — on ramène la valeur à 52.",
-        );
-        valeur = 52;
-        input.value = 52;
-      }
       majEtat(input.dataset.path, valeur);
     });
   });
@@ -73,7 +80,7 @@ export function attacherEcouteurs(app) {
       const etat = getEtat();
       const cible =
         ownerId === "staffAdmin" ? etat.staffAdmin[champ] : etat.praticiens.find((p) => p.id === ownerId)[champ];
-      cible[+index][clef] = input.type === "number" ? parseFloat(input.value) || 0 : input.value;
+      cible[+index][clef] = input.type === "number" ? valeurNombre(input) : input.value;
       forcerRafraichissement(etat);
     });
   });

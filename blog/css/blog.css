@@ -500,3 +500,13 @@ sup.ref a {
 .w-98 { width: 98%; }
 .w-99 { width: 99%; }
 .w-100 { width: 100%; }
+
+/* Cases à faire ressortir en vert clair (05/11/2026) : chiffres clés,
+   encadrés, cartes d'articles, encart « Qui sommes-nous ? ». */
+.chiffre-cle,
+.encadre,
+.carte-article,
+.qui-sommes-nous {
+  background: var(--lc-vert-clair);
+  border: 1px solid var(--lc-vert-clair-bord);
+}

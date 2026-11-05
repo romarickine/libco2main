@@ -21,6 +21,13 @@ import { FACTEURS_MOBILIER_UNITE, PROFESSIONS_PRESCRIPTRICES } from "../data/fac
 import { calculerSurfaceDeclaree } from "../main-msp.js";
 import { echapperHtml } from "../../../shared/js/echappement.js";
 import { rendrePiedNavigation } from "../ui-msp.js";
+import { PLAFONDS as P, maxPour, maxSurface, raisonPersonnes } from "../../../shared/js/bornes-saisie.js";
+
+// Bornes des champs (shared/js/bornes-saisie.js, 05/11/2026) : attribut max
+// (et min manquant) ajouté à chaque champ numérique ; la valeur hors bornes
+// est ramenée à la borne au moment de la saisie (evenements.js).
+const bMax = (max, raison) => ` max="${max}"` + (raison ? ` data-raison-max="${raison}"` : "");
+const tailleStructure = (etat) => (etat.praticiens?.length || 0) + (Number(etat.staffAdmin?.etp) || 0);
 
 // ---------------------------------------------------------------------------
 // ÉCRAN 1 — Profil
@@ -58,7 +65,7 @@ export function rendreProfil(etat) {
     </label>
     </div>
     <label>Surface totale de la structure (m²)
-      <input type="number" min="0" data-path="structureMSP.surfaceTotale" value="${s.surfaceTotale ?? ""}">
+      <input type="number" min="0" data-path="structureMSP.surfaceTotale"${bMax(P.surfaceStructure)} value="${s.surfaceTotale ?? ""}">
     </label>
     <p class="aide">La surface totale doit correspondre à la somme des surfaces dédiées que vous saisirez pour chaque praticien et pour le staff admin (écrans suivants) — c'est la clé utilisée pour répartir les émissions du local entre chacun. Si la somme déclarée est inférieure au total (espaces communs non répartis individuellement), la part manquante est automatiquement rattachée aux fonctions support de la MSP plutôt que d'être perdue.</p>
     ${(() => {
@@ -76,6 +83,7 @@ export function rendreProfil(etat) {
 // ÉCRAN 2 — Local & bâtiment
 export function rendreLocalBatiment(etat) {
   const l = etat.structureMSP.local;
+  const surf = etat.structureMSP.surfaceTotale;
   return `
   <section class="ecran">
     <h2>2. Local et bâtiment</h2>
@@ -89,7 +97,7 @@ export function rendreLocalBatiment(etat) {
         <summary><span>Rénovation lourde plus récente (optionnel)</span></summary>
         <div class="ligne-double">
           <label>Année<input type="number" min="1800" max="2100" data-path="structureMSP.local.batiment.renovationLourde.annee" value="${l.batiment.renovationLourde?.annee ?? ""}"></label>
-          <label>Coût des travaux (€)<input type="number" min="0" data-path="structureMSP.local.batiment.renovationLourde.coutTravaux" value="${l.batiment.renovationLourde?.coutTravaux ?? ""}"></label>
+          <label>Coût des travaux (€)<input type="number" min="0" data-path="structureMSP.local.batiment.renovationLourde.coutTravaux"${bMax(maxSurface(P.coutTravauxParM2, surf, maxPour(P.coutTravauxParM2, P.surfaceStructure)), surf ? "pour " + surf + " m²" : "")} value="${l.batiment.renovationLourde?.coutTravaux ?? ""}"></label>
         </div>
         <p class="aide">Une rénovation ne compte comme "lourde" que si son coût atteint au moins 275 €/m² de surface totale — seuil réglementaire des locaux non résidentiels.</p>
       </details>
@@ -107,10 +115,10 @@ export function rendreLocalBatiment(etat) {
         <summary><span>Consommation réelle (optionnel, sinon estimation par ratio)</span></summary>
         <div class="ligne-double">
         <label>Électricité (kWh/an)
-          <input type="number" min="0" data-path="structureMSP.local.consoReelle.elec_kWh" value="${l.consoReelle?.elec_kWh ?? ""}">
+          <input type="number" min="0" data-path="structureMSP.local.consoReelle.elec_kWh"${bMax(maxSurface(P.kWhParM2, surf, P.kWhSansSurface), surf ? "pour " + surf + " m²" : "")} value="${l.consoReelle?.elec_kWh ?? ""}">
         </label>
         <label>Chauffage (kWh/an)
-          <input type="number" min="0" data-path="structureMSP.local.consoReelle.chauffage_kWh" value="${l.consoReelle?.chauffage_kWh ?? ""}">
+          <input type="number" min="0" data-path="structureMSP.local.consoReelle.chauffage_kWh"${bMax(maxSurface(P.kWhParM2, surf, P.kWhSansSurface), surf ? "pour " + surf + " m²" : "")} value="${l.consoReelle?.chauffage_kWh ?? ""}">
         </label>
         </div>
       </details>
@@ -167,7 +175,7 @@ function rendreSectionPrescriptions(p, i) {
           )
           .join("")}
       </select>
-      <input type="number" min="0" placeholder="Actes/an" data-path="praticiens.${i}.prescriptions.actesParamedicauxExternes.${j}.nbActesAnnuel" value="${l.nbActesAnnuel}">
+      <input type="number" min="0" placeholder="Actes/an" data-path="praticiens.${i}.prescriptions.actesParamedicauxExternes.${j}.nbActesAnnuel"${bMax(P.actesPrescritsParPraticien, "par praticien")} value="${l.nbActesAnnuel}">
       <button data-action="supprimer-mode" data-id="${p.id}" data-champ="prescriptions.actesParamedicauxExternes" data-index="${j}" class="bouton-danger-petit">×</button>
     </div>`,
     )
@@ -175,7 +183,7 @@ function rendreSectionPrescriptions(p, i) {
   return `
     <h4 class="section-titre">Prescriptions</h4>
     <label>Montant annuel de médicaments prescrits (€)
-      <input type="number" min="0" data-path="praticiens.${i}.prescriptions.montantAnnuelMedicaments" value="${p.prescriptions.montantAnnuelMedicaments}">
+      <input type="number" min="0" data-path="praticiens.${i}.prescriptions.montantAnnuelMedicaments"${bMax(P.medicamentsParPraticien, "par praticien")} value="${p.prescriptions.montantAnnuelMedicaments}">
     </label>
     <p class="aide">Facteur SOURCÉ (ADEME Base Carbone®, produits pharmaceutiques 2023, 0,194 kgCO2e/€). Aucun risque de double comptage : rien d'autre dans l'outil ne capte la fabrication des médicaments.</p>
     <p class="sous-titre-bloc">Actes paramédicaux prescrits réalisés en dehors de la structure</p>
@@ -191,10 +199,10 @@ function rendreSectionPharmacien(p, i) {
     <h4 class="section-titre">Officine (chiffre d'affaires)</h4>
     <div class="ligne-double">
       <label>Chiffre d'affaires médicaments (€/an)
-        <input type="number" min="0" data-path="praticiens.${i}.pharmacien.caMedicaments" value="${ph.caMedicaments}">
+        <input type="number" min="0" data-path="praticiens.${i}.pharmacien.caMedicaments"${bMax(P.caMedicamentsParPharmacien, "par pharmacien")} value="${ph.caMedicaments}">
       </label>
       <label>Chiffre d'affaires parapharmacie (€/an)
-        <input type="number" min="0" data-path="praticiens.${i}.pharmacien.caParapharmacie" value="${ph.caParapharmacie}">
+        <input type="number" min="0" data-path="praticiens.${i}.pharmacien.caParapharmacie"${bMax(P.caParapharmacieParPharmacien, "par pharmacien")} value="${ph.caParapharmacie}">
       </label>
     </div>
     <label>Part des prescriptions de la structure honorées dans cette officine (%)
@@ -218,11 +226,11 @@ function rendreCartePraticien(p, i) {
       </select>
     </label>
     <label>Surface dédiée (m²)
-      <input type="number" min="0" data-path="praticiens.${i}.surfaceDediee" value="${p.surfaceDediee}">
+      <input type="number" min="0" data-path="praticiens.${i}.surfaceDediee"${bMax(P.surfaceParPersonne, "par praticien")} value="${p.surfaceDediee}">
     </label>
     </div>
     <div class="ligne-double">
-      <label>Nombre d'actes annuel<input type="number" min="0" data-path="praticiens.${i}.nbActesAnnuel" value="${p.nbActesAnnuel}"></label>
+      <label>Nombre d'actes annuel<input type="number" min="0" data-path="praticiens.${i}.nbActesAnnuel"${bMax(P.actesParPraticien, "par praticien")} value="${p.nbActesAnnuel}"></label>
       <label>Part au lieu fixe (%)<input type="number" min="0" max="100" data-path="praticiens.${i}.partLieuFixe" value="${p.partLieuFixe}"></label>
     </div>
 
@@ -231,7 +239,7 @@ function rendreCartePraticien(p, i) {
     <div class="sous-carte">
       <p class="sous-carte-titre">Trajet domicile-travail</p>
       <div class="ligne-triple">
-        <label>Distance (km aller)<input type="number" min="0" data-path="praticiens.${i}.distanceDomicileTravail" value="${p.distanceDomicileTravail}"></label>
+        <label>Distance (km aller)<input type="number" min="0" data-path="praticiens.${i}.distanceDomicileTravail"${bMax(P.kmDomicileTravailParPersonne, "par personne")} value="${p.distanceDomicileTravail}"></label>
         <label>Jours travaillés/semaine<input type="number" min="0" max="7" data-path="praticiens.${i}.joursTravaillesSemaine" value="${p.joursTravaillesSemaine}"></label>
         <label>Semaines travaillées/an<input type="number" min="0" max="52" data-path="praticiens.${i}.semainesTravailleesAn" value="${p.semainesTravailleesAn}"></label>
       </div>
@@ -241,7 +249,7 @@ function rendreCartePraticien(p, i) {
     <div class="sous-carte">
       <p class="sous-carte-titre">Tournées à domicile (visites au domicile des patients)</p>
       <label>Distance annuelle (km/an)
-        <input type="number" min="0" data-path="praticiens.${i}.tourneesDomicile.kmAnnuel" value="${p.tourneesDomicile.kmAnnuel}">
+        <input type="number" min="0" data-path="praticiens.${i}.tourneesDomicile.kmAnnuel"${bMax(P.kmTourneesParPersonne, "par praticien")} value="${p.tourneesDomicile.kmAnnuel}">
       </label>
       ${rendreBlocModes(p, i, "tourneesDomicile.modes", "Modes de transport")}
     </div>
@@ -249,7 +257,7 @@ function rendreCartePraticien(p, i) {
     <div class="sous-carte">
       <p class="sous-carte-titre">Déplacements professionnels annuels (congrès, formations, représentation...)</p>
       <label>Distance annuelle (km/an)
-        <input type="number" min="0" data-path="praticiens.${i}.deplacementsProAnnuels.kmAnnuel" value="${p.deplacementsProAnnuels.kmAnnuel}">
+        <input type="number" min="0" data-path="praticiens.${i}.deplacementsProAnnuels.kmAnnuel"${bMax(P.kmDeplacementsProParPersonne, "par praticien")} value="${p.deplacementsProAnnuels.kmAnnuel}">
       </label>
       ${rendreBlocModes(p, i, "deplacementsProAnnuels.modes", "Modes de transport")}
     </div>
@@ -272,12 +280,12 @@ function rendreCartePraticien(p, i) {
     <details data-details-key="praticien-${p.id}-numerique">
       <summary><span>Numérique</span></summary>
       <div class="ligne-triple">
-        <label>Ordinateurs fixes<input type="number" min="0" data-path="praticiens.${i}.numerique.nbOrdisFixes" value="${p.numerique.nbOrdisFixes}"></label>
-        <label>Ordinateurs portables<input type="number" min="0" data-path="praticiens.${i}.numerique.nbOrdisPortables" value="${p.numerique.nbOrdisPortables}"></label>
-        <label>Écrans supplémentaires<input type="number" min="0" data-path="praticiens.${i}.numerique.nbEcransSuppl" value="${p.numerique.nbEcransSuppl}"></label>
+        <label>Ordinateurs fixes<input type="number" min="0" data-path="praticiens.${i}.numerique.nbOrdisFixes"${bMax(P.equipementsInfoParPersonne, "par praticien")} value="${p.numerique.nbOrdisFixes}"></label>
+        <label>Ordinateurs portables<input type="number" min="0" data-path="praticiens.${i}.numerique.nbOrdisPortables"${bMax(P.equipementsInfoParPersonne, "par praticien")} value="${p.numerique.nbOrdisPortables}"></label>
+        <label>Écrans supplémentaires<input type="number" min="0" data-path="praticiens.${i}.numerique.nbEcransSuppl"${bMax(P.equipementsInfoParPersonne, "par praticien")} value="${p.numerique.nbEcransSuppl}"></label>
       </div>
       <label>Durée de détention moyenne (années)
-        <input type="number" min="1" data-path="praticiens.${i}.numerique.dureeDetentionOrdis" value="${p.numerique.dureeDetentionOrdis}">
+        <input type="number" min="1" data-path="praticiens.${i}.numerique.dureeDetentionOrdis"${bMax(P.dureeDetentionAns)} value="${p.numerique.dureeDetentionOrdis}">
       </label>
       ${rendreLignesMaterielInfo(p, i)}
     </details>
@@ -300,8 +308,8 @@ function rendreLignesMaterielInfo(p, i) {
       (m, j) => `
     <div class="ligne-materiel">
       <input type="text" placeholder="Exemple : imprimante" data-path="praticiens.${i}.numerique.autreMaterielInfo.${j}.type" value="${m.type}">
-      <input type="number" placeholder="0" data-path="praticiens.${i}.numerique.autreMaterielInfo.${j}.valeurAchat" value="${m.valeurAchat}">
-      <input type="number" placeholder="5" data-path="praticiens.${i}.numerique.autreMaterielInfo.${j}.dureeDetention" value="${m.dureeDetention}">
+      <input type="number" placeholder="0" data-path="praticiens.${i}.numerique.autreMaterielInfo.${j}.valeurAchat" min="0"${bMax(P.materielInfoParPersonne, "par praticien")} value="${m.valeurAchat}">
+      <input type="number" placeholder="5" data-path="praticiens.${i}.numerique.autreMaterielInfo.${j}.dureeDetention" min="1"${bMax(P.dureeDetentionAns)} value="${m.dureeDetention}">
       <button data-action="supprimer-ligne-praticien" data-id="${p.id}" data-champ="numerique.autreMaterielInfo" data-index="${j}" class="bouton-danger-petit">×</button>
     </div>`,
     )
@@ -318,8 +326,8 @@ function rendreLignesMaterielDedie(p, i) {
       (m, j) => `
     <div class="ligne-materiel">
       <input type="text" placeholder="Exemple : échographe" data-path="praticiens.${i}.materielDedie.${j}.type" value="${m.type}">
-      <input type="number" placeholder="0" data-path="praticiens.${i}.materielDedie.${j}.valeurAchat" value="${m.valeurAchat}">
-      <input type="number" placeholder="5" data-path="praticiens.${i}.materielDedie.${j}.dureeDetention" value="${m.dureeDetention}">
+      <input type="number" placeholder="0" data-path="praticiens.${i}.materielDedie.${j}.valeurAchat" min="0"${bMax(P.materielParPersonne, "par praticien")} value="${m.valeurAchat}">
+      <input type="number" placeholder="5" data-path="praticiens.${i}.materielDedie.${j}.dureeDetention" min="1"${bMax(P.dureeDetentionAns)} value="${m.dureeDetention}">
       <button data-action="supprimer-ligne-praticien" data-id="${p.id}" data-champ="materielDedie" data-index="${j}" class="bouton-danger-petit">×</button>
     </div>`,
     )
@@ -338,8 +346,8 @@ function rendreLignesMobilier(mobilier, ownerId, champ) {
       <select data-path-mobilier="${ownerId}|${champ}|${j}|type">
         ${options.map((o) => `<option value="${o}" ${m.type === o ? "selected" : ""}>${LABELS_MOBILIER[o]}</option>`).join("")}
       </select>
-      <input type="number" placeholder="1" data-path-mobilier="${ownerId}|${champ}|${j}|nombre" value="${m.nombre}">
-      <input type="number" placeholder="10" data-path-mobilier="${ownerId}|${champ}|${j}|dureeDetention" value="${m.dureeDetention}">
+      <input type="number" min="0"${bMax(P.meublesParPersonne * 10)} placeholder="1" data-path-mobilier="${ownerId}|${champ}|${j}|nombre" value="${m.nombre}">
+      <input type="number" min="1"${bMax(P.dureeDetentionAns)} placeholder="10" data-path-mobilier="${ownerId}|${champ}|${j}|dureeDetention" value="${m.dureeDetention}">
       <button data-action="supprimer-mobilier" data-owner="${ownerId}" data-champ="${champ}" data-index="${j}" class="bouton-danger-petit">×</button>
     </div>`,
     )
@@ -359,16 +367,17 @@ function rendreEnteteLigneMateriel(c1, c2, c3) {
 // ÉCRAN 4 — Staff admin
 export function rendreStaffAdmin(etat) {
   const a = etat.staffAdmin;
+  const parEtp = (plafond) => bMax(maxPour(plafond, a.etp), raisonPersonnes(a.etp));
   return `
   <section class="ecran">
     <h2>4. Staff administratif</h2>
     <div class="ligne-double">
-      <label>Effectif administratif (équivalent temps plein)<input type="number" min="0" step="0.1" data-path="staffAdmin.etp" value="${a.etp ?? ""}"></label>
-      <label>Surface dédiée (m²)<input type="number" min="0" data-path="staffAdmin.surfaceDediee" value="${a.surfaceDediee ?? ""}"></label>
+      <label>Effectif administratif (équivalent temps plein)<input type="number" min="0" step="0.1" data-path="staffAdmin.etp"${bMax(P.personnes)} value="${a.etp ?? ""}"></label>
+      <label>Surface dédiée (m²)<input type="number" min="0" data-path="staffAdmin.surfaceDediee"${parEtp(P.surfaceParPersonne)} value="${a.surfaceDediee ?? ""}"></label>
     </div>
 
     <div class="ligne-double">
-      <label>Distance domicile-travail moyenne (km aller)<input type="number" min="0" data-path="staffAdmin.distanceDomicileTravailMoyenne" value="${a.distanceDomicileTravailMoyenne ?? ""}"></label>
+      <label>Distance domicile-travail moyenne (km aller)<input type="number" min="0" data-path="staffAdmin.distanceDomicileTravailMoyenne"${bMax(P.kmDomicileTravailParPersonne, "(moyenne par personne)")} value="${a.distanceDomicileTravailMoyenne ?? ""}"></label>
       <label>Mode principal
         <select data-path="staffAdmin.modeDomicileTravailMoyen">
           ${MODES_DEPLACEMENT.map((m) => `<option value="${m}" ${a.modeDomicileTravailMoyen === m ? "selected" : ""}>${LABELS_MODES[m]}</option>`).join("")}
@@ -383,12 +392,12 @@ export function rendreStaffAdmin(etat) {
     <div class="carte">
       <h3 class="carte-titre">Numérique</h3>
       <div class="ligne-triple">
-        <label>Ordinateurs fixes<input type="number" min="0" data-path="staffAdmin.numerique.nbOrdisFixes" value="${a.numerique.nbOrdisFixes}"></label>
-        <label>Ordinateurs portables<input type="number" min="0" data-path="staffAdmin.numerique.nbOrdisPortables" value="${a.numerique.nbOrdisPortables}"></label>
-        <label>Écrans supplémentaires<input type="number" min="0" data-path="staffAdmin.numerique.nbEcransSuppl" value="${a.numerique.nbEcransSuppl}"></label>
+        <label>Ordinateurs fixes<input type="number" min="0" data-path="staffAdmin.numerique.nbOrdisFixes"${parEtp(P.equipementsInfoParPersonne)} value="${a.numerique.nbOrdisFixes}"></label>
+        <label>Ordinateurs portables<input type="number" min="0" data-path="staffAdmin.numerique.nbOrdisPortables"${parEtp(P.equipementsInfoParPersonne)} value="${a.numerique.nbOrdisPortables}"></label>
+        <label>Écrans supplémentaires<input type="number" min="0" data-path="staffAdmin.numerique.nbEcransSuppl"${parEtp(P.equipementsInfoParPersonne)} value="${a.numerique.nbEcransSuppl}"></label>
       </div>
       <label>Durée de détention moyenne (années)
-        <input type="number" min="1" data-path="staffAdmin.numerique.dureeDetentionOrdis" value="${a.numerique.dureeDetentionOrdis}">
+        <input type="number" min="1" data-path="staffAdmin.numerique.dureeDetentionOrdis"${bMax(P.dureeDetentionAns)} value="${a.numerique.dureeDetentionOrdis}">
       </label>
       <p class="sous-titre-bloc">Autre matériel informatique (imprimante, lecteur de carte Vitale...)</p>
       ${a.numerique.autreMaterielInfo.length > 0 ? rendreEnteteLigneMateriel("Type", "Valeur d'achat (€)", "Durée (ans)") : ""}
@@ -397,8 +406,8 @@ export function rendreStaffAdmin(etat) {
           (m, j) => `
         <div class="ligne-materiel">
           <input type="text" placeholder="Exemple : imprimante" data-path="staffAdmin.numerique.autreMaterielInfo.${j}.type" value="${m.type}">
-          <input type="number" placeholder="0" data-path="staffAdmin.numerique.autreMaterielInfo.${j}.valeurAchat" value="${m.valeurAchat}">
-          <input type="number" placeholder="5" data-path="staffAdmin.numerique.autreMaterielInfo.${j}.dureeDetention" value="${m.dureeDetention}">
+          <input type="number" placeholder="0" data-path="staffAdmin.numerique.autreMaterielInfo.${j}.valeurAchat" min="0"${parEtp(P.materielInfoParPersonne)} value="${m.valeurAchat}">
+          <input type="number" placeholder="5" data-path="staffAdmin.numerique.autreMaterielInfo.${j}.dureeDetention" min="1"${bMax(P.dureeDetentionAns)} value="${m.dureeDetention}">
           <button data-action="supprimer-ligne" data-chemin="staffAdmin.numerique.autreMaterielInfo" data-index="${j}" class="bouton-danger-petit">×</button>
         </div>`,
         )
@@ -418,41 +427,43 @@ export function rendreStaffAdmin(etat) {
 // ÉCRAN 5 — Postes mutualisés
 export function rendrePostesMutualises(etat) {
   const pm = etat.postesMutualises;
+  const n = tailleStructure(etat);
+  const parN = (plafond) => bMax(maxPour(plafond, n), raisonPersonnes(n));
   return `
   <section class="ecran">
     <h2>5. Postes mutualisés</h2>
     <p class="alerte">Ces montants doivent couvrir l'ensemble de la structure — additionnez les frais de tous les praticiens et pas seulement les vôtres. Ils seront ensuite réventilés automatiquement vers chaque praticien au prorata de son nombre d'actes annuel.</p>
     <div class="ligne-double">
-      <label>Matériel de secrétariat — consommables (€/an)<input type="number" min="0" data-path="postesMutualises.materielSecretariat.montantAnnuelConsommables" value="${pm.materielSecretariat.montantAnnuelConsommables}"></label>
-      <label>Comptabilité / banque / assurance (€/an)<input type="number" min="0" data-path="postesMutualises.services.comptaBanqueAssurance" value="${pm.services.comptaBanqueAssurance}"></label>
+      <label>Matériel de secrétariat — consommables (€/an)<input type="number" min="0" data-path="postesMutualises.materielSecretariat.montantAnnuelConsommables"${parN(P.achatsAnnuelsParPersonne)} value="${pm.materielSecretariat.montantAnnuelConsommables}"></label>
+      <label>Comptabilité / banque / assurance (€/an)<input type="number" min="0" data-path="postesMutualises.services.comptaBanqueAssurance"${parN(P.servicesParPersonne)} value="${pm.services.comptaBanqueAssurance}"></label>
     </div>
     <div class="ligne-double">
-      <label>Sous-traitance (€/an)<input type="number" min="0" data-path="postesMutualises.services.sousTraitance" value="${pm.services.sousTraitance}"></label>
-      <label>Nombre de colis reçus/an<input type="number" min="0" data-path="postesMutualises.fret.nbColisAn" value="${pm.fret.nbColisAn}"></label>
+      <label>Sous-traitance (€/an)<input type="number" min="0" data-path="postesMutualises.services.sousTraitance"${parN(P.servicesParPersonne)} value="${pm.services.sousTraitance}"></label>
+      <label>Nombre de colis reçus/an<input type="number" min="0" data-path="postesMutualises.fret.nbColisAn"${parN(P.colisParPersonne)} value="${pm.fret.nbColisAn}"></label>
     </div>
 
     <div class="carte">
       <h3 class="carte-titre">Déchets courants de la structure</h3>
       <p class="aide">Traitement en fin de vie uniquement (la fabrication est déjà comptée dans le matériel) — saisi en kg/semaine pour l'ensemble de la structure, converti automatiquement en kg/an (base 52 semaines).</p>
       <div class="ligne-double">
-        <label>Plastique (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.plastique" value="${pm.dechets.plastique}"></label>
-        <label>Métal, hors aluminium (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.metal" value="${pm.dechets.metal}"></label>
+        <label>Plastique (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.plastique"${parN(P.dechetsKgSemaineParPersonne)} value="${pm.dechets.plastique}"></label>
+        <label>Métal, hors aluminium (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.metal"${parN(P.dechetsKgSemaineParPersonne)} value="${pm.dechets.metal}"></label>
       </div>
       <div class="ligne-double">
-        <label>Papier (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.papier" value="${pm.dechets.papier}"></label>
-        <label>Carton (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.carton" value="${pm.dechets.carton}"></label>
+        <label>Papier (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.papier"${parN(P.dechetsKgSemaineParPersonne)} value="${pm.dechets.papier}"></label>
+        <label>Carton (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.carton"${parN(P.dechetsKgSemaineParPersonne)} value="${pm.dechets.carton}"></label>
       </div>
       <div class="ligne-double">
-        <label>Aluminium (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.aluminium" value="${pm.dechets.aluminium}"></label>
-        <label>Verre (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.verre" value="${pm.dechets.verre}"></label>
+        <label>Aluminium (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.aluminium"${parN(P.dechetsKgSemaineParPersonne)} value="${pm.dechets.aluminium}"></label>
+        <label>Verre (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.verre"${parN(P.dechetsKgSemaineParPersonne)} value="${pm.dechets.verre}"></label>
       </div>
       <div class="ligne-double">
-        <label>Déchets ménagers non triés (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.menagers" value="${pm.dechets.menagers}"></label>
-        <label>Déchets électroniques — DEEE (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.electronique" value="${pm.dechets.electronique}"></label>
+        <label>Déchets ménagers non triés (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.menagers"${parN(P.dechetsKgSemaineParPersonne)} value="${pm.dechets.menagers}"></label>
+        <label>Déchets électroniques — DEEE (kg/semaine)<input type="number" min="0" step="0.5" data-path="postesMutualises.dechets.electronique"${parN(P.dechetsKgSemaineParPersonne)} value="${pm.dechets.electronique}"></label>
       </div>
       <hr class="separateur" />
       <label>DASRI — déchets d'activité de soins à risques infectieux (kg/semaine)
-        <input type="number" min="0" step="0.1" data-path="postesMutualises.dechets.dasri" value="${pm.dechets.dasri}">
+        <input type="number" min="0" step="0.1" data-path="postesMutualises.dechets.dasri"${parN(P.dasriKgSemaineParPersonne)} value="${pm.dechets.dasri}">
       </label>
       <p class="aide">Matériel piquant/coupant, produits biologiques — incinération à haute température obligatoire, bien plus émissive que les déchets courants ci-dessus.</p>
     </div>
@@ -466,8 +477,8 @@ export function rendrePostesMutualises(etat) {
           (m, j) => `
         <div class="ligne-materiel">
           <input type="text" placeholder="Exemple : échographe" data-path="postesMutualises.materielPartage.${j}.type" value="${m.type}">
-          <input type="number" placeholder="0" data-path="postesMutualises.materielPartage.${j}.valeurAchat" value="${m.valeurAchat}">
-          <input type="number" placeholder="5" data-path="postesMutualises.materielPartage.${j}.dureeDetention" value="${m.dureeDetention}">
+          <input type="number" placeholder="0" data-path="postesMutualises.materielPartage.${j}.valeurAchat" min="0"${parN(P.materielParPersonne)} value="${m.valeurAchat}">
+          <input type="number" placeholder="5" data-path="postesMutualises.materielPartage.${j}.dureeDetention" min="1"${bMax(P.dureeDetentionAns)} value="${m.dureeDetention}">
           <button data-action="supprimer-ligne" data-chemin="postesMutualises.materielPartage" data-index="${j}" class="bouton-danger-petit">×</button>
         </div>`,
         )
