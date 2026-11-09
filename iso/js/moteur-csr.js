@@ -715,3 +715,45 @@ export function tempsVoitureEffectifCSR(idx, carTimes, tailleCellule, anneauMax,
     return cT[meilleur] + (facteur * meilleureDist) / vitesseRepli;
   };
 }
+
+/**
+ * Diagnostic de la frontière d'une zone (même résultat que analyzeFrontier,
+ * graph.js) sur tableaux : appartenance par drapeaux au lieu d'un Set
+ * d'identifiants, paires de nœuds numérotées au lieu de clés texte, temps
+ * voiture effectif lu dans le cache commun (mêmes nombres que
+ * estimateCarTime, voir tempsVoitureEffectifCSR). Tronçons parcourus dans le
+ * même ordre, donc même tronçon retenu pour une paire en double.
+ * @param {object} idx  indexerGraphe @param {Array} edges  graph.edges
+ * @param {string} mode @param {Uint8Array} gagne  drapeaux des nœuds gagnants
+ * @param {Float64Array} tempsMode  Infinity si non atteint
+ * @param {(i:number)=>number} voiture  temps voiture effectif (facteur de trajets compris)
+ * @param {number} penalite  s
+ */
+export function analyserFrontiereCSR(idx, edges, mode, gagne, tempsMode, voiture, penalite) {
+  const { n, de, vers } = idx;
+  const counts = { excludedByFilter: 0, beyondTimeBudget: 0, carWins: 0, other: 0 };
+  const vues = new Set();
+  for (let e = 0; e < de.length; e++) {
+    const a = de[e],
+      b = vers[e];
+    const dansA = gagne[a] === 1,
+      dansB = gagne[b] === 1;
+    if (dansA === dansB) continue;
+    const dehors = dansA ? b : a;
+    const cle = a < b ? a * n + b : b * n + a;
+    if (vues.has(cle)) continue;
+    vues.add(cle);
+    if (!isEdgeUsable(edges[e], mode)) {
+      counts.excludedByFilter++;
+      continue;
+    }
+    const mt = tempsMode[dehors];
+    if (mt === Infinity) {
+      counts.beyondTimeBudget++;
+      continue;
+    }
+    if (mt >= voiture(dehors) + penalite) counts.carWins++;
+    else counts.other++;
+  }
+  return counts;
+}

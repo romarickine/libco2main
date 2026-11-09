@@ -8,7 +8,6 @@ import {
   isEdgeUsable,
   findNearestNode,
   computeNodeDegrees,
-  analyzeFrontier,
   estimateCarTime,
   haversineMeters,
   classifyUrbanContext,
@@ -31,9 +30,10 @@ import {
   connexiteBruteCSR,
   completerAltitudesCSR,
   lisserAltitudesCSR,
+  analyserFrontiereCSR,
 } from "./moteur-csr.js";
 import { filtrerIlots, trousACombler, NATURES_DEGRADEES } from "./ilots.js";
-import { HexGrid, traceOuterBoundaries, buildPolygonsWithHoles, smoothPolygonsWithHoles } from "./hexgrid.js";
+import { HexGrid, ClesParTroncon, traceOuterBoundaries, buildPolygonsWithHoles, smoothPolygonsWithHoles } from "./hexgrid.js";
 import { fetchIGNRoads, etendreIGNRoads, fetchElevations } from "./ign-api.js";
 import { DELAY_BIKE_MIN, DELAY_CAR_MIN_URBAN, DELAY_CAR_MIN_RURAL, ILOTS } from "./config.js";
 
@@ -84,7 +84,27 @@ export async function probeJunctionDensity(lon, lat, probeRadiusMeters, nodeSnap
   const graph = parseIGNRoadsToGraph(roadsGeoJson, nodeSnapToleranceMeters);
   const nodeDegrees = computeNodeDegrees(graph);
   const { junctionCount } = classifyUrbanContext(graph, nodeDegrees, lon, lat);
+  // Refus anticipé (voir verifierDepart) sur ce petit réseau, avant de
+  // télécharger le réseau complet ; le calcul complet vérifie de nouveau.
+  const origine = findNearestNode(graph, lon, lat);
+  if (origine != null) verifierDepart(computeNodeIncidentEdges(graph).get(origine), ["walk", "bike", "ebike"]);
   return junctionCount;
+}
+
+export const MESSAGE_DEPART_REFUSE =
+  "Ce point est sur une voie interdite à pied et à vélo (bretelle, voie rapide…). Choisissez une adresse ou un point sur une rue ordinaire.";
+
+// Point de départ refusé s'il est rattaché à un nœud qu'aucun des modes
+// actifs ne peut quitter (bretelle ou voie rapide : zones marche, vélo et VAE
+// vides sinon). Choix du porteur, 09/11/2026 : le calcul porte sur des
+// adresses de la base IGN, qui ne sont pas sur ces voies.
+function verifierDepart(tronconsDepart, modesActifs) {
+  const ok = (tronconsDepart || []).some((e) => modesActifs.some((m) => isEdgeUsable(e, m)));
+  if (!ok) {
+    const err = new Error(MESSAGE_DEPART_REFUSE);
+    err.departRefuse = true;
+    throw err;
+  }
 }
 
 export const DIRECTION_DEPART = "depart"; // « j'en pars » : trajets adresse → lieu
@@ -132,36 +152,19 @@ export function tempsSelonDirection(adjacency, origine, plafond, direction, dist
   return somme;
 }
 
-/**
- * Calcul complet des zones « plus rapide que la voiture » autour d'un point :
- * réseau routier et relief IGN, plus courts chemins (Dijkstra) pour la
- * voiture et chaque mode actif, comparaison nœud par nœud, puis polygones
- * lissés. Étapes et progression signalées par onProgress.
- * @param {object} opts  { lon, lat, networkRadiusMeters, (elevationGridSpacingMeters : ignoré depuis le 06/10/2026),
- *   nodeSnapToleranceMeters?, wfsPageSize?, onProgress(message, fraction) }
- * @returns {Promise<object>} results (zones par mode), taille du réseau, connexité,
- *   troncature éventuelle du téléchargement, contexte urbain, pénalité voiture
- *   appliquée, et données de diagnostic.
- */
-export async function computeIsochronesNetwork(opts) {
-  if (![DIRECTION_DEPART, DIRECTION_ARRIVEE, DIRECTION_ALLER_RETOUR].includes(opts.direction ?? DIRECTION_DEPART)) {
-    throw new Error("Direction inconnue : " + opts.direction);
-  }
-  const {
-    lon,
-    lat,
-    networkRadiusMeters,
-    nodeSnapToleranceMeters = 8,
-    wfsPageSize = 4800,
-    modes = ["Walk", "Bike", "Ebike"],
-    direction = DIRECTION_DEPART,
-    reseauPrecedent = null,
-    garderReseau = false,
-    ilots = undefined,
-    onProgress,
-  } = opts;
-  const bufferRadiusMeters = 40;
+// Dernier réseau préparé (voir computeIsochronesNetwork).
+let memoReseau = null;
+/** Vide le réseau gardé en mémoire (libère la mémoire ; aucun effet sur les résultats). */
+export function oublierReseau() {
+  memoReseau = null;
+}
 
+/**
+ * Téléchargement, graphe, altitudes et préparation du moteur : tout ce qui
+ * ne dépend que du point, du rayon et des données IGN (pas du mode, du sens
+ * ni des îlots).
+ */
+async function preparerReseauComplet({ lon, lat, networkRadiusMeters, nodeSnapToleranceMeters, wfsPageSize, reseauPrecedent, onProgress }) {
   // Réseau précédent fourni (relance à un rayon plus grand, voir
   // calcul-carte.js) : seul l'anneau manquant est téléchargé.
   const libelleReseau = reseauPrecedent
@@ -181,25 +184,6 @@ export async function computeIsochronesNetwork(opts) {
   // en centre dense qu'en zone rurale où l'on se gare devant sa destination.
   // Le délai vélo, lui, ne varie pas avec le contexte.
   const urbanContext = classifyUrbanContext(graph, nodeDegrees, lon, lat);
-  const delayBike = DELAY_BIKE_MIN;
-  const delayCar = urbanContext.isUrban ? DELAY_CAR_MIN_URBAN : DELAY_CAR_MIN_RURAL;
-
-  // Plafond de recherche par mode (20/40/60 min) : choix technique pour limiter
-  // la taille du calcul, PAS une définition des zones (une zone = là où le mode
-  // bat la voiture). Hypothèse posée par le porteur du projet (29/09/2026), non
-  // vérifiée sur données réelles : chaque mode perd contre la voiture avant son
-  // plafond, donc le plafond ne coupe aucune zone. Documenté dans la
-  // méthodologie de la page (index.html) et dans README.md.
-  const toutesDefs = [
-    { key: "Walk", mode: "walk", maxTime: 20 * 60, carPenalty: delayCar * 60 },
-    { key: "Bike", mode: "bike", maxTime: 40 * 60, carPenalty: (delayCar - delayBike) * 60 },
-    { key: "Ebike", mode: "ebike", maxTime: 60 * 60, carPenalty: (delayCar - delayBike) * 60 },
-  ];
-  // Chaque mode est tracé comme l'anneau qu'il ajoute au précédent : on calcule
-  // donc tous les modes jusqu'au plus lointain demandé (marche, puis vélo, puis
-  // VAE), jamais un mode isolé ; les modes au-delà de celui-là sont évités.
-  const dernier = Math.max(0, ...modes.map((m) => toutesDefs.findIndex((d) => d.key === m)));
-  const modeDefs = toutesDefs.slice(0, dernier + 1);
 
   // Altitudes : lues dans la géométrie 3D des tronçons BD TOPO® (déjà
   // téléchargée), au lieu d'interroger l'API d'altimétrie sur une grille de
@@ -234,9 +218,101 @@ export async function computeIsochronesNetwork(opts) {
   // Moteur sur tableaux typés (moteur-csr.js) : mêmes résultats que
   // buildAdjacency + dijkstra, en bien moins de temps sur un grand réseau.
   const prep = preparerReseau(graph, elevations, nodeDegrees, nodeIncidentEdges);
+  const rawConnectivity = connexiteBruteCSR(prep.idx, prep.idx.index.get(originNode));
+  return {
+    graph,
+    nodeDegrees,
+    nodeIncidentEdges,
+    urbanContext,
+    originNode,
+    prep,
+    rawConnectivity,
+    brut: roadsGeoJson,
+    roadsTruncated: roadsGeoJson.truncated,
+    rawFeatureCount: roadsGeoJson.rawFeatureCount,
+    etendu: roadsGeoJson.etendu === true,
+  };
+}
+
+
+/**
+ * Calcul complet des zones « plus rapide que la voiture » autour d'un point :
+ * réseau routier et relief IGN, plus courts chemins (Dijkstra) pour la
+ * voiture et chaque mode actif, comparaison nœud par nœud, puis polygones
+ * lissés. Étapes et progression signalées par onProgress.
+ * @param {object} opts  { lon, lat, networkRadiusMeters, (elevationGridSpacingMeters : ignoré depuis le 06/10/2026),
+ *   nodeSnapToleranceMeters?, wfsPageSize?, onProgress(message, fraction) }
+ * @returns {Promise<object>} results (zones par mode), taille du réseau, connexité,
+ *   troncature éventuelle du téléchargement, contexte urbain, pénalité voiture
+ *   appliquée, et données de diagnostic.
+ */
+export async function computeIsochronesNetwork(opts) {
+  if (![DIRECTION_DEPART, DIRECTION_ARRIVEE, DIRECTION_ALLER_RETOUR].includes(opts.direction ?? DIRECTION_DEPART)) {
+    throw new Error("Direction inconnue : " + opts.direction);
+  }
+  const {
+    lon,
+    lat,
+    networkRadiusMeters,
+    nodeSnapToleranceMeters = 8,
+    wfsPageSize = 4800,
+    modes = ["Walk", "Bike", "Ebike"],
+    direction = DIRECTION_DEPART,
+    reseauPrecedent = null,
+    garderReseau = false,
+    ilots = undefined,
+    onProgress,
+  } = opts;
+  const bufferRadiusMeters = 40;
+
+  // Réseau déjà préparé pour exactement la même demande (même point, même
+  // rayon, même chemin de téléchargement) : par exemple un changement de sens
+  // du trajet ou de modes. Mêmes données, donc mêmes résultats ; on évite le
+  // téléchargement, le graphe, les altitudes et la préparation (environ 20 s
+  // à Paris, mesure du 09/11/2026). Une seule entrée, vidée avant tout
+  // nouveau réseau pour ne pas cumuler deux réseaux en mémoire.
+  const cleReseau = [lon, lat, networkRadiusMeters, nodeSnapToleranceMeters, wfsPageSize, reseauPrecedent ? "anneau:" + JSON.stringify([reseauPrecedent.emprise, reseauPrecedent.truncated, reseauPrecedent.ordreAxes, reseauPrecedent.rawFeatureCount]) : "direct"].join("|");
+  let reseau = memoReseau && memoReseau.cle === cleReseau ? memoReseau : null;
+  if (!reseau) {
+    memoReseau = null;
+    reseau = await preparerReseauComplet({ lon, lat, networkRadiusMeters, nodeSnapToleranceMeters, wfsPageSize, reseauPrecedent, onProgress });
+    reseau.cle = cleReseau;
+    memoReseau = reseau;
+  } else {
+    onProgress("Réseau routier déjà préparé pour ce point…", 0.5);
+    await yieldToBrowser();
+  }
+  const { graph, nodeDegrees, nodeIncidentEdges, urbanContext, originNode, prep, rawConnectivity } = reseau;
+  // Réseau brut, pour une relance par anneau (calcul-carte.js) : disponible
+  // au premier calcul ; sinon relu à la demande depuis le cache des tuiles
+  // (mêmes réponses). Jamais gardé au-delà de ce calcul (≈ 120 Mo à Paris).
+  const brut = reseau.brut;
+  reseau.brut = null;
+  const delayBike = DELAY_BIKE_MIN;
+  const delayCar = urbanContext.isUrban ? DELAY_CAR_MIN_URBAN : DELAY_CAR_MIN_RURAL;
+
+  // Plafond de recherche par mode (20/40/60 min) : choix technique pour limiter
+  // la taille du calcul, PAS une définition des zones (une zone = là où le mode
+  // bat la voiture). Hypothèse posée par le porteur du projet (29/09/2026), non
+  // vérifiée sur données réelles : chaque mode perd contre la voiture avant son
+  // plafond, donc le plafond ne coupe aucune zone. Documenté dans la
+  // méthodologie de la page (index.html) et dans README.md.
+  const toutesDefs = [
+    { key: "Walk", mode: "walk", maxTime: 20 * 60, carPenalty: delayCar * 60 },
+    { key: "Bike", mode: "bike", maxTime: 40 * 60, carPenalty: (delayCar - delayBike) * 60 },
+    { key: "Ebike", mode: "ebike", maxTime: 60 * 60, carPenalty: (delayCar - delayBike) * 60 },
+  ];
+  // Chaque mode est tracé comme l'anneau qu'il ajoute au précédent : on calcule
+  // donc tous les modes jusqu'au plus lointain demandé (marche, puis vélo, puis
+  // VAE), jamais un mode isolé ; les modes au-delà de celui-là sont évités.
+  const dernier = Math.max(0, ...modes.map((m) => toutesDefs.findIndex((d) => d.key === m)));
+  const modeDefs = toutesDefs.slice(0, dernier + 1);
   const { ids, index: indexNoeud } = prep.idx;
   const origineIdx = indexNoeud.get(originNode);
-  const rawConnectivity = connexiteBruteCSR(prep.idx, origineIdx);
+  verifierDepart(
+    nodeIncidentEdges.get(originNode),
+    modeDefs.map((d) => d.mode),
+  );
 
   onProgress("Calcul des temps de trajet voiture (référence)…", 0.55);
   await yieldToBrowser();
@@ -284,7 +360,9 @@ export async function computeIsochronesNetwork(opts) {
   // Cellules de 200m : assez fines pour bien localiser le nœud voiture le
   // plus proche d'un chemin/sentier isolé, sans exploser le nombre de
   // compartiments sur un réseau de 6 à 15 km de rayon (voir les paliers RADIUS_TIER_* et NETWORK_RADIUS_MAX_M dans config.js).
-  const carIndex = buildCarReachabilityIndex(carTimes, graph.nodeCoords, 200);
+  // Index pour l'inspection d'un point seulement : construit à la première
+  // inspection (0,9 s à Paris, mesure du 09/11/2026), pas à chaque carte.
+  let carIndexMemo = null;
   // Temps voiture sur tableaux : calculé (ou non) par nœud, et temps effectif
   // avec repli (estimateCarTime) mis en cache pour les trois modes.
   const { n: nNoeuds, lon: lonN, lat: latN, de: deA, vers: versA } = prep.idx;
@@ -305,6 +383,8 @@ export async function computeIsochronesNetwork(opts) {
   const hexagonsByMode = {};
   const modeTimesByKey = {}; // conservé pour l'outil de diagnostic (inspection d'un point)
   const hexGrid = new HexGrid(lon, lat, bufferRadiusMeters * 1.6, 6);
+  // Hexagones traversés par chaque tronçon : calculés une fois, servent aux trois modes.
+  const clesTroncons = new ClesParTroncon(hexGrid, prep.idx);
   const progressPerMode = { Walk: 0.65, Bike: 0.78, Ebike: 0.9 };
   const zonesVides = () => ({ polygons: [], hexagonCount: 0, possiblyTruncated: false, frontierDiagnosis: null, ilots: null });
   // Mode « toutes zones gagnantes » + filtre de pertinence (ilots.js, réglages
@@ -356,13 +436,9 @@ export async function computeIsochronesNetwork(opts) {
       if (!gagne[a] || !gagne[b]) {
         continue;
       }
-      const lon1 = lonN[a],
-        lat1 = latN[a],
-        lon2 = lonN[b],
-        lat2 = latN[b];
-      hexGrid.addSegmentToGrid(hexagons, lon1, lat1, lon2, lat2);
+      clesTroncons.ajouterCellules(hexagons, e);
       if (connexes && connexes[a] && connexes[b]) {
-        hexGrid.clesSegment(clesPrincipales, lon1, lat1, lon2, lat2);
+        clesTroncons.ajouterCles(clesPrincipales, e);
       }
       if (
         ilotsActifs &&
@@ -371,7 +447,7 @@ export async function computeIsochronesNetwork(opts) {
         voitureAtteinte[a] &&
         voitureAtteinte[b]
       ) {
-        hexGrid.clesSegment(hexCarrossables, lon1, lat1, lon2, lat2);
+        clesTroncons.ajouterCles(hexCarrossables, e);
       }
     }
 
@@ -400,7 +476,7 @@ export async function computeIsochronesNetwork(opts) {
           lon2 = lonN[versA[e]],
           lat2 = latN[versA[e]];
         if (!dansCadre(lon1, lat1) && !dansCadre(lon2, lat2)) continue;
-        hexGrid.clesSegment(hexRoutes, lon1, lat1, lon2, lat2);
+        clesTroncons.ajouterCles(hexRoutes, e);
       }
       return hexRoutes;
     };
@@ -440,7 +516,7 @@ export async function computeIsochronesNetwork(opts) {
       if (!gagne[i]) continue;
       const nlon = lonN[i],
         nlat = latN[i];
-      // Îlots écartés par le filtre : ils ne doivent pas faire relancer à 15 km.
+      // Îlots écartés par le filtre : ils ne doivent pas faire relancer à un rayon plus grand.
       if (ilotsActifs && !hexagons[hexGrid.cleDe(nlon, nlat)]) {
         continue;
       }
@@ -450,16 +526,15 @@ export async function computeIsochronesNetwork(opts) {
       }
     }
     const possiblyTruncated = maxDistanceFromOrigin > networkRadiusMeters * 0.9;
-    const frontierDiagnosis = analyzeFrontier(
-      graph,
+    // Même résultat que analyzeFrontier (graph.js), sur tableaux.
+    const frontierDiagnosis = analyserFrontiereCSR(
+      prep.idx,
+      graph.edges,
       mode.mode,
-      winningNodes,
-      modeTimes,
-      carTimes,
-      carIndex,
-      graph.nodeCoords,
+      gagne,
+      rm.temps,
+      voitureEffective,
       mode.carPenalty * facteurTrajets,
-      facteurTrajets,
     );
 
     hexagonsByMode[mode.key] = hexagons;
@@ -513,11 +588,18 @@ export async function computeIsochronesNetwork(opts) {
     nodeCount: graph.nodeCoords.size,
     edgeCount: graph.edges.length,
     rawConnectivity,
-    roadsTruncated: roadsGeoJson.truncated,
+    roadsTruncated: reseau.roadsTruncated,
     // Réseau brut, seulement sur demande (relance par anneau) : il pèse lourd en mémoire.
-    reseau: garderReseau ? roadsGeoJson : undefined,
-    reseauEtendu: roadsGeoJson.etendu === true,
-    rawFeatureCount: roadsGeoJson.rawFeatureCount,
+    reseau: garderReseau && brut ? brut : undefined,
+    chargerReseau:
+      garderReseau && !brut
+        ? () =>
+            reseauPrecedent
+              ? etendreIGNRoads(reseauPrecedent, lon, lat, networkRadiusMeters, wfsPageSize, () => {})
+              : fetchIGNRoads(lon, lat, networkRadiusMeters, wfsPageSize, () => {})
+        : undefined,
+    reseauEtendu: reseau.etendu,
+    rawFeatureCount: reseau.rawFeatureCount,
     urbanContext,
     delayCarApplied: delayCar,
     parkingLisiere,
@@ -534,7 +616,10 @@ export async function computeIsochronesNetwork(opts) {
       carTimes,
       carDistances,
       carJunctionDelays,
-      carIndex,
+      get carIndex() {
+        carIndexMemo ??= buildCarReachabilityIndex(carTimes, graph.nodeCoords, 200);
+        return carIndexMemo;
+      },
       originNode,
       modeTimesByKey,
       modeDefs,

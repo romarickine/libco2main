@@ -15,6 +15,8 @@ import {
   RADIUS_TIER_INTERMEDIATE_M,
   RADIUS_TIER_SPARSE_M,
   NETWORK_RADIUS_MAX_M,
+  RADIUS_TIER_VERY_DENSE_M,
+  RAYONS_RELANCE_M,
   ELEVATION_GRID_SPACING_M,
   NODE_SNAP_TOLERANCE_M,
   WFS_PAGE_SIZE,
@@ -28,7 +30,7 @@ import {
  * @returns {number} rayon en mètres
  */
 export function choisirRayonInitial(junctionCount) {
-  if (junctionCount >= RADIUS_TIER_VERY_DENSE_MIN_JUNCTIONS) return NETWORK_RADIUS_MAX_M;
+  if (junctionCount >= RADIUS_TIER_VERY_DENSE_MIN_JUNCTIONS) return RADIUS_TIER_VERY_DENSE_M;
   if (junctionCount >= RADIUS_TIER_DENSE_MIN_JUNCTIONS) return RADIUS_TIER_DENSE_M;
   if (junctionCount >= RADIUS_TIER_INTERMEDIATE_MIN_JUNCTIONS) return RADIUS_TIER_INTERMEDIATE_M;
   return RADIUS_TIER_SPARSE_M;
@@ -93,30 +95,34 @@ export async function calculerCarte({ lon, lat, modes, direction, ilots, onEtat 
   });
 
   // Filet de sécurité : si ce rayon adapté au contexte ne suffit finalement
-  // pas (voir config.js), on relance au rayon maximal.
+  // pas (une zone touche le bord), on relance au rayon suivant de
+  // RAYONS_RELANCE_M, jusqu'au rayon maximal (voir config.js).
   // Le réseau déjà téléchargé est réutilisé : seul l'anneau entre l'ancien et
   // le nouveau rayon est demandé à l'IGN (etendreIGNRoads dans ign-api.js).
   let radiusRetried = false;
-  const reseauPrecedent = computation.reseau;
-  delete computation.reseau;
   // (Déjà au rayon maximal : un nouvel essai donnerait le même résultat.)
-  if (estTronque(computation) && usedRadiusMeters < NETWORK_RADIUS_MAX_M) {
+  while (estTronque(computation) && usedRadiusMeters < NETWORK_RADIUS_MAX_M) {
+    // Réseau repris de la mémoire (même point, même rayon) : le réseau brut
+    // n'a pas été gardé, on le relit depuis le cache des tuiles.
+    const reseauPrecedent = computation.reseau ?? (computation.chargerReseau ? await computation.chargerReseau() : undefined);
+    delete computation.reseau;
+    delete computation.chargerReseau;
+    const ancienRayon = usedRadiusMeters;
+    usedRadiusMeters = RAYONS_RELANCE_M.find((r) => r > usedRadiusMeters) ?? NETWORK_RADIUS_MAX_M;
     radiusRetried = true;
-    usedRadiusMeters = NETWORK_RADIUS_MAX_M;
     computation = await computeIsochronesNetwork({
       ...opts,
       networkRadiusMeters: usedRadiusMeters,
       reseauPrecedent,
+      garderReseau: usedRadiusMeters < NETWORK_RADIUS_MAX_M,
       onProgress: suivi(
         "nouvel-essai",
-        "Rayon de " +
-          probeChosenRadiusMeters / 1000 +
-          " km insuffisant, nouvel essai à " +
-          NETWORK_RADIUS_MAX_M / 1000 +
-          " km — ",
+        "Rayon de " + ancienRayon / 1000 + " km insuffisant, nouvel essai à " + usedRadiusMeters / 1000 + " km — ",
       ),
     });
   }
+  delete computation.reseau;
+  delete computation.chargerReseau;
   return { computation, probeJunctionCount, probeChosenRadiusMeters, usedRadiusMeters, radiusRetried };
 }
 

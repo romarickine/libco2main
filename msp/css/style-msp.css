@@ -47,7 +47,7 @@ button {
    --------------------------------------------------------------------- */
 .barre-avancement {
   height: 3px;
-  background: var(--couleur-bordure-legere);
+  background: var(--lc-bordure-legere); /* fond : reste gris clair */
 }
 .barre-avancement-remplissage {
   height: 100%;
@@ -91,7 +91,7 @@ button {
   font-weight: 600;
 }
 .etape:hover:not(.active) {
-  background: var(--couleur-bordure-legere);
+  background: var(--lc-bordure-legere); /* fond : reste gris clair */
 }
 .etape-puce {
   width: 1.5rem;
@@ -103,7 +103,7 @@ button {
   font-size: 0.72rem;
   font-family: var(--police-texte);
   font-weight: 600;
-  background: var(--couleur-bordure-legere);
+  background: var(--lc-bordure-legere); /* fond : reste gris clair */
   color: var(--couleur-discret);
   flex-shrink: 0;
 }
@@ -446,7 +446,7 @@ details[open] summary {
   transform: scale(0.98);
 }
 .bouton-principal:disabled {
-  background: var(--couleur-bordure);
+  background: var(--lc-bordure); /* fond : reste gris clair */
   box-shadow: none;
   cursor: not-allowed;
 }
@@ -743,7 +743,7 @@ th {
 
 .toggle-groupe {
   display: inline-flex;
-  background: var(--couleur-bordure-legere);
+  background: var(--lc-bordure-legere); /* fond : reste gris clair */
   border-radius: 999px;
   padding: 3px;
   overflow: hidden;
@@ -838,7 +838,7 @@ th {
   color: #8a5a1e;
 }
 .badge-cout {
-  background: var(--couleur-bordure-legere);
+  background: var(--lc-bordure-legere); /* fond : reste gris clair */
   color: var(--couleur-texte);
 }
 .action-curseur {
@@ -953,7 +953,7 @@ th {
   width: 1.15rem;
   height: 1.15rem;
   border-radius: 50%;
-  background: var(--couleur-bordure-legere);
+  background: var(--lc-bordure-legere); /* fond : reste gris clair */
   color: var(--couleur-discret);
   font-family: var(--police-serif);
   font-style: italic;

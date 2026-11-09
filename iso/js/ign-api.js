@@ -1,4 +1,4 @@
-import { lireCache, ecrireCache } from "./cache-tuiles.js";
+import { lireCache, ecrireCache, lireAltitudes, ecrireAltitudes } from "./cache-tuiles.js";
 // ==========================================================================
 // Accès réseau : réseau routier BD TOPO IGN (WFS, par lot), altimétrie IGN
 // (par lot), géocodage IGN
@@ -606,15 +606,35 @@ export function bilinearElevation(grid, gridElevations, lon, lat) {
 const cacheAltitudes = new Map();
 const CACHE_ALTITUDES_MAX = 500000;
 const clePoint = (p) => p.lon.toFixed(5) + "," + p.lat.toFixed(5);
+// Case de rangement du cache persistant : 0,02° de côté (≈ 1,5 × 2,2 km).
+const caseAltitude = (p) => Math.floor(Number(p.lon.toFixed(5)) / 0.02) + "_" + Math.floor(Number(p.lat.toFixed(5)) / 0.02);
+function memoriserAltitude(p, z) {
+  if (cacheAltitudes.size >= CACHE_ALTITUDES_MAX) cacheAltitudes.delete(cacheAltitudes.keys().next().value);
+  cacheAltitudes.set(clePoint(p), z);
+}
 
 export async function fetchElevations(pointsDemandes, onChunkDone) {
   const elevations = new Map();
-  const points = [];
+  const absents = [];
   for (const p of pointsDemandes) {
     const z = cacheAltitudes.get(clePoint(p));
-    if (z === undefined) points.push(p);
+    if (z === undefined) absents.push(p);
     else elevations.set(p.id, z);
   }
+  // Puis le cache persistant (IndexedDB, cache-tuiles.js) : altitudes déjà
+  // renvoyées par l'API lors d'un calcul précédent sur cet appareil.
+  const cases = new Set(absents.map(caseAltitude));
+  const enCache = await lireAltitudes(cases);
+  const points = [];
+  for (const p of absents) {
+    const z = enCache.get(caseAltitude(p))?.[clePoint(p)];
+    if (z === undefined) points.push(p);
+    else {
+      elevations.set(p.id, z);
+      memoriserAltitude(p, z);
+    }
+  }
+  const nouvelles = new Map(); // case → { point : z }, à ranger à la fin
   // Lots proches de la limite documentée de l'API IGN (5000 points/requête,
   // https://geoservices.ign.fr/node/1439) plutôt que les petits lots de 150
   // utilisés jusqu'ici : la contrainte réelle du service est le DÉBIT (5
@@ -670,9 +690,12 @@ export async function fetchElevations(pointsDemandes, onChunkDone) {
         // (souvent -99999 ou similaire) plutôt que de les prendre au pied de
         // la lettre et de fausser toutes les pentes voisines.
         const plausible = typeof z === "number" && Number.isFinite(z) && z > -500 && z < 5000;
-        elevations.set(chunk[idx].id, plausible ? z : 0);
-        if (cacheAltitudes.size >= CACHE_ALTITUDES_MAX) cacheAltitudes.delete(cacheAltitudes.keys().next().value);
-        cacheAltitudes.set(clePoint(chunk[idx]), plausible ? z : 0);
+        const valeur = plausible ? z : 0;
+        elevations.set(chunk[idx].id, valeur);
+        memoriserAltitude(chunk[idx], valeur);
+        const c = caseAltitude(chunk[idx]);
+        if (!nouvelles.has(c)) nouvelles.set(c, {});
+        nouvelles.get(c)[clePoint(chunk[idx])] = valeur;
       });
     } catch (e) {
       throw new Error(
@@ -696,6 +719,7 @@ export async function fetchElevations(pointsDemandes, onChunkDone) {
     chunks.map((chunk, i) => () => fetchChunk(chunk, i)),
     ALTI_EN_COURS_MAX,
   );
+  ecrireAltitudes(nouvelles);
   return elevations;
 }
 

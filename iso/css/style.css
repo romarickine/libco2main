@@ -181,7 +181,7 @@ button.geo-btn:hover {
 }
 .progress-outer {
   height: 16px;
-  background: var(--line);
+  background: var(--lc-bordure); /* fond : reste gris clair */
   border-radius: 8px;
   overflow: hidden;
   position: relative;

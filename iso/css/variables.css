@@ -9,7 +9,9 @@
   --ink: var(--lc-encre);
   --paper: var(--lc-fond);
   --panel: var(--lc-carte);
-  --line: var(--lc-bordure);
+  /* Cadres et lignes en vert sombre (demande du porteur, 09/11/2026), champs compris. */
+  --line: var(--lc-vert-fonce);
+  --lc-bordure-champ: var(--lc-vert-fonce);
 
   --moss: var(--lc-vert);
   --moss-dark: var(--lc-vert-fonce);

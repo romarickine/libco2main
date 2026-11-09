@@ -24,8 +24,11 @@
   /* Neutres */
   --couleur-fond: var(--lc-fond);
   --couleur-carte: var(--lc-carte);
-  --couleur-bordure: var(--lc-bordure);
-  --couleur-bordure-legere: var(--lc-bordure-legere);
+  /* Cadres et lignes de mise en forme en vert sombre (demande du porteur,
+     09/11/2026 : le gris était trop terne), champs de saisie compris. */
+  --couleur-bordure: var(--lc-vert-fonce);
+  --couleur-bordure-legere: var(--lc-vert-fonce);
+  --lc-bordure-champ: var(--lc-vert-fonce);
   --couleur-encre: var(--lc-encre);
   --couleur-texte: var(--lc-texte);
   --couleur-discret: var(--lc-discret); /* était #8A9490 (3.1:1) → 5.96:1 */

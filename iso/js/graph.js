@@ -507,7 +507,13 @@ const URBAN_CLASSIFICATION_JUNCTION_THRESHOLD = 120;
  */
 export function classifyUrbanContext(graph, nodeDegrees, originLon, originLat) {
   let junctionCount = 0;
+  // Tri rapide sans effet sur le compte : la distance sur la sphère est au
+  // moins l'écart de latitude (R·|Δφ|) ; marge de 10⁻⁶ pour les arrondis.
+  const ecartLatMax = (URBAN_CLASSIFICATION_RADIUS_M * 1.000001) / ((EARTH_RADIUS * Math.PI) / 180);
   for (const [id, [lon, lat]] of graph.nodeCoords) {
+    if (Math.abs(lat - originLat) > ecartLatMax) {
+      continue;
+    }
     if ((nodeDegrees.get(id) || 0) < 3) {
       continue;
     } // pas un carrefour, juste un sommet de forme

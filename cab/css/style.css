@@ -374,7 +374,7 @@ a {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: var(--couleur-bordure-legere);
+  background: var(--lc-bordure-legere); /* fond : reste gris clair */
   color: var(--couleur-texte);
   font-size: 12px;
   font-weight: 600;

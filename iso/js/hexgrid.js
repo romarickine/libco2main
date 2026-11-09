@@ -137,28 +137,41 @@ export class HexGrid {
 // représenter comme des trous de polygone.
 // ==========================================================================
 export function traceOuterBoundaries(hexagons, precision) {
-  const keyFmt = (a, b) => a.toFixed(precision) + "," + b.toFixed(precision);
+  // Chaque sommet est partagé par trois hexagones : son écriture en texte
+  // (toFixed) est gardée en mémoire plutôt que refaite (même texte, donc mêmes
+  // clés ; 0 et -0 donnent le même texte).
+  const textes = new Map();
+  const fmt = (v) => {
+    let t = textes.get(v);
+    if (t === undefined) {
+      t = v.toFixed(precision);
+      textes.set(v, t);
+    }
+    return t;
+  };
+  const keyFmt = (a, b) => fmt(a) + "," + fmt(b);
   const segKeyUndirected = (p1, p2) => {
     const a = keyFmt(p1[0], p1[1]),
       b = keyFmt(p2[0], p2[1]);
     return a < b ? a + "|" + b : b + "|" + a;
   };
   const edgeCount = new Map();
+  const clesSegments = []; // même ordre de parcours dans les deux passes
   for (const key in hexagons) {
     const c = hexagons[key].coordinates;
     for (let i = 0; i < c.length - 1; i++) {
       const k = segKeyUndirected(c[i], c[i + 1]);
+      clesSegments.push(k);
       edgeCount.set(k, (edgeCount.get(k) || 0) + 1);
     }
   }
   const boundaryEdges = [];
+  let n = 0;
   for (const key in hexagons) {
     const c = hexagons[key].coordinates;
     for (let i = 0; i < c.length - 1; i++) {
-      const p1 = c[i],
-        p2 = c[i + 1];
-      if (edgeCount.get(segKeyUndirected(p1, p2)) === 1) {
-        boundaryEdges.push({ start: p1, end: p2 });
+      if (edgeCount.get(clesSegments[n++]) === 1) {
+        boundaryEdges.push({ start: c[i], end: c[i + 1] });
       }
     }
   }
@@ -310,4 +323,74 @@ function chaikinSmooth(ring, iterations) {
  */
 export function smoothPolygonsWithHoles(polygons, iterations) {
   return polygons.map((rings) => rings.map((ring) => chaikinSmooth(ring, iterations)));
+}
+
+/**
+ * Clés d'hexagones traversés par chaque tronçon, calculées une seule fois par
+ * tronçon et réutilisées par tous les modes et tous les usages (zones,
+ * zone principale, hexagones carrossables, routes du cadre) : mêmes points
+ * d'échantillonnage que clesSegment / addSegmentToGrid (même sens, même pas),
+ * donc mêmes clés, dans le même ordre. Clés rangées une fois chacune
+ * (table de chaînes) et désignées par leur numéro.
+ */
+export class ClesParTroncon {
+  /** @param {HexGrid} grille @param {{lon:Float64Array, lat:Float64Array, de:Int32Array, vers:Int32Array, m:number}} idx */
+  constructor(grille, idx) {
+    this.grille = grille;
+    this.idx = idx;
+    this.debut = new Int32Array(idx.m).fill(-1);
+    this.nombre = new Uint16Array(idx.m);
+    this.donnees = new Int32Array(Math.max(1024, idx.m * 2));
+    this.taille = 0;
+    this.numeros = new Map(); // clé → numéro
+    this.cles = []; // numéro → clé
+  }
+  /** Numéros des clés du tronçon e : this.donnees[d .. d + n - 1], avec [d, n] rendu. */
+  troncon(e) {
+    let d = this.debut[e];
+    if (d >= 0) return d;
+    const { lon, lat, de, vers } = this.idx;
+    const lon1 = lon[de[e]],
+      lat1 = lat[de[e]],
+      lon2 = lon[vers[e]],
+      lat2 = lat[vers[e]];
+    const g = this.grille;
+    const lengthKm = HexGrid.coordDistance(lon1, lat1, lon2, lat2);
+    const steps = Math.max(1, Math.ceil((lengthKm * 1000) / (g.hexSize * 0.5)));
+    if (this.taille + steps + 1 > this.donnees.length) {
+      const plus = new Int32Array(Math.max(this.donnees.length * 2, this.taille + steps + 1));
+      plus.set(this.donnees.subarray(0, this.taille));
+      this.donnees = plus;
+    }
+    d = this.taille;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const cle = g.cleDe(lon1 + (lon2 - lon1) * t, lat1 + (lat2 - lat1) * t);
+      let k = this.numeros.get(cle);
+      if (k === undefined) {
+        k = this.cles.length;
+        this.cles.push(cle);
+        this.numeros.set(cle, k);
+      }
+      this.donnees[this.taille++] = k;
+    }
+    this.debut[e] = d;
+    this.nombre[e] = steps + 1;
+    return d;
+  }
+  /** Comme clesSegment : ajoute à `ensemble` les clés du tronçon e. */
+  ajouterCles(ensemble, e) {
+    const d = this.troncon(e);
+    const fin = d + this.nombre[e];
+    for (let j = d; j < fin; j++) ensemble.add(this.cles[this.donnees[j]]);
+  }
+  /** Comme addSegmentToGrid : ajoute à `hexagones` les cellules du tronçon e (géométrie comprise). */
+  ajouterCellules(hexagones, e) {
+    const d = this.troncon(e);
+    const fin = d + this.nombre[e];
+    for (let j = d; j < fin; j++) {
+      const cle = this.cles[this.donnees[j]];
+      if (!hexagones[cle]) hexagones[cle] = this.grille.celluleDepuisCle(cle);
+    }
+  }
 }

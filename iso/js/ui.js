@@ -8,6 +8,7 @@ import { creerCoucheTuiles, surveillerFondDeCarte, suivreTailleCarte } from "./f
 import { geocodeAddress, fetchAddressSuggestions } from "./ign-api.js";
 import { exportMapImage } from "./export-image.js";
 import { echapperHtml } from "../../shared/js/echappement.js";
+import { MESSAGE_DEPART_REFUSE } from "./isochrones.js";
 import { getModeColors } from "./colors.js";
 
 /**
@@ -699,6 +700,12 @@ function afficherErreurCalcul(statusEl, erreur) {
   statusEl.className = "error";
   statusEl.textContent = "";
   const message = document.createElement("p");
+  if (erreur.message === MESSAGE_DEPART_REFUSE) {
+    // Point refusé (voie interdite à pied et à vélo) : consigne directe.
+    message.textContent = MESSAGE_DEPART_REFUSE;
+    statusEl.append(message);
+    return;
+  }
   message.textContent = MOTIF_ERREUR_SERVICE.test(erreur.message)
     ? "Les services de l\u2019IGN (réseau routier, altitudes) ne répondent pas correctement en ce moment : ils sont probablement saturés. Réessayez dans quelques minutes."
     : "Erreur pendant le calcul.";

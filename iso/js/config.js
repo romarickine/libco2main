@@ -53,15 +53,16 @@ export const DELAY_CAR_MIN_RURAL = 4;
 //    choix du rayon initial.
 //    - très dense (≥300, ex. Paris 1er 311, relevé du 04/11/2026 : la zone VAE
 //      touchait le bord à 11,5 km et le calcul était entièrement refait à
-//      15 km, 139 s perdues sur 306) : directement NETWORK_RADIUS_MAX_M. Seuil
+//      15 km, 139 s perdues sur 306) : directement RADIUS_TIER_VERY_DENSE_M. Seuil
 //      [Estimé] placé au-dessus de Lyon Croix-Rousse (287, qui tient en
 //      11,34 km) ; Paris République (217) reste au palier dense et passe par
 //      le filet de sécurité.
 //
 // 2) Si ce premier essai ne suffit pas à couvrir entièrement une zone
 //    (marche/vélo/VAE tronquée en bord de rayon, ou téléchargement du
-//    réseau lui-même tronqué par la pagination), un second essai est
-//    relancé automatiquement à NETWORK_RADIUS_MAX_M — ce filet de sécurité
+//    réseau lui-même tronqué par la pagination), un nouvel essai est
+//    relancé automatiquement au rayon suivant de RAYONS_RELANCE_M, jusqu'à
+//    NETWORK_RADIUS_MAX_M (17 km) — ce filet de sécurité
 //    garantit un résultat complet même quand la sonde sous-estime le rayon
 //    nécessaire.
 export const NETWORK_RADIUS_PROBE_M = 1000;
@@ -71,7 +72,18 @@ export const RADIUS_TIER_DENSE_M = 11500;
 export const RADIUS_TIER_INTERMEDIATE_MIN_JUNCTIONS = 30;
 export const RADIUS_TIER_INTERMEDIATE_M = 8000;
 export const RADIUS_TIER_SPARSE_M = 6000;
-export const NETWORK_RADIUS_MAX_M = 15000;
+// Très dense (≥ 300 carrefours) : 15 km d'emblée (Lyon Croix-Rousse, 312 :
+// résultat identique à 15 et 17 km le 09/11/2026).
+export const RADIUS_TIER_VERY_DENSE_M = 15000;
+// Rayon maximal, réservé aux cas où la zone touche encore le bord à 15 km
+// (Paris 1er, 311 carrefours : zone VAE en aller-retour différente à 15 km,
+// identique à 17 et 19 km ; relevés du 09/11/2026). Choix du porteur : grande
+// zone utilisée exceptionnellement.
+export const NETWORK_RADIUS_MAX_M = 17000;
+// Relances successives quand une zone touche le bord : rayon suivant de cette
+// liste (le téléchargement ne demande que l'anneau manquant), plutôt qu'un
+// saut direct au maximum.
+export const RAYONS_RELANCE_M = [8000, 11500, 15000, 17000];
 
 // Résolution de la grille altimétrique, tolérance de fusion des nœuds, et
 // paramètres WFS.

@@ -14,7 +14,9 @@
 // ==========================================================================
 const BASE = "libco2-iso";
 const MAGASIN = "wfs";
-const VERSION_BASE = 1;
+const VERSION_BASE = 2; // 2 : magasin des altitudes (09/11/2026)
+const MAGASIN_ALTI = "alti";
+const ALTI_ENTREES_MAX = 3000;
 const DUREE_VIE_MS = 30 * 24 * 3600 * 1000;
 const CACHE_ENTREES_MAX = 300;
 
@@ -31,8 +33,17 @@ function ouvrir() {
           const m = db.createObjectStore(MAGASIN, { keyPath: "url" });
           m.createIndex("t", "t");
         }
+        if (!db.objectStoreNames.contains(MAGASIN_ALTI)) {
+          const a = db.createObjectStore(MAGASIN_ALTI, { keyPath: "cle" });
+          a.createIndex("t", "t");
+        }
       };
-      req.onsuccess = () => resolve(req.result);
+      req.onsuccess = () => {
+        const db = req.result;
+        // Autre onglet passé à une version plus récente : on libère la base.
+        db.onversionchange = () => db.close();
+        resolve(db);
+      };
       req.onerror = () => resolve(null);
       req.onblocked = () => resolve(null);
     } catch {
@@ -77,12 +88,15 @@ export async function ecrireCache(url, page) {
 
 /** Supprime les entrées périmées, puis les plus anciennes au-delà du maximum. */
 function elaguer(db) {
+  elaguerMagasin(db, MAGASIN, CACHE_ENTREES_MAX);
+}
+function elaguerMagasin(db, magasin, maximum) {
   try {
-    const tx = db.transaction(MAGASIN, "readwrite");
-    const m = tx.objectStore(MAGASIN);
+    const tx = db.transaction(magasin, "readwrite");
+    const m = tx.objectStore(magasin);
     const compte = m.count();
     compte.onsuccess = () => {
-      let enTrop = compte.result - CACHE_ENTREES_MAX;
+      let enTrop = compte.result - maximum;
       const limite = Date.now() - DUREE_VIE_MS;
       const curseur = m.index("t").openCursor();
       curseur.onsuccess = () => {
@@ -95,6 +109,63 @@ function elaguer(db) {
         }
       };
     };
+  } catch {
+    /* sans cache */
+  }
+}
+
+// --------------------------------------------------------------------------
+// Altitudes de l'API IGN (points sans Z dans la BD TOPO®), rangées par case
+// de 0,02° : { cle, t, z: { "lon,lat" (5 décimales) : altitude } }. Même
+// valeur que celle que l'API a renvoyée, donc même calcul qu'avec une
+// nouvelle requête ; même durée de vie que les réponses du WFS.
+// --------------------------------------------------------------------------
+
+/** Contenu des cases demandées (moins de 30 jours) : Map case → { point : z }. */
+export async function lireAltitudes(cases) {
+  const out = new Map();
+  const db = await ouvrir();
+  if (!db || cases.size === 0) return out;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(MAGASIN_ALTI, "readonly");
+      const m = tx.objectStore(MAGASIN_ALTI);
+      const limite = Date.now() - DUREE_VIE_MS;
+      for (const cle of cases) {
+        const req = m.get(cle);
+        req.onsuccess = () => {
+          const v = req.result;
+          if (v && v.t >= limite) out.set(cle, v.z);
+        };
+      }
+      tx.oncomplete = () => resolve(out);
+      tx.onerror = () => resolve(out);
+      tx.onabort = () => resolve(out);
+    } catch {
+      resolve(out);
+    }
+  });
+}
+
+let ecrituresAlti = 0;
+/** Ajoute des altitudes aux cases (fusion avec l'existant ; échec ignoré). */
+export async function ecrireAltitudes(parCase) {
+  const db = await ouvrir();
+  if (!db || parCase.size === 0) return;
+  try {
+    const tx = db.transaction(MAGASIN_ALTI, "readwrite");
+    const m = tx.objectStore(MAGASIN_ALTI);
+    const maintenant = Date.now();
+    for (const [cle, z] of parCase) {
+      const req = m.get(cle);
+      req.onsuccess = () => {
+        const v = req.result;
+        const fusion = v && maintenant - v.t < DUREE_VIE_MS ? Object.assign(v.z, z) : z;
+        m.put({ cle, t: v && maintenant - v.t < DUREE_VIE_MS ? v.t : maintenant, z: fusion });
+      };
+    }
+    tx.onerror = (e) => e.preventDefault?.();
+    if (++ecrituresAlti % 10 === 0) elaguerMagasin(db, MAGASIN_ALTI, ALTI_ENTREES_MAX);
   } catch {
     /* sans cache */
   }
