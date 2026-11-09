@@ -392,21 +392,18 @@ export function initUI() {
       };
 
       const rawPct = Math.round((rawConnectivity.reachable / rawConnectivity.total) * 100);
-      const connectivityNote =
-        "Connexité brute du réseau : " +
-        rawConnectivity.reachable +
-        "/" +
-        rawConnectivity.total +
-        " nœuds (" +
-        rawPct +
-        "%)." +
-        (radiusRetried
-          ? " Rayon de " +
-            probeChosenRadiusMeters / 1000 +
-            " km (sonde) insuffisant ici, calcul refait à " +
-            usedRadiusMeters / 1000 +
-            " km."
-          : "");
+      // Diagnostic technique (connexité brute) gardé pour la console, pas pour
+      // l'utilisateur ; seul l'agrandissement du rayon lui est signalé.
+      console.info(
+        "Connexité brute du réseau : " + rawConnectivity.reachable + "/" + rawConnectivity.total + " nœuds (" + rawPct + " %).",
+      );
+      const connectivityNote = radiusRetried
+        ? "Zone de calcul agrandie de " +
+          probeChosenRadiusMeters / 1000 +
+          " à " +
+          usedRadiusMeters / 1000 +
+          " km pour ne pas couper les zones."
+        : "";
 
       if (roadsTruncated) {
         statusEl.className = "error";
@@ -436,7 +433,7 @@ export function initUI() {
           ".";
       } else {
         statusEl.className = "";
-        statusEl.textContent = "Calcul terminé. " + connectivityNote;
+        statusEl.textContent = ("Calcul terminé. " + connectivityNote).trim();
       }
     } catch (e) {
       console.error(e);

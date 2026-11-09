@@ -2,7 +2,7 @@
 .page-methodo { max-width: 1040px; margin: 0 auto; padding: 40px 20px 90px; }
 .methodo-retours { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
 .methodo-hero { margin: 32px 0 40px; }
-.methodo-logo { height: 36px; width: auto; }
+.methodo-logo { height: 29px; width: auto; }
 .methodo-hero h1 { font-family: var(--police-serif); font-size: clamp(32px, 4.8vw, 52px); font-weight: 700; margin: 0 0 16px; line-height: 1.08; color: var(--couleur-encre); }
 .methodo-hero p { font-size: 17px; color: var(--couleur-texte); line-height: 1.6; max-width: 46em; margin: 0; }
 .page-methodo section { margin-top: 36px; }

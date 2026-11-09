@@ -57,7 +57,7 @@ a { color: var(--vert); }
 /* Haut de page vert */
 .haut { background: var(--vert-fonce); color: #d6e4da; }
 .entete { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 88px; }
-.entete-logo img { height: 40px; width: auto; display: block; filter: brightness(0) invert(1); }
+.entete-logo img { height: 32px; width: auto; display: block; filter: brightness(0) invert(1); }
 .nav-haut { display: flex; align-items: center; gap: 28px; }
 .nav-haut a:not(.bouton) { color: #fff; font-weight: 500; font-size: 15px; text-decoration: none; }
 .nav-haut a:not(.bouton):hover { text-decoration: underline; }
@@ -164,7 +164,7 @@ img.capture[width] {
 @media (max-width: 680px) {
   .conteneur { padding-left: 20px; padding-right: 20px; }
   .nav-haut a:not(.bouton) { display: none; }
-  .entete-logo img { height: 32px; }
+  .entete-logo img { height: 26px; }
   .hero { padding-top: 32px; }
   .hero picture { margin: 36px auto -60px; }
   .chiffres { grid-template-columns: 1fr; padding-top: 104px; padding-bottom: 56px; gap: 28px; }

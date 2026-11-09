@@ -24,6 +24,7 @@ import {
   tempsSelonDirectionCSR,
   versMap,
   ValeursParNoeud,
+  tempsVoitureEffectifCSR,
   cacheTempsVoiture,
   gagnantsConnexesCSR,
   tousGagnantsCSR,
@@ -289,10 +290,15 @@ export async function computeIsochronesNetwork(opts) {
   const { n: nNoeuds, lon: lonN, lat: latN, de: deA, vers: versA } = prep.idx;
   const voitureAtteinte = new Uint8Array(nNoeuds);
   for (const id of carTimes.keys()) voitureAtteinte[indexNoeud.get(id)] = 1;
-  const voitureEffective = cacheTempsVoiture(
-    (i) => estimateCarTime(carTimes, carIndex, ids[i], graph.nodeCoords, facteurTrajets),
-    nNoeuds,
+  const tempsVoitureEffectif = tempsVoitureEffectifCSR(
+    prep.idx,
+    carTimes,
+    200,
+    CAR_GAP_MAX_SEARCH_RING,
+    CAR_GAP_FALLBACK_SPEED_MS,
+    haversineMeters,
   );
+  const voitureEffective = cacheTempsVoiture((i) => tempsVoitureEffectif(i, facteurTrajets), nNoeuds);
   const voitureUtilisable = carCSR.utilisable;
 
   const results = {};

@@ -17,7 +17,11 @@
 // (valeur unique, pas de distinction ville/campagne dans cette étude). Nos
 // deux valeurs se situent dans cette fourchette. Aucune étude trouvée ne
 // chiffre le temps d'accès à un vélo — 3 min reste une estimation raisonnée,
-// non sourcée.
+// non sourcée. Recherche refaite le 09/11/2026 (Heinen et Buehler, Transport
+// Reviews 2019 : aucun temps d'attache mesuré) ; 4 min rural non sourcé non
+// plus ; 8 min urbain proche de Shoup (2006, Transport Policy 13(6)) : 8,1 min
+// de recherche de place en moyenne sur 16 études de centres denses. Valeurs
+// gardées, marquées estimées (choix du porteur, 09/11/2026).
 export const DELAY_BIKE_MIN = 3;
 export const DELAY_CAR_MIN_URBAN = 8;
 export const DELAY_CAR_MIN_RURAL = 4;

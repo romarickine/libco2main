@@ -125,7 +125,10 @@ export function parseIGNRoadsToGraph(featureCollection, nodeSnapTolerance) {
       geom.type === "LineString" ? [geom.coordinates] : geom.type === "MultiLineString" ? geom.coordinates : [];
     const nature = props.nature || "";
     const sens = props.sens_de_circulation || props.sens || "Double sens";
-    const vitesse = props.vitesse_moyenne_vl || props.vit_moy_vl || null;
+    // 0 est une vraie valeur (voie non ouverte à la circulation ordinaire,
+    // voir isEdgeUsable) : ne pas la confondre avec un attribut absent.
+    const vitesseLue = props.vitesse_moyenne_vl ?? props.vit_moy_vl ?? null;
+    const vitesse = vitesseLue == null || vitesseLue === "" ? null : Number(vitesseLue);
     const accesVL = props.acces_vehicule_leger || props.acces_vl || null;
     // Hiérarchie routière officielle BD TOPO® (1 = le plus important). Sert à
     // ne compter une pénalité de carrefour que lorsque deux routes de
@@ -329,6 +332,21 @@ export function isEdgeUsable(edge, mode) {
     if (edge.accesVL === "Physiquement impossible") {
       return false;
     }
+    // Vitesse moyenne VL = 0 : d'après la définition de l'IGN, l'attribut vaut
+    // 0 pour les tronçons non ouverts à la circulation ordinaire des véhicules
+    // légers (état différent de « En service », accès « Restreint aux ayants
+    // droit » ou « Physiquement impossible », escalier, sentier, voie privée,
+    // plot amovible, voie de tramway, voie verte, aménagement mixte, piste
+    // cyclable, entrée avec gardien, passage barré, barrière sur une voie
+    // d'importance 5 ou 6). Source : IGN, BD TOPO® Explorer, classe « Tronçon
+    // de route », attribut « Vitesse moyenne VL », édition de septembre 2026
+    // (https://bdtopoexplorer.ign.fr/troncon_de_route), lu le 09/11/2026.
+    // Avant le 09/11/2026, 0 était lu comme « absent » et remplacé par la
+    // vitesse par défaut de la nature (70 km/h pour une route à 1 chaussée) :
+    // à Paris, 55 025 tronçons sur 278 026 dans un rayon de 15 km.
+    if (edge.vitesse === 0) {
+      return false;
+    }
     return true;
   }
   // Marche et vélo : voies de type autoroutier exclues par leur NATURE (la
@@ -373,6 +391,10 @@ export function isEdgeUsable(edge, mode) {
 // principale qui croise une voie nettement moins importante n'est pas
 // pénalisée (priorité évidente, pas de ralentissement réel) ; seules deux
 // routes de hiérarchie comparable comptent comme un vrai carrefour.
+// Valeurs estimées (aucune mesure publiée en secondes pour des carrefours
+// ordinaires trouvée le 09/11/2026 : Yan, Maat et van Wee, Transportation 52,
+// 2025, donnent des baisses de vitesse ; Yuan et al., Sensors 2023, les seuls
+// carrefours à feux). Gardées par choix du porteur, 09/11/2026.
 const JUNCTION_DELAY_SECONDS = { car: 6, walk: 2, bike: 4, ebike: 4 };
 
 // Hiérarchie de repli par nature de voie (1 = le plus important), utilisée
@@ -496,17 +518,21 @@ export function classifyUrbanContext(graph, nodeDegrees, originLon, originLat) {
   return { isUrban: junctionCount >= URBAN_CLASSIFICATION_JUNCTION_THRESHOLD, junctionCount };
 }
 
-// Pénalité de vitesse selon la nature de la surface — jusqu'ici absente du
-// modèle marche/vélo/VAE, qui ne dépendait que de la pente. Un chemin de
-// terre ou un sentier ralentit réellement un vélo (roulement moins efficace,
-// terrain irrégulier), bien plus qu'un piéton. Valeurs estimées par ordre de
-// grandeur (pas de régression publiée spécifique trouvée) : à ajuster si vous
-// avez une meilleure source. Absent de cette table = route classique, aucune
-// pénalité.
+// Pénalité de vitesse selon la nature de la surface (09/11/2026, sourcée).
+// Vélo et VAE : rapport des vitesses médianes mesurées à Hambourg par type de
+// revêtement (Schuhmacher, Wilkes, Kagerbauer, Vortisch, « Cycling Speeds in
+// Urban Traffic », Findings, 2025, doi:10.32866/001c.141204, tableau 1,
+// 91 083 segments) : enrobé 20,7 km/h, gravier 17,8 (×0,86), non revêtu
+// 17,6 (×0,85). Correspondance avec la BD TOPO® : « Route empierrée » →
+// gravier ; « Chemin » et « Sentier » → non revêtu (l'étude ne distingue pas
+// les sentiers étroits). L'étude ne sépare pas vélo et VAE : mêmes facteurs.
+// Marche : aucune pénalité, la fonction de Tobler (1993) étant établie sur des
+// sentiers de randonnée (sa réduction « hors sentier », ×0,6, ne s'applique
+// pas à une voie de la BD TOPO®). Valeurs précédentes (0,35 à 0,95) sans source.
 const SURFACE_SPEED_FACTOR = {
-  bike: { "Route empierrée": 0.75, Chemin: 0.55, Sentier: 0.35 },
-  ebike: { "Route empierrée": 0.8, Chemin: 0.6, Sentier: 0.4 },
-  walk: { "Route empierrée": 0.95, Chemin: 0.9, Sentier: 1.0 },
+  bike: { "Route empierrée": 17.8 / 20.7, Chemin: 17.6 / 20.7, Sentier: 17.6 / 20.7 },
+  ebike: { "Route empierrée": 17.8 / 20.7, Chemin: 17.6 / 20.7, Sentier: 17.6 / 20.7 },
+  walk: {},
 };
 function surfaceFactor(nature, mode) {
   const table = SURFACE_SPEED_FACTOR[mode];
@@ -851,11 +877,11 @@ function findNearestCarTime(index, lon, lat, maxRing) {
   return best ? { time: best.time, distanceMeters: bestDist } : null;
 }
 
-// Vitesse de repli prudente (plus lente que la marche de Tobler à plat) : ce
-// tronçon n'est pas un vrai itinéraire connu, juste une estimation à vol
-// d'oiseau pour combler l'écart jusqu'au réseau voiture le plus proche — mieux
-// vaut sous-estimer la vitesse que sur-crédibiliser une distance à vol d'oiseau.
-export const CAR_GAP_FALLBACK_SPEED_MS = (4.5 * 1000) / 3600;
+// Vitesse de marche pour combler l'écart, à vol d'oiseau, jusqu'au réseau
+// voiture le plus proche (et depuis un parking en lisière) : vitesse de Tobler
+// (1993) à plat, 5,04 km/h, la même que celle de la marche dans tout le
+// calcul (09/11/2026 ; auparavant 4,5 km/h, sans source).
+export const CAR_GAP_FALLBACK_SPEED_MS = (toblerWalkingSpeed(0) * 1000) / 3600;
 export const CAR_GAP_MAX_SEARCH_RING = 25; // ~5 km avec des cellules de 200 m
 
 /**

@@ -26,14 +26,15 @@ export function toblerWalkingSpeed(grade) {
 // jusqu'à 130 W au point de calibration réel (4.3%, 10.5 km/h).
 //
 // Pour le VAE, la puissance est celle du système complet (cycliste + moteur),
-// calibrée à 111 W à plat pour tenir 25 km/h (limite légale d'assistance) et
+// calibrée à 106,7 W à plat pour 24,6 km/h (voir EBIKE_FLAT_POWER) et
 // montant jusqu'à 300 W (~250 W de moteur, plafond légal, + effort modéré du
-// cycliste) — un VAE reste donc nettement moins pénalisé par la pente qu'un
+// cycliste ; valeur estimée, aucune mesure de vitesse VAE selon la pente
+// exploitable trouvée le 09/11/2026, gardée par choix du porteur) — un VAE reste donc nettement moins pénalisé par la pente qu'un
 // vélo classique, conformément à l'usage réel.
 //
 // En descente, faute de donnée réelle de calibration, on garde la régression
-// linéaire de Parkin & Rotheram (+1.44 km/h/% pour le vélo classique, +0.48
-// pour le VAE) qui n'a pas été mise en cause.
+// linéaire de Parkin & Rotheram (+0,86 km/h par point de pente, vélo et VAE,
+// voir parkinRotheramCyclingSpeed).
 function solvePowerSpeed(power, grade) {
   const mass = 90,
     g = 9.81,
@@ -68,7 +69,13 @@ const BIKE_MAX_POWER_CEILING = 250;
 const BIKE_FLAT_POWER = 78.3,
   BIKE_MAX_POWER = 129.6,
   BIKE_RAMP_GRADE_REF = 4.3;
-const EBIKE_FLAT_POWER = 111.0,
+// VAE à plat : 24,6 km/h = vitesse vélo de Parkin & Rotheram (21,6 km/h)
+// × rapport VAE / vélo classique mesuré par Schleinitz et al. (2017, Safety
+// Science 92, 290-297 : 17,4 / 15,3 km/h, seule étude trouvée qui mesure les
+// deux dans les mêmes conditions). Choix du porteur, 09/11/2026 (auparavant
+// 25 km/h, la vitesse de coupure légale de l'assistance). Puissance déduite
+// par le même modèle physique : 106,7 W pour 24,6 km/h à plat.
+const EBIKE_FLAT_POWER = 106.74,
   EBIKE_MAX_POWER = 300,
   EBIKE_RAMP_GRADE_REF = 4.3;
 
@@ -83,7 +90,7 @@ function walkingBikeSpeed(grade) {
  * air, gravité) avec une puissance qui croît avec la pente jusqu'à un
  * plafond, et bascule sur la marche à côté du vélo si c'est plus rapide ; en
  * descente : régression de Parkin & Rotheram (2010), plafonnée à 50 km/h.
- * Calibré à 21,6 km/h sur le plat (25 km/h en VAE) et 10,5 km/h à 4,3 %.
+ * Calibré à 21,6 km/h sur le plat (24,6 km/h en VAE) et 10,5 km/h à 4,3 %.
  * @param {number} grade  Pente (0,05 = 5 %).
  * @param {boolean} isElectric  true pour un vélo à assistance électrique.
  * @returns {number} km/h.
@@ -105,8 +112,14 @@ export function parkinRotheramCyclingSpeed(grade, isElectric) {
     // doit jamais dominer le vrai croisement entre les deux vitesses.
     return Math.max(0.5, cyclingSpeed, walkingBikeSpeed(grade));
   }
-  const flatSpeed = isElectric ? 25 : 21.6;
-  const downCoeff = isElectric ? 0.48 : 1.44;
+  const flatSpeed = isElectric ? 24.6 : 21.6;
+  // Descente : +0,86 km/h par point de pente (Parkin & Rotheram 2010,
+  // tableau 2 : +0,2379 m/s par 1 % de descente ; le 1,44 utilisé jusqu'au
+  // 09/11/2026 était en fait leur coefficient de MONTÉE, −0,4002 m/s par 1 %).
+  // Même coefficient pour le VAE : au-delà de 25 km/h l'assistance est
+  // coupée (règlement (UE) n° 168/2013, art. 2.2 h), il descend comme un vélo
+  // (l'ancien 0,48 n'avait pas de source).
+  const downCoeff = 0.86;
   // Plafond de 50 km/h : au-delà, la régression linéaire de Parkin & Rotheram
   // (non calibrée sur une vraie descente, cf. commentaire plus haut) devient
   // irréaliste — un cycliste freine bien avant d'atteindre une telle vitesse,

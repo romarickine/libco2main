@@ -583,3 +583,135 @@ export class ValeursParNoeud {
     return this.entries();
   }
 }
+
+/**
+ * Temps voiture « effectif » de chaque nœud (même calcul, même résultat que
+ * estimateCarTime + buildCarReachabilityIndex + findNearestCarTime de
+ * graph.js), sur tableaux : compartiments de 200 m numérotés au lieu de clés
+ * texte, candidats rangés dans des tableaux, même ordre de parcours des
+ * anneaux et des candidats (donc même candidat retenu à égalité), même
+ * formule de distance. Mesure du 09/11/2026 à Paris : ce repli coûtait 9,5 s
+ * (vélo) et 14,5 s (VAE) par carte.
+ * @param {object} idx  indexerGraphe
+ * @param {Map} carTimes  temps voiture (identifiant → s), dans l'ordre de l'ancien moteur
+ * @param {number} tailleCellule  m (200 dans isochrones.js)
+ * @param {number} anneauMax  CAR_GAP_MAX_SEARCH_RING
+ * @param {number} vitesseRepli  CAR_GAP_FALLBACK_SPEED_MS
+ * @param {(a:number,b:number,c:number,d:number)=>number} distance  haversineMeters
+ * @returns {(i:number, facteur:number) => number}
+ */
+// Rayon terrestre des distances (6 371 000 m, celui de haversineMeters) en
+// mètres par degré, réduit de 0,1 % pour le minorant de distance.
+const RAYON_MINORANT = ((6371000 * Math.PI) / 180) * 0.999;
+
+export function tempsVoitureEffectifCSR(idx, carTimes, tailleCellule, anneauMax, vitesseRepli, distance) {
+  const { n, index, lon, lat } = idx;
+  const mParDegLat = 111320;
+  const celluleX = (lo, la) => {
+    const mParDegLon = 111320 * Math.cos((la * Math.PI) / 180);
+    return Math.floor(lo / (tailleCellule / mParDegLon));
+  };
+  const celluleY = (la) => Math.floor(la / (tailleCellule / mParDegLat));
+  const direct = new Float64Array(n).fill(NaN);
+  const m = carTimes.size;
+  const cx = new Int32Array(m),
+    cy = new Int32Array(m),
+    nd = new Int32Array(m);
+  const tv = new Float64Array(m);
+  let k = 0,
+    minCx = Infinity,
+    maxCx = -Infinity,
+    minCy = Infinity,
+    maxCy = -Infinity;
+  for (const [id, t] of carTimes) {
+    const i = index.get(id);
+    direct[i] = t;
+    nd[k] = i;
+    tv[k] = t;
+    cx[k] = celluleX(lon[i], lat[i]);
+    cy[k] = celluleY(lat[i]);
+    if (cx[k] < minCx) minCx = cx[k];
+    if (cx[k] > maxCx) maxCx = cx[k];
+    if (cy[k] < minCy) minCy = cy[k];
+    if (cy[k] > maxCy) maxCy = cy[k];
+    k++;
+  }
+  if (m === 0) {
+    return (i) => (Number.isNaN(direct[i]) ? Infinity : direct[i]);
+  }
+  // Compartiments numérotés dans l'emprise ; candidats dans l'ordre de carTimes.
+  const largeur = maxCy - minCy + 1;
+  const nCases = (maxCx - minCx + 1) * largeur;
+  const debut = new Int32Array(nCases + 1);
+  for (let j = 0; j < m; j++) debut[(cx[j] - minCx) * largeur + (cy[j] - minCy) + 1]++;
+  for (let c = 0; c < nCases; c++) debut[c + 1] += debut[c];
+  const pos = debut.slice(0, nCases);
+  const cLon = new Float64Array(m),
+    cLat = new Float64Array(m),
+    cT = new Float64Array(m);
+  for (let j = 0; j < m; j++) {
+    const c = (cx[j] - minCx) * largeur + (cy[j] - minCy);
+    const p = pos[c]++;
+    cLon[p] = lon[nd[j]];
+    cLat[p] = lat[nd[j]];
+    cT[p] = tv[j];
+  }
+  return (i, facteur) => {
+    const d0 = direct[i];
+    if (!Number.isNaN(d0)) return d0;
+    const lo = lon[i],
+      la = lat[i];
+    const x = celluleX(lo, la),
+      y = celluleY(la);
+    const premierAnneau = Math.max(minCx - x, x - maxCx, minCy - y, y - maxCy, 0);
+    if (premierAnneau > anneauMax) return Infinity;
+    let meilleur = -1,
+      meilleureDist = Infinity;
+    // Minorant rapide de la distance (projection équirectangulaire avec le
+    // plus petit cosinus de latitude de la zone de recherche, puis −0,1 %) :
+    // un candidat dont le minorant atteint déjà la meilleure distance ne peut
+    // pas la battre (comparaison stricte), on évite alors le calcul exact.
+    // Le minorant est toujours inférieur à la distance de haversineMeters
+    // (écart entre les deux formules < 10⁻⁵ en relatif sous 10 km), donc le
+    // candidat retenu et la distance rendue sont exactement les mêmes.
+    const cosBas = Math.cos(((Math.abs(la) + 0.1) * Math.PI) / 180);
+    const kLon = RAYON_MINORANT * cosBas,
+      kLat = RAYON_MINORANT;
+    const examiner = (dx, dy) => {
+      const c = (x + dx - minCx) * largeur + (y + dy - minCy);
+      for (let p = debut[c]; p < debut[c + 1]; p++) {
+        if (meilleur >= 0) {
+          const ex = (cLon[p] - lo) * kLon,
+            ey = (cLat[p] - la) * kLat;
+          if (ex * ex + ey * ey >= meilleureDist * meilleureDist) continue;
+        }
+        const d = distance(lo, la, cLon[p], cLat[p]);
+        if (d < meilleureDist) {
+          meilleureDist = d;
+          meilleur = p;
+        }
+      }
+    };
+    const dernierAnneau = Math.min(
+      anneauMax,
+      Math.max(Math.abs(minCx - x), Math.abs(maxCx - x), Math.abs(minCy - y), Math.abs(maxCy - y)),
+    );
+    for (let anneau = premierAnneau; anneau <= dernierAnneau; anneau++) {
+      const dxMin = Math.max(-anneau, minCx - x),
+        dxMax = Math.min(anneau, maxCx - x);
+      const dyMin = Math.max(-anneau, minCy - y),
+        dyMax = Math.min(anneau, maxCy - y);
+      for (let dx = dxMin; dx <= dxMax; dx++) {
+        if (Math.abs(dx) === anneau) {
+          for (let dy = dyMin; dy <= dyMax; dy++) examiner(dx, dy);
+        } else {
+          if (-anneau >= dyMin) examiner(dx, -anneau);
+          if (anneau <= dyMax) examiner(dx, anneau);
+        }
+      }
+      if (meilleur >= 0 && anneau > 0) break;
+    }
+    if (meilleur < 0) return Infinity;
+    return cT[meilleur] + (facteur * meilleureDist) / vitesseRepli;
+  };
+}

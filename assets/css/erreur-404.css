@@ -17,7 +17,7 @@
     * { box-sizing: border-box; }
     body { margin: 0; font-family: var(--sans); background: var(--fond); color: var(--encre); line-height: 1.65; }
     .page-404 { max-width: 760px; margin: 0 auto; padding: 72px 20px 90px; }
-    .page-404 img.logo { height: 40px; display: block; margin: 0 auto 32px; }
+    .page-404 img.logo { height: 32px; display: block; margin: 0 auto 32px; }
     .page-404 .code { font-size: 14px; color: var(--vert); font-weight: 600; margin: 0 0 14px; }
     .page-404 h1 { font-family: var(--serif); font-size: clamp(32px, 5vw, 52px); line-height: 1.08; margin: 0 0 18px; }
     .page-404 p { font-size: 17px; color: var(--texte); margin: 0 0 32px; max-width: 34em; }
