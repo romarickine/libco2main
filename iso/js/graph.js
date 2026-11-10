@@ -732,6 +732,29 @@ export function transposeAdjacency(adjacency) {
  * réseau voiture (zone piétonne, sentier, escalier…).
  * @returns {{node: number, distanceMeters: number}|null}
  */
+/**
+ * Nœuds carrossables les plus proches (au plus `nombre`, du plus proche au
+ * plus lointain, à moins de maxDistM), hors `exclus`. Le premier est celui de
+ * noeudCarrossableProche.
+ */
+export function noeudsCarrossablesProches(graph, lon, lat, exclus, maxDistM, nombre) {
+  const vus = new Set();
+  const liste = [];
+  for (const edge of graph.edges) {
+    if (!isEdgeUsable(edge, "car")) continue;
+    for (const n of [edge.from, edge.to]) {
+      if (vus.has(n) || (exclus && exclus.has(n))) continue;
+      vus.add(n);
+      const [nlon, nlat] = graph.nodeCoords.get(n);
+      const d = haversineMeters(lon, lat, nlon, nlat);
+      if (d < maxDistM) liste.push({ node: n, distanceMeters: d, ordre: liste.length });
+    }
+  }
+  // Égalité de distance : ordre de rencontre, comme noeudCarrossableProche.
+  liste.sort((a, b) => a.distanceMeters - b.distanceMeters || a.ordre - b.ordre);
+  return liste.slice(0, nombre).map(({ node, distanceMeters }) => ({ node, distanceMeters }));
+}
+
 export function noeudCarrossableProche(graph, lon, lat, exclus, maxDistM) {
   let best = null,
     bestDist = maxDistM;
@@ -750,6 +773,27 @@ export function noeudCarrossableProche(graph, lon, lat, exclus, maxDistM) {
     }
   }
   return best == null ? null : { node: best, distanceMeters: bestDist };
+}
+
+/**
+ * Nœud de départ : le plus proche du point parmi ceux qu'on peut quitter à
+ * pied ou à vélo. Même nœud que findNearestNode dans le cas courant ; diffère
+ * seulement quand le nœud le plus proche est sur une voie interdite à pied et
+ * à vélo (relevé du 10/11/2026 : place de la Liberté à Toulon, au-dessus du
+ * tunnel autoroutier de la traversée de Toulon). Rend null s'il n'y en a pas.
+ */
+export function noeudDepartPraticable(graph, incidents, lon, lat) {
+  let best = null,
+    bestDist = Infinity;
+  for (const [id, [nlon, nlat]] of graph.nodeCoords) {
+    const d = haversineMeters(lon, lat, nlon, nlat);
+    if (d >= bestDist) continue;
+    const es = incidents.get(id) || [];
+    if (!es.some((e) => isEdgeUsable(e, "walk") || isEdgeUsable(e, "bike"))) continue;
+    bestDist = d;
+    best = id;
+  }
+  return best;
 }
 
 export function findNearestNode(graph, lon, lat) {

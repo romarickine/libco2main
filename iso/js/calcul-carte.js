@@ -5,7 +5,8 @@
 // appelant qui veut la même méthode (mêmes seuils, mêmes rayons).
 // ==========================================================================
 import { computeIsochronesNetwork, probeJunctionDensity } from "./isochrones.js";
-import { setWfsMaxRequestsPerSecond } from "./ign-api.js";
+import { setWfsMaxRequestsPerSecond, communeDuPoint } from "./ign-api.js";
+import { rayonCommune } from "./rayons-communes.js";
 import {
   NETWORK_RADIUS_PROBE_M,
   RADIUS_TIER_VERY_DENSE_MIN_JUNCTIONS,
@@ -71,14 +72,14 @@ export async function calculerCarte({ lon, lat, modes, direction, ilots, onEtat 
     message: "Analyse du contexte local (sonde " + NETWORK_RADIUS_PROBE_M / 1000 + " km)…",
     fraction: 0.02,
   });
-  const probeJunctionCount = await probeJunctionDensity(
-    lon,
-    lat,
-    NETWORK_RADIUS_PROBE_M,
-    opts.nodeSnapToleranceMeters,
-    opts.wfsPageSize,
-  );
-  const probeChosenRadiusMeters = choisirRayonInitial(probeJunctionCount);
+  // Commune du point (géocodage inverse IGN), en parallèle de la sonde : dans
+  // les grandes villes mesurées, le rayon est connu d'avance (rayons-communes.js).
+  const [codeCommune, probeJunctionCount] = await Promise.all([
+    communeDuPoint(lon, lat),
+    probeJunctionDensity(lon, lat, NETWORK_RADIUS_PROBE_M, opts.nodeSnapToleranceMeters, opts.wfsPageSize),
+  ]);
+  const rayonPrevu = rayonCommune(codeCommune, direction ?? "depart");
+  const probeChosenRadiusMeters = rayonPrevu ?? choisirRayonInitial(probeJunctionCount);
   let usedRadiusMeters = probeChosenRadiusMeters;
   let computation = await computeIsochronesNetwork({
     ...opts,
@@ -90,7 +91,7 @@ export async function calculerCarte({ lon, lat, modes, direction, ilots, onEtat 
         probeJunctionCount +
         " carrefours détectés en 1 km, rayon choisi " +
         usedRadiusMeters / 1000 +
-        " km — ",
+        (rayonPrevu ? " km (grande ville mesurée) — " : " km — "),
     ),
   });
 
@@ -123,7 +124,7 @@ export async function calculerCarte({ lon, lat, modes, direction, ilots, onEtat 
   }
   delete computation.reseau;
   delete computation.chargerReseau;
-  return { computation, probeJunctionCount, probeChosenRadiusMeters, usedRadiusMeters, radiusRetried };
+  return { computation, codeCommune, rayonCommunePrevu: rayonPrevu, probeJunctionCount, probeChosenRadiusMeters, usedRadiusMeters, radiusRetried };
 }
 
 export { estTronque };

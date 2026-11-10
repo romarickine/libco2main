@@ -750,3 +750,28 @@ export async function fetchAddressSuggestions(text) {
   const json = await fetchWithRetry(url);
   return json.results || [];
 }
+
+/**
+ * Code INSEE de la commune (ou de l'arrondissement à Paris, Lyon, Marseille)
+ * où se trouve le point, d'après le géocodage inverse de l'IGN (rue la plus
+ * proche). Sert au choix du rayon du réseau (rayons-communes.js). Rend null
+ * si le service ne répond pas en 5 s : le rayon est alors choisi par la sonde.
+ * @returns {Promise<string|null>}
+ */
+export async function communeDuPoint(lon, lat) {
+  const url =
+    "https://data.geopf.fr/geocodage/reverse?lon=" + lon.toFixed(6) + "&lat=" + lat.toFixed(6) + "&type=street&limit=1";
+  const arret = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const minuterie = arret ? setTimeout(() => arret.abort(), 5000) : null;
+  try {
+    const r = await fetch(url, arret ? { signal: arret.signal } : undefined);
+    if (!r.ok) return null;
+    const j = await r.json();
+    const code = j && j.features && j.features[0] && j.features[0].properties && j.features[0].properties.citycode;
+    return typeof code === "string" ? code : null;
+  } catch {
+    return null;
+  } finally {
+    if (minuterie) clearTimeout(minuterie);
+  }
+}

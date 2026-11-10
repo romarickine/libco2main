@@ -7,13 +7,14 @@ import {
   transposeAdjacency,
   isEdgeUsable,
   findNearestNode,
+  noeudDepartPraticable,
   computeNodeDegrees,
   estimateCarTime,
   haversineMeters,
   classifyUrbanContext,
   buildCarReachabilityIndex,
   computeNodeIncidentEdges,
-  noeudCarrossableProche,
+  noeudsCarrossablesProches,
   CAR_GAP_FALLBACK_SPEED_MS,
   CAR_GAP_MAX_SEARCH_RING,
 } from "./graph.js";
@@ -53,6 +54,8 @@ import { DELAY_BIKE_MIN, DELAY_CAR_MIN_URBAN, DELAY_CAR_MIN_RURAL, ILOTS } from 
 // Parking en lisière : tenté si l'adresse n'est sur aucun tronçon carrossable,
 // ou si le calcul voiture dessert moins de nœuds que ce seuil (enclave). [Estimé]
 const PARKING_SEUIL_NOEUDS = 50;
+// Candidats de parking essayés au plus (un plus court chemin voiture chacun).
+const PARKING_CANDIDATS_MAX = 25;
 
 function yieldToBrowser() {
   // Dans un Web Worker (calcul-worker.js), rien à repeindre : on rend
@@ -86,18 +89,22 @@ export async function probeJunctionDensity(lon, lat, probeRadiusMeters, nodeSnap
   const { junctionCount } = classifyUrbanContext(graph, nodeDegrees, lon, lat);
   // Refus anticipé (voir verifierDepart) sur ce petit réseau, avant de
   // télécharger le réseau complet ; le calcul complet vérifie de nouveau.
-  const origine = findNearestNode(graph, lon, lat);
-  if (origine != null) verifierDepart(computeNodeIncidentEdges(graph).get(origine), ["walk", "bike", "ebike"]);
+  if (graph.nodeCoords.size > 0) {
+    const incidents = computeNodeIncidentEdges(graph);
+    const origine = noeudDepartPraticable(graph, incidents, lon, lat);
+    verifierDepart(origine == null ? [] : incidents.get(origine), ["walk", "bike", "ebike"]);
+  }
   return junctionCount;
 }
 
 export const MESSAGE_DEPART_REFUSE =
   "Ce point est sur une voie interdite à pied et à vélo (bretelle, voie rapide…). Choisissez une adresse ou un point sur une rue ordinaire.";
 
-// Point de départ refusé s'il est rattaché à un nœud qu'aucun des modes
-// actifs ne peut quitter (bretelle ou voie rapide : zones marche, vélo et VAE
-// vides sinon). Choix du porteur, 09/11/2026 : le calcul porte sur des
-// adresses de la base IGN, qui ne sont pas sur ces voies.
+// Point de départ refusé s'il n'y a aucun nœud praticable à pied ou à vélo
+// (zones marche, vélo et VAE vides sinon). Choix du porteur, 09/11/2026. Le
+// départ est rattaché au nœud praticable le plus proche (noeudDepartPraticable),
+// et non au nœud le plus proche toutes voies confondues : une adresse IGN au-
+// dessus d'un tunnel autoroutier (Toulon) était sinon refusée.
 function verifierDepart(tronconsDepart, modesActifs) {
   const ok = (tronconsDepart || []).some((e) => modesActifs.some((m) => isEdgeUsable(e, m)));
   if (!ok) {
@@ -209,7 +216,7 @@ async function preparerReseauComplet({ lon, lat, networkRadiusMeters, nodeSnapTo
   lisserAltitudesCSR(graph, elevations);
   await yieldToBrowser();
 
-  const originNode = findNearestNode(graph, lon, lat);
+  const originNode = noeudDepartPraticable(graph, nodeIncidentEdges, lon, lat) ?? findNearestNode(graph, lon, lat);
   if (originNode == null) {
     throw new Error(
       "Aucune rue trouvée près de ce point dans le rayon interrogé — vérifiez l\u2019adresse ou le point choisi.",
@@ -338,9 +345,23 @@ export async function computeIsochronesNetwork(opts) {
   const departCarrossable = (nodeIncidentEdges.get(originNode) || []).some((e) => isEdgeUsable(e, "car"));
   if (!departCarrossable || carTimes.size < PARKING_SEUIL_NOEUDS) {
     const distMax = CAR_GAP_MAX_SEARCH_RING * 200; // même portée que le repli voiture
-    const parking = noeudCarrossableProche(graph, lon, lat, new Set(carTimes.keys()), distMax);
-    if (parking) {
+    // Candidats du plus proche au plus lointain : on retient le premier qui
+    // rejoint vraiment le réseau voiture (au moins PARKING_SEUIL_NOEUDS nœuds
+    // desservis). Sans cela, un tronçon carrossable enclavé par des rues
+    // réservées aux ayants droit (vitesse 0, interdites à la voiture) servait
+    // de parking et la voiture restait bloquée : zones VAE de plus de 20 km
+    // à Bordeaux, Angers, Grenoble (relevés du 10/11/2026). Faute de mieux, le
+    // candidat qui dessert le plus de nœuds.
+    const candidats = noeudsCarrossablesProches(graph, lon, lat, new Set(carTimes.keys()), distMax, PARKING_CANDIDATS_MAX);
+    let retenu = null;
+    for (const parking of candidats) {
       const r2 = tempsSelonDirectionCSR(carCSR, indexNoeud.get(parking.node), maxCarCutoff, direction, true);
+      const taille = r2.ordre.length;
+      if (!retenu || taille > retenu.taille) retenu = { parking, r2, taille };
+      if (taille >= PARKING_SEUIL_NOEUDS) break;
+    }
+    if (retenu) {
+      const { parking, r2 } = retenu;
       const t2 = versMap(ids, r2.ordre, r2.temps);
       const d2 = new ValeursParNoeud(ids, indexNoeud, r2.ordre, r2.temps, r2.distance);
       const j2 = new ValeursParNoeud(ids, indexNoeud, r2.ordre, r2.temps, r2.delai);
