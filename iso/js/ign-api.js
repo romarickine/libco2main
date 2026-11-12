@@ -160,7 +160,11 @@ async function fetchWithTimeout(url, options, timeoutMs) {
 // Relevé du 06/10/2026 sur 50 tronçons : 22,5 Ko au lieu de 147,6 Ko (-85 %).
 // cleabs : identifiant unique du tronçon BD TOPO®, pour reconnaître un même
 // tronçon renvoyé par deux emprises voisines (voir etendreIGNRoads).
-const WFS_ATTRIBUTS = "cleabs,nature,sens_de_circulation,vitesse_moyenne_vl,acces_vehicule_leger,importance,prive,geometrie";
+// amenagement_cyclable_* (ajoutés le 12/11/2026, cyclabilité rue par rue,
+// voir graph.js) : l'adresse des pages change, le cache des tuiles se refait
+// une fois.
+const WFS_ATTRIBUTS =
+  "cleabs,nature,sens_de_circulation,vitesse_moyenne_vl,acces_vehicule_leger,importance,prive,amenagement_cyclable_gauche,amenagement_cyclable_droit,geometrie";
 
 // Cache de session des pages WFS (même URL = même réponse) : une nouvelle
 // tentative ou un second calcul à la même adresse ne retélécharge rien.

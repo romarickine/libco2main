@@ -9,8 +9,9 @@
 // toutes gardent la relance par paliers comme filet de sécurité.
 // Ordre : [aller-retour, j'en pars, j'y vais], en mètres.
 // Commentaire : distance la plus lointaine mesurée dans chaque sens.
-// 17 km avec une distance au-delà de 15,3 km : zone qui dépasse même 17 km,
-// à remesurer après la correction du parking en lisière (10/11/2026).
+// 17 km avec une distance au-delà de 15,3 km : zone qui dépasse même 17 km ;
+// remesurée le 10/11/2026 après la correction du parking en lisière (le
+// rayon maximal reste 17 km : la carte est alors signalée « tronquée »).
 export const RAYONS_COMMUNES = {
   "06088": [15000, 11500, 17000], // Nice : 13.3 / 9.5 / 15.5 km
   "13201": [17000, 17000, 17000], // Marseille : 16.4 / 13.8 / 17.5 km
@@ -31,14 +32,14 @@ export const RAYONS_COMMUNES = {
   "13216": [17000, 17000, 17000], // Marseille : 16.4 / 13.8 / 17.5 km
   "21231": [17000, 17000, 17000], // Dijon : 14.7 / 14.6 / 14.8 km
   "31555": [17000, 17000, 17000], // Toulouse : 14.8 / 14.5 / 15.1 km
-  "33063": [17000, 17000, 17000], // Bordeaux : 21.3 / 19.9 / 21.3 km
+  "33063": [17000, 17000, 17000], // Bordeaux : 19.5 / 19.9 / 18.0 km (remesuré le 10/11/2026)
   "34172": [17000, 15000, 17000], // Montpellier : 17.2 / 13.2 / 18.8 km
   "35238": [17000, 15000, 17000], // Rennes : 13.9 / 12.5 / 14.0 km
   "37261": [15000, 15000, 15000], // Tours : 10.5 / 10.5 / 10.5 km
-  "38185": [17000, 11500, 17000], // Grenoble : 21.7 / 10.0 / 21.9 km
+  "38185": [15000, 11500, 17000], // Grenoble : 10.6 / 10.0 / 17.6 km (remesuré le 10/11/2026)
   "42218": [15000, 11500, 15000], // StEtienne : 11.9 / 11.1 / 13.6 km
-  "44109": [17000, 17000, 17000], // Nantes : 16.0 / 16.0 / 16.1 km
-  "49007": [17000, 17000, 11500], // Angers : 20.7 / 20.9 / 10.1 km
+  "44109": [17000, 17000, 17000], // Nantes : 16.0 / 16.0 / 16.1 km (remesuré le 10/11/2026)
+  "49007": [15000, 15000, 11500], // Angers : 11.1 / 11.6 / 10.1 km (remesuré le 10/11/2026)
   "51454": [15000, 15000, 15000], // Reims : 10.8 / 11.0 / 10.7 km
   "54395": [17000, 17000, 17000], // Nancy : 14.8 / 14.8 / 14.8 km
   "57463": [15000, 15000, 15000], // Metz : 11.2 / 11.2 / 11.3 km
@@ -77,6 +78,7 @@ export const RAYONS_COMMUNES = {
   "75119": [15000, 15000, 15000], // P19 : 10.8 / 10.6 / 10.8 km
   "75120": [11500, 15000, 11500], // P20 : 9.3 / 13.0 / 8.6 km
   "76540": [11500, 11500, 15000], // Rouen : 8.6 / 8.6 / 11.7 km
+  "83137": [15000, 11500, 17000], // Toulon : 10.5 / 9.3 / 17.2 km (mesuré le 10/11/2026)
 };
 
 const SENS = { "aller-retour": 0, depart: 1, arrivee: 2 };

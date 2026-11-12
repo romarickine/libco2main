@@ -137,6 +137,10 @@ export function parseIGNRoadsToGraph(featureCollection, nodeSnapTolerance) {
     // Couverture incomplète : cet attribut n'est renseigné par l'IGN que
     // lorsqu'un partenaire a fourni l'information — son absence ne garantit
     // donc PAS qu'une voie est publique, seule sa présence à vrai est fiable.
+    // Aménagement cyclable d'un côté au moins (bande, piste, double sens…) :
+    // toute valeur renseignée par l'IGN compte. Une piste séparée de la
+    // chaussée est en général un tronçon à part (nature « Piste cyclable »).
+    const amenagementCyclable = !!(props.amenagement_cyclable_gauche || props.amenagement_cyclable_droit);
     const prive = props.prive === true || props.prive === "Vrai" || props.privee === true || props.privee === "Vrai";
     for (const coords of lineStrings) {
       const n = coords.length;
@@ -173,7 +177,7 @@ export function parseIGNRoadsToGraph(featureCollection, nodeSnapTolerance) {
         if (length <= 0 || idA === idB) {
           continue;
         }
-        edges.push({ from: idA, to: idB, length, nature, sens, vitesse, accesVL, prive, importance });
+        edges.push({ from: idA, to: idB, length, nature, sens, vitesse, accesVL, prive, importance, amenagementCyclable });
       }
     }
   }
@@ -545,6 +549,21 @@ function surfaceFactor(nature, mode) {
   return (table && table[nature]) || 1.0;
 }
 
+// Cyclabilité rue par rue (choix du porteur, 12/11/2026) : sur une voie
+// ouverte aux voitures sans aménagement cyclable (circulation mêlée), le vélo
+// et le VAE roulent moins vite. Jafari et al. (Journal of Cycling and
+// Micromobility Research, 2024 ; Melbourne, données Strava de 31 222
+// cyclistes, régression sur 7 547 tronçons, tableau 2) : −0,73 km/h en
+// circulation mêlée par rapport à une bande cyclable (p < 0,001), pour une
+// vitesse de référence de 21,09 km/h, soit −3,5 % ; appliqué en proportion.
+// Les autres types (piste séparée +0,80, voie hors route −0,40) ne diffèrent
+// pas significativement de la bande : pas d'écart retenu.
+export const FACTEUR_CIRCULATION_MELEE = 1 - 0.73 / 21.09;
+function facteurCyclabilite(edge, mode) {
+  if (mode !== "bike" && mode !== "ebike") return 1;
+  return !edge.amenagementCyclable && isEdgeUsable(edge, "car") ? FACTEUR_CIRCULATION_MELEE : 1;
+}
+
 /**
  * Le sens unique d'un tronçon s'impose-t-il à ce mode ? Voiture : toujours.
  * Marche : jamais. Vélo et VAE : oui sur les ronds-points ; ailleurs, oui
@@ -655,7 +674,7 @@ export function coutsArete(edge, grade, mode, urbain, out = {}) {
     out.costBackward = edge.length / ((toblerWalkingSpeed(-grade) * factor * 1000) / 3600);
   } else {
     const isElectric = mode === "ebike";
-    const factor = surfaceFactor(edge.nature, mode);
+    const factor = surfaceFactor(edge.nature, mode) * facteurCyclabilite(edge, mode);
     out.costForward = edge.length / ((parkinRotheramCyclingSpeed(grade, isElectric) * factor * 1000) / 3600);
     out.costBackward = edge.length / ((parkinRotheramCyclingSpeed(-grade, isElectric) * factor * 1000) / 3600);
   }

@@ -128,6 +128,24 @@ function walkingBikeSpeed(grade) {
  * @returns {number} km/h.
  */
 export function parkinRotheramCyclingSpeed(grade, isElectric) {
+  // Vitesses moyennes de roulage (choix du porteur, 12/11/2026) : Schleinitz
+  // et al. (2017, Safety Science 92, 290-297 ; étude naturaliste allemande,
+  // 85 participants, arrêts exclus) : 15,3 km/h en vélo, 17,4 km/h en VAE. Les
+  // 21,6 km/h de Parkin et Rotheram (2010) sont la vitesse atteinte en fin
+  // d'accélération par 16 cyclistes expérimentés de Leeds, une vitesse de
+  // conception (texte intégral relu le 12/11/2026), pas une moyenne. Toute la
+  // courbe (montée, plat, descente) est ramenée en proportion.
+  const f = isElectric ? VAE_MOYENNE / 24.6 : VELO_MOYENNE / 21.6;
+  return vitesseCyclistePointe(grade, isElectric, f);
+}
+
+// Vitesses moyennes à plat retenues (km/h), voir parkinRotheramCyclingSpeed.
+export const VELO_MOYENNE = 15.3;
+export const VAE_MOYENNE = 17.4;
+
+// Courbe d'origine (calibrée à 21,6 / 24,6 km/h à plat), multipliée par f ;
+// la marche à côté du vélo (Tobler) n'est pas réduite.
+function vitesseCyclistePointe(grade, isElectric, f) {
   const gradePercent = grade * 100;
   if (gradePercent >= 0) {
     const flatPower = isElectric ? EBIKE_FLAT_POWER : BIKE_FLAT_POWER;
@@ -142,7 +160,7 @@ export function parkinRotheramCyclingSpeed(grade, isElectric) {
     // un comportement réel. Plancher minimal (0.5 km/h) purement numérique,
     // pour éviter une vitesse nulle/négative sur une pente aberrante — il ne
     // doit jamais dominer le vrai croisement entre les deux vitesses.
-    return Math.max(0.5, cyclingSpeed, walkingBikeSpeed(grade));
+    return Math.max(0.5, cyclingSpeed * f, walkingBikeSpeed(grade));
   }
   const flatSpeed = isElectric ? 24.6 : 21.6;
   // Descente : +0,86 km/h par point de pente (Parkin & Rotheram 2010,
@@ -156,7 +174,7 @@ export function parkinRotheramCyclingSpeed(grade, isElectric) {
   // (non calibrée sur une vraie descente, cf. commentaire plus haut) devient
   // irréaliste — un cycliste freine bien avant d'atteindre une telle vitesse,
   // pour des raisons de sécurité et de confort, quelle que soit la pente.
-  return Math.min(50, Math.max(3, flatSpeed + downCoeff * Math.abs(gradePercent)));
+  return Math.min(50, Math.max(3, (flatSpeed + downCoeff * Math.abs(gradePercent)) * f));
 }
 
 // Vitesses voiture par défaut selon la nature du tronçon BD TOPO® (utilisées
