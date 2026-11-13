@@ -1,3 +1,4 @@
+// © 2026 Lib&CO2 SASU — tous droits réservés. Reproduction, modification ou redistribution du code interdites sans accord écrit préalable.
 /**
  * communes-insee.js — les ~35 000 communes françaises et leur zone de mobilité
  * ---------------------------------------------------------------------------

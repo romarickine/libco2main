@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: EUPL-1.2
+// Copyright (c) 2026 Lib&CO2 SASU — La carte du sans-voiture, licence EUPL 1.2 (voir iso/LICENCE.md).
 // Rayon du réseau choisi d'emblée selon la commune du point (code INSEE ; à
 // Paris, Lyon et Marseille, celui de l'arrondissement), pour éviter les
 // relances dans les grandes villes. Valeurs mesurées sur libco2.fr les 9 et

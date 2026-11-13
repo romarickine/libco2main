@@ -1,3 +1,4 @@
+// © 2026 Lib&CO2 SASU — tous droits réservés. Reproduction, modification ou redistribution du code interdites sans accord écrit préalable.
 /**
  * main-msp.js — point d'entrée et état de Lib&CO2 MSP
  * ---------------------------------------------------------------------------

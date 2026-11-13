@@ -1,3 +1,4 @@
+// © 2026 Lib&CO2 SASU — tous droits réservés. Reproduction, modification ou redistribution du code interdites sans accord écrit préalable.
 /**
  * facteurs-emission.js — SOURCE UNIQUE des facteurs d'émission Lib&CO2
  * ----------------------------------------------------------------------

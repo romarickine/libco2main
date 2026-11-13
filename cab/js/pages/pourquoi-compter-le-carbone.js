@@ -1,3 +1,4 @@
+// © 2026 Lib&CO2 SASU — tous droits réservés. Reproduction, modification ou redistribution du code interdites sans accord écrit préalable.
 // Script de la page pourquoi-compter-le-carbone.html (sorti de la page pour la CSP stricte : aucun script en ligne).
 // Chargé avec defer : le document est déjà analysé quand il s'exécute.
 // Calcul en direct du budget carbone restant, à partir des données GIEC

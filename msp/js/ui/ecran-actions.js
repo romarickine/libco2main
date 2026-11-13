@@ -1,3 +1,4 @@
+// © 2026 Lib&CO2 SASU — tous droits réservés. Reproduction, modification ou redistribution du code interdites sans accord écrit préalable.
 /**
  * ui/ecran-actions.js — pistes d'action (étape 7)
  * ---------------------------------------------------------------------------

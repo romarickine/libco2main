@@ -1,3 +1,4 @@
+// © 2026 Lib&CO2 SASU — tous droits réservés. Reproduction, modification ou redistribution du code interdites sans accord écrit préalable.
 /**
  * ui.js — point d'entrée de l'affichage de Lib&CO2 Cab
  * ----------------------------------------------------------------------
@@ -50,7 +51,7 @@ export function renderIntro(root, { onStart }) {
         <div class="feature-card"><div class="titre">Plan d'action</div><div class="desc">Des leviers priorisés, avec un ordre de coût.</div></div>
       </div>
       <p class="mentions">Version bêta-test. Les résultats sont des ordres de grandeur destinés à éclairer vos décisions, pas un bilan d'émissions de gaz à effet de serre réglementaire (BEGES).</p>
-      <p class="mentions">Vos données restent sur votre appareil (aucun serveur, aucun compte) · Code source ouvert sur <a href="https://github.com/romarickine/libco2cab" target="_blank" rel="noopener" data-style="color:inherit;">GitHub</a> · <a href="../mentions-legales.html" data-style="color:inherit;">Mentions légales</a></p>
+      <p class="mentions">Vos données restent sur votre appareil (aucun serveur, aucun compte) · <a href="../mentions-legales.html" data-style="color:inherit;">Mentions légales</a></p>
     </div>
   `;
   document.getElementById("btn-demarrer").addEventListener("click", onStart);

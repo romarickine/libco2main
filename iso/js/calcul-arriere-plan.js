@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: EUPL-1.2
+// Copyright (c) 2026 Lib&CO2 SASU — La carte du sans-voiture, licence EUPL 1.2 (voir iso/LICENCE.md).
 // ==========================================================================
 // Calcul de la carte dans un Web Worker (calcul-worker.js), avec repli sur un
 // calcul dans la page si le navigateur ne sait pas lancer un worker de type

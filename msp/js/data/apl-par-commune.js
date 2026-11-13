@@ -1,3 +1,4 @@
+// © 2026 Lib&CO2 SASU — tous droits réservés. Reproduction, modification ou redistribution du code interdites sans accord écrit préalable.
 /**
  * apl-par-commune.js — valeurs d'APL par commune (DREES, millésime 2024)
  * ---------------------------------------------------------------------------

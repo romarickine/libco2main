@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: EUPL-1.2
+// Copyright (c) 2026 Lib&CO2 SASU — La carte du sans-voiture, licence EUPL 1.2 (voir iso/LICENCE.md).
 // ==========================================================================
 // Inspection d'un point cliqué sur la carte : temps voiture et temps de chaque
 // mode au nœud du réseau le plus proche, tels que calculés par le modèle.

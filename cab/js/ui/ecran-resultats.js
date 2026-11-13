@@ -1,3 +1,4 @@
+// © 2026 Lib&CO2 SASU — tous droits réservés. Reproduction, modification ou redistribution du code interdites sans accord écrit préalable.
 /**
  * ui/ecran-resultats.js — écran des résultats
  * ---------------------------------------------------------------------------
@@ -158,7 +159,7 @@ export function renderResultats(root, ctx) {
       <div data-style="text-align:center; margin-top:16px;"><button class="bouton-lien" id="btn-recommencer">↺ Recommencer une estimation</button></div>
 
       <p class="mentions">Version bêta-test — Ordres de grandeur indicatifs, non contractuels. Facteurs d'émission : ADEME Base Carbone® V23.6 et études publiées, détaillés sur la page <a href="methodologie.html">Méthodologie et facteurs d'émission</a> ; méthodologie inspirée du rapport kinéCO2 (Lib&CO2, Carbone 4). Déplacements de la patientèle/clientèle : Enquête Mobilité des Personnes 2019 (SDES), report modal par zone (zonage INSEE en aires urbaines 2010) ajusté selon le motif de déplacement propre à chaque famille de métier. Référentiels : GHG Protocol, BEGES v5.</p>
-      <p class="mentions"><a href="../mentions-legales.html" data-style="color:inherit;">Mentions légales</a> · <a href="https://github.com/romarickine/libco2cab" target="_blank" rel="noopener" data-style="color:inherit;">Code source</a></p>
+      <p class="mentions"><a href="../mentions-legales.html" data-style="color:inherit;">Mentions légales</a></p>
     </div>
     <div id="zone-modale"></div>
   `;

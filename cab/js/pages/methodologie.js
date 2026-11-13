@@ -1,3 +1,4 @@
+// © 2026 Lib&CO2 SASU — tous droits réservés. Reproduction, modification ou redistribution du code interdites sans accord écrit préalable.
 // Script de la page methodologie.html : génère les tableaux de facteurs à
 // partir des fichiers de données de l'outil (aucune valeur recopiée), pour
 // que la page affiche toujours exactement ce que le calcul utilise.
