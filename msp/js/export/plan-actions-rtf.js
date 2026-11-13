@@ -8,7 +8,7 @@
  * (Découpé de ui-msp.js en septembre 2026 : un fichier par responsabilité.)
  */
 import { CATEGORIES_META } from "../../../shared/js/data/facteurs-emission.js";
-import { TOUTES_ACTIONS, reductionEstimee, valeurPosteMSP } from "../ui/ecran-actions.js";
+import { TOUTES_ACTIONS, reductionEstimee, totalReductionPlanMSP, actionProposee } from "../ui/ecran-actions.js";
 import { fmt } from "../ui/commun.js";
 import { getEtat } from "../main-msp.js";
 
@@ -65,7 +65,7 @@ ${["#", "Action", "Poste", "Réduction visée (kgCO2e/an)", "Date de début", "S
   const lignesActions = actionsCochees
     .map((a, i) => {
       const choix = etat.actionsChoix[a.id];
-      const red = reductionEstimee(a, choix, valeurPosteMSP(r, a.poste));
+      const red = reductionEstimee(a, choix, r);
       return `{\\trowd\\trgaph108\\trleft0 ${bordCols.map((b) => `\\cellx${b}`).join("")}
 \\intbl ${i + 1}\\cell \\intbl ${rtfEchappe(a.titre)}\\cell \\intbl ${rtfEchappe(CATEGORIES_META[a.poste]?.label || a.poste)}\\cell \\intbl ${red != null ? Math.round(red) : "\u2014"}\\cell \\intbl \\cell \\intbl \\cell \\row}`;
     })
@@ -111,14 +111,11 @@ export function telechargerPlanActions() {
   const etat = getEtat();
   const r = etat.dernierResultat;
   if (!r) return;
-  const actionsCochees = TOUTES_ACTIONS.filter((a) => etat.actionsChoix?.[a.id]?.active);
+  const actionsCochees = TOUTES_ACTIONS.filter((a) => etat.actionsChoix?.[a.id]?.active && actionProposee(a, r));
   if (actionsCochees.length === 0) return;
 
-  let totalReduction = 0;
-  for (const a of actionsCochees) {
-    const red = reductionEstimee(a, etat.actionsChoix[a.id], valeurPosteMSP(r, a.poste));
-    if (red) totalReduction += red;
-  }
+  // Total sans double comptage (actions appliquées l'une après l'autre).
+  const totalReduction = totalReductionPlanMSP(actionsCochees, etat.actionsChoix, r);
 
   const rtf = genererDocumentPlanActions(etat, actionsCochees, totalReduction);
   const blob = new Blob([rtf], { type: "application/rtf" });

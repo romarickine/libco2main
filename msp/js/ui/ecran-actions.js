@@ -7,8 +7,9 @@
  * Utilisé par : ui-msp.js, export/plan-actions-rtf.js.
  * (Découpé de ui-msp.js en septembre 2026 : un fichier par responsabilité.)
  */
-import { ACTIONS, CATEGORIES_META, COST_LABELS } from "../../../shared/js/data/facteurs-emission.js";
-import { ACTIONS_MSP_SUPPLEMENTAIRES, LIBELLES_ACTIONS_MSP } from "../data/facteurs-emission-msp.js";
+import { ACTIONS, CATEGORIES_META, COST_LABELS, FE_TRANSPORT } from "../../../shared/js/data/facteurs-emission.js";
+import { gainPartConcernee, reductionPlan } from "../../../shared/js/plan-actions.js";
+import { ACTIONS_MSP_SUPPLEMENTAIRES, LIBELLES_ACTIONS_MSP, FACTEURS_VEHICULES_USAGE_FABRICATION } from "../data/facteurs-emission-msp.js";
 import { fmt } from "./commun.js";
 import { echapperHtml } from "../../../shared/js/echappement.js";
 import { lienContact } from "../../../shared/js/contact.js";
@@ -48,11 +49,15 @@ export function valeurPosteMSP(r, posteId) {
   if (!r) return null;
   switch (posteId) {
     case "deplacements_pro":
+      // Usage + fabrication : les gains des actions de déplacement sont
+      // calculés avec les facteurs complets (une voiture évitée n'est pas
+      // fabriquée), même si la fabrication est présentée en immobilisations.
       return r.parPoste.domicileTravail.usageTotal + r.parPoste.domicileTravail.fabricationVehiculeTotal;
     case "deplacements_patientele":
       return r.parPoste.patientele.total;
     case "local":
-      return r.parPoste.local.total;
+      // Énergie seulement : la construction du bâtiment est une immobilisation.
+      return r.parPoste.local.emissionsEnergie;
     case "services":
       return r.parPoste.support.services;
     case "fret":
@@ -67,17 +72,88 @@ export function valeurPosteMSP(r, posteId) {
 }
 
 /**
- * Gain estimé d'une action : part maximale de réduction du poste × taux de
- * déploiement choisi (ou degrés de chauffage abaissés).
- * @param {object} action  Élément du catalogue (maxReduction, maxReductionParDegre, unit).
- * @param {{valeur: number}} choix  Pourcentage de déploiement ou nombre de degrés.
- * @param {number|null} valeurPoste  kgCO2e/an du poste visé.
- * @returns {number|null} kgCO2e/an évités.
+ * Contexte du plan d'action (shared/js/plan-actions.js) tiré du résultat MSP :
+ * kilomètres par mode, chauffage du local. null pour un résultat calculé avant
+ * le 12/11/2026 (sans ce détail) : les actions gardent alors l'ancien calcul.
  */
-export function reductionEstimee(action, choix, valeurPoste) {
-  if (valeurPoste == null) return null;
-  if (action.unit === "degres") return valeurPoste * action.maxReductionParDegre * (choix.valeur || 0);
-  return valeurPoste * action.maxReduction * ((choix.valeur ?? action.defaultPct) / 100);
+export function contexteActionsMSP(r) {
+  const parts = r && r.parPoste.domicileTravail.parts;
+  if (!parts) return null;
+  return {
+    // Voitures : usage + fabrication, comme dans le bilan MSP.
+    fe: (mode) => FACTEURS_VEHICULES_USAGE_FABRICATION[mode]?.total ?? FE_TRANSPORT[mode]?.value ?? 0,
+    quotidien: parts.quotidien,
+    congres: parts.congres,
+    chauffageKg: r.parPoste.local.chauffage || 0,
+    energieChauffage: r.parPoste.local.energieChauffage,
+  };
+}
+
+// Part touchée par une action : sous-partie du local (chauffage, électricité)
+// ou poste entier. Le numérique n'est pas isolé dans MSP.
+function cleAction(a) {
+  return a.unit === "degres" ? "localChauffage" : a.detailKey || a.poste;
+}
+function valeurPartMSP(r, cle) {
+  if (!r) return null;
+  if (cle === "localChauffage") return r.parPoste.local.chauffage ?? r.parPoste.local.total;
+  if (cle === "localElec") return r.parPoste.local.elec ?? r.parPoste.local.total;
+  if (cle === "numUsage") return null;
+  return valeurPosteMSP(r, cle);
+}
+
+/**
+ * Gain estimé d'une action (kgCO2e/an évités), sur la seule part qu'elle
+ * concerne (décision du porteur, 12/11/2026) : trajets par mode pour les
+ * déplacements, chauffage au gaz ou au fioul pour la pompe à chaleur,
+ * chauffage ou électricité pour les autres actions du local ; sinon le poste.
+ * @param {object} action  Élément du catalogue.
+ * @param {{valeur: number}} choix  Pourcentage de déploiement ou nombre de degrés.
+ * @param {object|null} r  Résultat de calculBilanMSP.
+ * @param {number} [valeurForcee]  Remplace choix.valeur (gain à plein déploiement).
+ * @returns {number|null} null si le poste n'est pas isolé dans MSP.
+ */
+export function reductionEstimee(action, choix, r, valeurForcee) {
+  if (!r) return null;
+  const valeur = valeurForcee ?? (action.unit === "degres" ? choix.valeur || 0 : (choix.valeur ?? action.defaultPct));
+  const ctx = contexteActionsMSP(r);
+  const specifique = ctx ? gainPartConcernee(action.id, ctx) : null;
+  if (specifique) return specifique.gainParPct * valeur;
+  const base = valeurPartMSP(r, ctx ? cleAction(action) : action.poste);
+  if (base == null) return null;
+  if (action.unit === "degres") return base * action.maxReductionParDegre * valeur;
+  return base * action.maxReduction * (valeur / 100);
+}
+
+/**
+ * Une action est-elle proposée ? Non si elle n'apporte aucun gain à plein
+ * déploiement (décision du porteur, 12/11/2026) ; oui sans bilan calculé ou
+ * pour un poste non isolé (potentiel indicatif).
+ */
+export function actionProposee(action, r) {
+  if (!r) return true;
+  const max = reductionEstimee(action, {}, r, action.unit === "degres" ? 5 : 100);
+  return max == null || max > 0;
+}
+
+/**
+ * Total du plan sans double comptage : les actions cochées qui touchent les
+ * mêmes émissions s'appliquent l'une après l'autre sur ce qui reste.
+ * @param {object[]} actionsCochees @param {object} actionsChoix @param {object|null} r
+ * @returns {number} kgCO2e/an
+ */
+export function totalReductionPlanMSP(actionsCochees, actionsChoix, r) {
+  if (!r) return 0;
+  const ctx = contexteActionsMSP(r);
+  const liste = actionsCochees
+    .map((a) => {
+      const choix = actionsChoix[a.id];
+      const red = reductionEstimee(a, choix, r);
+      return red == null ? null : { ...a, potentielKg: red, pct: choix.valeur ?? a.defaultPct, cle: ctx ? cleAction(a) : a.poste };
+    })
+    .filter(Boolean);
+  if (!ctx) return liste.reduce((s, a) => s + a.potentielKg, 0);
+  return reductionPlan(liste, ctx, (cle) => valeurPartMSP(r, cle) || 0);
 }
 
 /**
@@ -92,19 +168,15 @@ export function rendreSolutions(etat) {
 
   const groupes = {};
   for (const a of TOUTES_ACTIONS) {
+    // Actions sans gain (déjà en voiture électrique, chauffage déjà
+    // électrique…) : non proposées.
+    if (!actionProposee(a, r)) continue;
     if (!groupes[a.poste]) groupes[a.poste] = [];
     groupes[a.poste].push(a);
   }
 
-  let totalReduction = 0;
-  const actionsCochees = [];
-  for (const a of TOUTES_ACTIONS) {
-    const choix = etat.actionsChoix[a.id];
-    if (!choix.active) continue;
-    actionsCochees.push(a);
-    const red = reductionEstimee(a, choix, valeurPosteMSP(r, a.poste));
-    if (red) totalReduction += red;
-  }
+  const actionsCochees = TOUTES_ACTIONS.filter((a) => etat.actionsChoix[a.id].active && actionProposee(a, r));
+  const totalReduction = totalReductionPlanMSP(actionsCochees, etat.actionsChoix, r);
   const pctEngagement = r && r.empreinteTotale > 0 ? Math.min((totalReduction / r.empreinteTotale) * 100, 30) : 0;
   const paliers =
     pctEngagement < 5 ? "Pas encore engagé" : pctEngagement < 15 ? "Trajectoire 1 an" : "Trajectoire 3 ans et plus";
@@ -170,14 +242,14 @@ function rendreGroupeActions(etat, posteId, actions, r) {
   <div class="carte">
     <h3 class="carte-titre" data-style="color:color-mix(in srgb, ${meta.color} 70%, #000)">${meta.label}</h3>
     ${valeurPoste == null ? '<p class="aide">Poste non isolé dans le calcul MSP — potentiel de réduction indicatif uniquement.</p>' : ""}
-    ${actions.map((a) => rendreActionCard(etat, a, valeurPoste)).join("")}
+    ${actions.map((a) => rendreActionCard(etat, a, r)).join("")}
   </div>`;
 }
 
-function rendreActionCard(etat, action, valeurPoste) {
+function rendreActionCard(etat, action, r) {
   const choix = etat.actionsChoix[action.id];
   const sourcee = action.source.startsWith("SOURCÉ");
-  const reduction = choix.active ? reductionEstimee(action, choix, valeurPoste) : null;
+  const reduction = choix.active ? reductionEstimee(action, choix, r) : null;
   return `
   <div class="carte-action">
     <label class="action-entete">
@@ -192,7 +264,7 @@ function rendreActionCard(etat, action, valeurPoste) {
       choix.active
         ? `
       <div class="action-curseur">
-        <label>${action.unit === "degres" ? "Nombre de degrés ajustés" : "Part de déploiement (%)"}
+        <label>${action.unit === "degres" ? "Nombre de degrés ajustés" : "Part de déploiement (% de la part concernée)"}
           <input type="number" min="0" max="${action.unit === "degres" ? 5 : 100}" data-path="actionsChoix.${action.id}.valeur" value="${choix.valeur}">
         </label>
         ${reduction != null ? `<p class="action-reduction">≈ ${fmt(reduction)} kgCO2e/an évités</p>` : '<p class="aide">Potentiel non chiffrable ici (poste non isolé dans l\'outil MSP).</p>'}

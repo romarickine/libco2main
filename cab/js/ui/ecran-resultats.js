@@ -248,7 +248,7 @@ function ligneActionHtml(a, rang) {
             a.checked && a.hasPct
               ? `
             <div class="curseur-action">
-              <div class="label-curseur">Déployé sur ${a.pct}% de ce poste</div>
+              <div class="label-curseur">Déployé sur ${a.pct}% de la part concernée</div>
               <input type="range" min="5" max="100" step="5" value="${a.pct}" data-pct-action="${a.id}" />
             </div>`
               : ""

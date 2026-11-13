@@ -61,13 +61,16 @@ export function exporterDashboard() {
     empreinteTotale_tCO2e_an: r.empreinteTotale / 1000,
     ratioParActe_kgCO2e: r.ratioParActe,
     repartitionParPoste_kgCO2e: {
-      local: r.parPoste.local.total,
+      // Depuis le 12/11/2026 : local = énergie ; déplacements = usage ;
+      // immobilisations = bâtiment + fabrication des véhicules + numérique,
+      // matériel, mobilier. Le total est inchangé.
+      local: r.parPoste.local.emissionsEnergie,
       patientele: r.parPoste.patientele.total,
-      deplacementsPro: r.parPoste.domicileTravail.usageTotal + r.parPoste.domicileTravail.fabricationVehiculeTotal,
+      deplacementsPro: r.parPoste.domicileTravail.usageTotal,
       alimentation: r.parPoste.alimentation.total,
       prescriptions: r.parPoste.prescriptions.total,
       postesMutualises: r.parPoste.support.total,
-      immobilisations: r.parPoste.immobilisations,
+      immobilisations: r.parPoste.immobilisationsGroupe.total,
     },
     praticiens: etat.praticiens.map((p) => {
       const e = r.empreintesPraticiens.find((x) => x.id === p.id);

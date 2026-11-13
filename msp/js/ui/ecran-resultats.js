@@ -63,12 +63,13 @@ function rendreResultats(r, etat) {
   const dependance = r.tauxDependanceFossile;
 
   const donneesPostes = [
-    { label: "Local (énergie + bâtiment)", valeur: r.parPoste.local.total },
+    { label: "Local (énergie)", valeur: r.parPoste.local.emissionsEnergie },
     { label: "Déplacements patientèle", valeur: r.parPoste.patientele.total },
     { label: "Domicile-travail (usage)", valeur: r.parPoste.domicileTravail.domicileTravail.usage },
     { label: "Tournées à domicile (usage)", valeur: r.parPoste.domicileTravail.tournees.usage },
     { label: "Congrès / formations (usage)", valeur: r.parPoste.domicileTravail.deplacementsProAnnuels.usage },
-    { label: "Immobilisation véhicules", valeur: r.parPoste.domicileTravail.fabricationVehiculeTotal },
+    { label: "Immobilisations : fabrication des véhicules", valeur: r.parPoste.immobilisationsGroupe.vehicules },
+    { label: "Immobilisations : construction du bâtiment", valeur: r.parPoste.immobilisationsGroupe.batiment },
     { label: "Alimentation professionnelle", valeur: r.parPoste.alimentation.total },
     // Prescriptions et médicaments/parapharmacie : inclus dans ce graphique
     // uniquement si la case "Inclure prescriptions et médicaments" est
@@ -82,7 +83,7 @@ function rendreResultats(r, etat) {
       : []),
     { label: "Postes mutualisés", valeur: r.parPoste.support.total },
     { label: "Déchets de la structure", valeur: r.parPoste.dechets.total },
-    { label: "Immobilisations diverses", valeur: r.parPoste.immobilisations },
+    { label: "Immobilisations : numérique, matériel, mobilier", valeur: r.parPoste.immobilisations },
   ]
     .filter((d) => d.valeur > 0)
     .sort((a, b) => b.valeur - a.valeur);

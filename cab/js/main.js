@@ -178,7 +178,7 @@ export function render() {
       },
       actionsCalculees: calculerActions(resultats, etat.actionsSelectionnees),
       afficherPlusActions: etat.afficherPlusActions,
-      totalReductionPlan: totalReductionPlan(calculerActions(resultats, etat.actionsSelectionnees)),
+      totalReductionPlan: totalReductionPlan(calculerActions(resultats, etat.actionsSelectionnees), resultats),
       typeCertificat: etat.typeCertificat,
       nomCabinet: etat.nomCabinet,
       onChangeTypeGraphique: (t) => {

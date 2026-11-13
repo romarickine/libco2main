@@ -18,24 +18,65 @@ import {
   FE_FRET_COLIS,
   FE_MOBILIER,
   DUREE_AMORTISSEMENT_ANS,
+  FACTEURS_VEHICULES_USAGE_FABRICATION,
+  FACTEURS_BATIMENT_PAR_ACTIVITE,
+  emissionsBatimentAnnuelles,
   ACTIONS,
   COST_WEIGHT,
   FE_DECHETS,
   FE_DASRI,
 } from "../../shared/js/data/facteurs-emission.js";
+import { gainPartConcernee, reductionPlan } from "../../shared/js/plan-actions.js";
 import { emissionsPatienteleParActe } from "../../shared/js/data/zonage-insee.js";
+
+// Part « fabrication du véhicule » d'un facteur de transport (kgCO2e/km) :
+// voitures seulement (Base Carbone, voir FACTEURS_VEHICULES_USAGE_FABRICATION).
+const fabricationParKm = (mode) => FACTEURS_VEHICULES_USAGE_FABRICATION[mode]?.fabrication || 0;
 
 // Calcule l'empreinte carbone liée aux déplacements professionnels
 // (domicile-travail + visites + congrès/formations).
+// Depuis le 12/11/2026, la fabrication des voitures est présentée en
+// immobilisations : domTrav, visites et congres sont l'usage (carburant ou
+// électricité), fabrication la part véhicule. usage + fabrication = facteur
+// complet de FE_TRANSPORT, le total de l'empreinte est inchangé.
 // Entrée : data.deplacements (état du formulaire)
-// Sortie : { domTrav, visites, congres, total } en kgCO2e/an
+// Sortie : { domTrav, visites, congres, total, fabrication, parts } en kgCO2e/an
 export function calculDeplacementsPro(d) {
   const kmDomTravAn = d.kmAllerJour * 2 * d.joursSemaine * d.semainesAn;
-  const domTrav = kmDomTravAn * FE_TRANSPORT[d.modeDomTrav].value;
-  const visites = d.kmVisitesAn * FE_TRANSPORT[d.modeVisites].value;
-  const feCongres = FE_TRANSPORT[d.modeCongres === "train_tgv" ? "tgv" : d.modeCongres].value;
-  const congres = d.nbCongresAn * d.kmCongresAR * feCongres;
-  return { domTrav, visites, congres, total: domTrav + visites + congres };
+  const modeCongres = d.modeCongres === "train_tgv" ? "tgv" : d.modeCongres;
+  const kmCongres = d.nbCongresAn * d.kmCongresAR;
+  const fabDomTrav = kmDomTravAn * fabricationParKm(d.modeDomTrav);
+  const fabVisites = d.kmVisitesAn * fabricationParKm(d.modeVisites);
+  const fabCongres = kmCongres * fabricationParKm(modeCongres);
+  const domTrav = kmDomTravAn * FE_TRANSPORT[d.modeDomTrav].value - fabDomTrav;
+  const visites = d.kmVisitesAn * FE_TRANSPORT[d.modeVisites].value - fabVisites;
+  const feCongres = FE_TRANSPORT[modeCongres].value;
+  const congres = kmCongres * feCongres - fabCongres;
+  // Kilomètres par mode, pour calculer le gain de chaque action sur la seule
+  // part qu'elle concerne (voir shared/js/plan-actions.js).
+  const parts = {
+    quotidien: [
+      { km: kmDomTravAn, mode: d.modeDomTrav },
+      { km: d.kmVisitesAn, mode: d.modeVisites },
+    ],
+    congres: { km: d.nbCongresAn * d.kmCongresAR, mode: d.modeCongres === "train_tgv" ? "tgv" : d.modeCongres, kg: congres },
+  };
+  const fabrication = fabDomTrav + fabVisites + fabCongres;
+  return { domTrav, visites, congres, total: domTrav + visites + congres, fabrication, parts };
+}
+
+// Construction du bâtiment (12/11/2026) : carbone de construction amorti sur
+// 30 ans depuis la construction ou la dernière rénovation lourde, facteur
+// selon l'activité (FACTEURS_BATIMENT_PAR_ACTIVITE). Compté que l'on soit
+// propriétaire ou locataire (décision du porteur). Année inconnue : rien.
+// Entrée : data.local, familleId, anneeActuelle
+// Sortie : kgCO2e/an
+export function calculBatiment(l, familleId, anneeActuelle = new Date().getFullYear()) {
+  if (!l.aLocal || !(l.surface > 0)) return 0;
+  const facteur = (FACTEURS_BATIMENT_PAR_ACTIVITE[familleId] || FACTEURS_BATIMENT_PAR_ACTIVITE.autre).kgCO2e_m2;
+  const renovation =
+    l.anneeRenovation > 0 && l.coutRenovation > 0 ? { annee: l.anneeRenovation, coutTravaux: l.coutRenovation } : null;
+  return emissionsBatimentAnnuelles(l.surface, l.anneeConstruction > 0 ? l.anneeConstruction : null, renovation, anneeActuelle, facteur);
 }
 
 // Calcule l'empreinte des déplacements de la patientèle/clientèle vers le
@@ -201,6 +242,7 @@ export function calculerBilan(data, famille, zone) {
     aLocal: data.local.aLocal,
   });
   const lo = calculLocal(data.local, famille.id);
+  const bat = calculBatiment(data.local, famille.id);
   const nu = calculNumerique(data.numerique);
   const ma = calculMateriel(famille, data.materiel, data.investissements);
   const al = calculAlimentation({ ...data.alimentation, semainesAn: data.deplacements.semainesAn });
@@ -221,6 +263,7 @@ export function calculerBilan(data, famille, zone) {
     fret: se.fret,
     medicaments: med.total,
     prescriptions: presc.total,
+    immobilisations: dp.fabrication + bat,
   };
   const totalKg = Object.values(parPoste).reduce((a, b) => a + b, 0);
   const totalKgHorsPrescriptions = totalKg - presc.total;
@@ -229,10 +272,14 @@ export function calculerBilan(data, famille, zone) {
     domTrav: dp.domTrav,
     visites: dp.visites,
     congres: dp.congres,
+    deplacementsParts: dp.parts,
+    energieChauffage: data.local.energieChauffage,
     patientele: dc.total,
     localElec: lo.elec,
     localChauffage: lo.chauffage,
     localDeporte: lo.deporte,
+    immoVehicules: dp.fabrication,
+    immoBatiment: bat,
     numOrdisFixes: nu.ordisFixes,
     numOrdisPortables: nu.ordisPortables,
     numEcrans: nu.ecrans,
@@ -264,6 +311,21 @@ export function calculerBilan(data, famille, zone) {
   };
 }
 
+// Contexte du plan d'action (shared/js/plan-actions.js) : trajets par mode,
+// chauffage du local.
+function contexteActions(results) {
+  const parts = results.detail.deplacementsParts || { quotidien: [], congres: { km: 0, mode: "" } };
+  return {
+    fe: (mode) => (FE_TRANSPORT[mode] ? FE_TRANSPORT[mode].value : 0),
+    quotidien: parts.quotidien,
+    congres: parts.congres.km > 0 ? [{ km: parts.congres.km, mode: parts.congres.mode }] : [],
+    chauffageKg: results.detail.localChauffage || 0,
+    energieChauffage: results.detail.energieChauffage,
+  };
+}
+// Part touchée par une action (regroupement du plan sans double comptage).
+const cleAction = (act) => (act.unit === "degres" ? "localChauffage" : act.detailKey || act.poste);
+
 // Calcule le catalogue d'actions de décarbonation trié par pertinence
 // (impact / coût), avec le potentiel de réduction de chacune selon l'état
 // de sélection courant (cochée ou non, curseur de déploiement).
@@ -271,26 +333,36 @@ export function calculerBilan(data, famille, zone) {
 //          { [actionId]: { checked, pct, degres } })
 // Sortie : tableau d'actions enrichies, triées par score décroissant
 export function calculerActions(results, selectedActions) {
+  const ctx = contexteActions(results);
   return ACTIONS.map((act) => {
     const isDegres = act.unit === "degres";
-    // Certaines actions ne concernent qu'une sous-partie d'un poste (ex. une
-    // pompe à chaleur ne réduit que la part chauffage du local, pas
-    // l'électricité) : detailKey pointe alors vers la bonne valeur dans
-    // results.detail plutôt que vers le poste complet, pour ne pas
-    // surestimer le gain. À défaut, on retombe sur le poste entier.
-    const kgPoste = isDegres
-      ? results.detail.localChauffage || 0
-      : act.detailKey
-        ? results.detail[act.detailKey] || 0
-        : results.parPoste[act.poste] || 0;
     const sel = selectedActions[act.id] || { checked: false, pct: act.defaultPct, degres: act.defaultDegres };
-    let potentielKg;
-    if (isDegres) {
-      const degres = Math.min(sel.degres ?? act.defaultDegres, 5);
-      potentielKg = kgPoste * act.maxReductionParDegre * degres;
+    const pctAppliquee = act.hasPct ? (sel.pct ?? act.defaultPct) : 100;
+    let kgPoste, potentielKg, potentielMaxKg;
+    const specifique = gainPartConcernee(act.id, ctx);
+    if (specifique) {
+      const { base, gainParPct } = specifique;
+      kgPoste = base;
+      potentielKg = gainParPct * pctAppliquee;
+      potentielMaxKg = gainParPct * 100;
     } else {
-      const pctAppliquee = act.hasPct ? (sel.pct ?? act.defaultPct) : 100;
-      potentielKg = kgPoste * act.maxReduction * (pctAppliquee / 100);
+      // Certaines actions ne concernent qu'une sous-partie d'un poste (ex.
+      // l'isolation ne réduit que la part chauffage du local) : detailKey
+      // pointe alors vers la bonne valeur dans results.detail plutôt que vers
+      // le poste complet. À défaut, on retombe sur le poste entier.
+      kgPoste = isDegres
+        ? results.detail.localChauffage || 0
+        : act.detailKey
+          ? results.detail[act.detailKey] || 0
+          : results.parPoste[act.poste] || 0;
+      if (isDegres) {
+        const degres = Math.min(sel.degres ?? act.defaultDegres, 5);
+        potentielKg = kgPoste * act.maxReductionParDegre * degres;
+        potentielMaxKg = kgPoste * act.maxReductionParDegre * 5;
+      } else {
+        potentielKg = kgPoste * act.maxReduction * (pctAppliquee / 100);
+        potentielMaxKg = kgPoste * act.maxReduction;
+      }
     }
     const score = potentielKg / COST_WEIGHT[act.cost];
     return {
@@ -300,15 +372,28 @@ export function calculerActions(results, selectedActions) {
       pct: sel.pct ?? act.defaultPct,
       degres: sel.degres ?? act.defaultDegres,
       potentielKg,
+      potentielMaxKg,
       score,
     };
   })
-    .filter((a) => a.kgPoste > 0)
+    // Seuil d'affichage (décision du porteur, 12/11/2026) : seules les
+    // actions qui apportent un gain sont proposées (gain non nul à plein
+    // déploiement).
+    .filter((a) => a.potentielMaxKg > 0)
     .sort((a, b) => b.score - a.score);
 }
 
 // Calcule la réduction totale (kgCO2e/an) représentée par les actions
 // actuellement cochées dans le plan d'action de l'utilisateur.
-export function totalReductionPlan(actionsCalculees) {
-  return actionsCalculees.filter((a) => a.checked).reduce((s, a) => s + a.potentielKg, 0);
+// Réduction totale du plan : les actions cochées qui touchent les mêmes
+// émissions ne s'additionnent pas, elles s'appliquent l'une après l'autre sur
+// ce qui reste (shared/js/plan-actions.js, décision du porteur, 12/11/2026).
+export function totalReductionPlan(actionsCalculees, results) {
+  const cochees = actionsCalculees.filter((a) => a.checked);
+  if (!results) return cochees.reduce((s, a) => s + a.potentielKg, 0);
+  return reductionPlan(
+    cochees.map((a) => ({ ...a, cle: cleAction(a) })),
+    contexteActions(results),
+    (cle) => (results.detail[cle] ?? results.parPoste[cle] ?? 0),
+  );
 }

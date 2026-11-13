@@ -733,10 +733,12 @@ export const ACTIONS = [
   // --- Déplacements professionnels ---
   {
     id: "dp1",
+    // Gain calculé sur la seule part concernée (Cab et MSP, shared/js/plan-actions.js).
+    partConcernee: "50 % des km en voiture ou deux-roues motorisé, au facteur du vélo à assistance électrique",
     poste: "deplacements_pro",
     titre: "Basculer les trajets courts (< 5 km) vers le vélo ou le vélo à assistance électrique",
     source:
-      "SOURCÉ (gain unitaire) — vélo à assistance électrique 0,011 kgCO2e/km contre voiture thermique 0,256 (Base Carbone V23.6, ids 28331 et 43791) : −96 % par km basculé. ESTIMÉ (part adressable) : plafond de 50 % du poste, signalé. Repères consultés : un tiers des actifs travaillent à 5 km ou moins, et 60 % d'entre eux y vont en voiture (Insee Première n° 1835, janvier 2021) ; les déplacements de moins de 10 km font 71 % des déplacements mais moins de 13 % des kilomètres (SDES, enquête mobilité des personnes 2019, publication du 29/08/2024). Aucune part des kilomètres sous 5 km n'est publiée : 50 % est élevé, sauf pour une activité très locale (visites à domicile).",
+      "SOURCÉ (gain unitaire) — vélo à assistance électrique 0,011 kgCO2e/km contre voiture thermique 0,256 (Base Carbone V23.6, ids 28331 et 43791) : −96 % par km basculé. ESTIMÉ (part adressable) : au plus 50 % des kilomètres du quotidien (domicile-travail, visites) faits en voiture ou en deux-roues motorisé, signalé ; le gain est calculé sur ces seuls kilomètres (aucun si l'on circule déjà à vélo, à pied ou en transports en commun). Repères consultés : un tiers des actifs travaillent à 5 km ou moins, et 60 % d'entre eux y vont en voiture (Insee Première n° 1835, janvier 2021) ; les déplacements de moins de 10 km font 71 % des déplacements mais moins de 13 % des kilomètres (SDES, enquête mobilité des personnes 2019, publication du 29/08/2024). Aucune part des kilomètres sous 5 km n'est publiée : 50 % est élevé, sauf pour une activité très locale (visites à domicile).",
     hasPct: true,
     defaultPct: 30,
     maxReduction: 0.5,
@@ -746,10 +748,12 @@ export const ACTIONS = [
   },
   {
     id: "dp2",
+    // Gain calculé sur la seule part concernée (Cab et MSP, shared/js/plan-actions.js).
+    partConcernee: "moitié des émissions des congrès faits en voiture",
     poste: "deplacements_pro",
     titre: "Covoiturer ou mutualiser les trajets vers congrès, formations et réunions professionnelles",
     source:
-      "SOURCÉ (calcul exact) — à deux par voiture, les émissions par personne d'un trajet sont divisées par deux (−50 %). ESTIMÉ (part adressable) : plafond de 25 % du poste, signalé. Repère consulté : 67 % des déplacements professionnels en voiture de longue distance se font seul au volant (SDES-CGDD, Datalab Essentiel « Se déplacer en voiture : seul, à plusieurs ou en covoiturage ? », juillet 2022) ; c'est un potentiel, pas un taux atteignable mesuré.",
+      "SOURCÉ (calcul exact) — à deux par voiture, les émissions par personne d'un trajet sont divisées par deux (−50 %). Calculé sur les seuls congrès et formations faits en voiture (aucun gain s'ils se font en train ou en avion) ; le curseur donne la part de ces trajets covoiturés. Repère consulté : 67 % des déplacements professionnels en voiture de longue distance se font seul au volant (SDES-CGDD, Datalab Essentiel « Se déplacer en voiture : seul, à plusieurs ou en covoiturage ? », juillet 2022) ; c'est un potentiel, pas un taux atteignable mesuré.",
     hasPct: true,
     defaultPct: 40,
     maxReduction: 0.25,
@@ -759,10 +763,12 @@ export const ACTIONS = [
   },
   {
     id: "dp3",
+    // Gain calculé sur la seule part concernée (Cab et MSP, shared/js/plan-actions.js).
+    partConcernee: "km en voiture thermique ou hybride, au facteur de la voiture électrique",
     poste: "deplacements_pro",
     titre: "Électrifier le véhicule professionnel lors du prochain renouvellement",
     source:
-      "SOURCÉ — avis de l'ADEME sur la voiture électrique (octobre 2022) : en France, une voiture électrique à batterie de moins de 60 kWh a sur son cycle de vie un impact carbone 2 à 3 fois inférieur à un modèle thermique similaire, soit −50 à −67 %. Borne basse retenue par prudence (avec les facteurs de l'outil, 0,103 contre 0,256 kgCO2e/km : −60 %). Recoupé : ICCT 2021, −66 à −69 % en Europe. Remplace −55 % (estimé).",
+      "SOURCÉ — avis de l'ADEME sur la voiture électrique (octobre 2022) : en France, une voiture électrique à batterie de moins de 60 kWh a sur son cycle de vie un impact carbone 2 à 3 fois inférieur à un modèle thermique similaire, soit −50 à −67 %. Gain calculé avec les facteurs de l'outil sur les seuls kilomètres faits en voiture thermique (0,256 → 0,103 kgCO2e/km : −60 %) ou hybride (0,232 → 0,103 : −56 %) ; aucun gain si l'on roule déjà en électrique. Recoupé : ICCT 2021, −66 à −69 % en Europe. Remplace −55 % (estimé).",
     hasPct: true,
     defaultPct: 50,
     maxReduction: 0.5,
@@ -772,10 +778,12 @@ export const ACTIONS = [
   },
   {
     id: "dp4",
+    // Gain calculé sur la seule part concernée (Cab et MSP, shared/js/plan-actions.js).
+    partConcernee: "37 % des émissions des congrès",
     poste: "deplacements_pro",
     titre: "Remplacer une partie des déplacements pour congrès/formations par de la visioconférence",
     source:
-      "SOURCÉ (gain unitaire) — Tao Y. et al., « Trend towards virtual and hybrid conferences may be an effective climate change mitigation strategy », Nature Communications 12, 2021 (doi:10.1038/s41467-021-27251-2) : un congrès virtuel réduit l'empreinte carbone de 94 %. ESTIMÉ (part adressable) : au plus 40 % des déplacements de congrès/formation remplaçables, soit 0,94 × 0,4 ≈ 37 % du poste, signalé. La même étude donne environ −2/3 pour un congrès hybride avec la moitié des participants à distance (lu de seconde main) : ordre de grandeur cohérent, pas une mesure de la part remplaçable.",
+      "SOURCÉ (gain unitaire) — Tao Y. et al., « Trend towards virtual and hybrid conferences may be an effective climate change mitigation strategy », Nature Communications 12, 2021 (doi:10.1038/s41467-021-27251-2) : un congrès virtuel réduit l'empreinte carbone de 94 %. ESTIMÉ (part adressable) : au plus 40 % des déplacements de congrès/formation remplaçables, soit 0,94 × 0,4 ≈ 37 % des émissions des congrès et formations (le reste du poste n'est pas concerné), signalé. La même étude donne environ −2/3 pour un congrès hybride avec la moitié des participants à distance (lu de seconde main) : ordre de grandeur cohérent, pas une mesure de la part remplaçable.",
     hasPct: true,
     defaultPct: 25,
     maxReduction: 0.37,
@@ -855,11 +863,13 @@ export const ACTIONS = [
   },
   {
     id: "lo2",
+    // Gain calculé sur la seule part concernée (Cab et MSP, shared/js/plan-actions.js).
+    partConcernee: "50 % du chauffage au gaz ou au fioul",
     poste: "local",
     detailKey: "localChauffage",
     titre: "Remplacer une chaudière gaz/fioul par une pompe à chaleur",
     source:
-      "SOURCÉ — ADEME, avis d'experts « Décarboner le chauffage : quelle place pour les pompes à chaleur ? » (2024, p. 1) : la pompe à chaleur divise par 10 les émissions de CO2 du chauffage face au gaz (−90 %) et par 15 face au fioul, avec un rendement de 2,5. Dans l'outil, le facteur de la pompe à chaleur (0,115 kgCO2e/kWh, coefficient de performance non déduit par prudence) donne −53 % face au gaz (0,243) : 50 % retenu pour que le gain affiché ne dépasse pas ce que l'outil calcule réellement. Remplace 40 % (estimé).",
+      "SOURCÉ — ADEME, avis d'experts « Décarboner le chauffage : quelle place pour les pompes à chaleur ? » (2024, p. 1) : la pompe à chaleur divise par 10 les émissions de CO2 du chauffage face au gaz (−90 %) et par 15 face au fioul, avec un rendement de 2,5. Dans l'outil, le facteur de la pompe à chaleur (0,115 kgCO2e/kWh, coefficient de performance non déduit par prudence) donne −53 % face au gaz (0,243) : 50 % retenu pour que le gain affiché ne dépasse pas ce que l'outil calcule réellement. Proposée seulement si le chauffage est au gaz ou au fioul. Remplace 40 % (estimé).",
     hasPct: false,
     defaultPct: 100,
     maxReduction: 0.5,
@@ -1117,6 +1127,87 @@ export function categorieCout(action) {
 }
 for (const a of ACTIONS) a.cost = categorieCout(a);
 
+// --- Immobilisations : fabrication des véhicules et construction du bâtiment ---
+// Communs à Lib&CO2 Cab et MSP depuis le 12/11/2026 (auparavant dans
+// msp/js/data/facteurs-emission-msp.js).
+//
+// Voitures : FE_TRANSPORT donne un facteur combiné usage + fabrication par km.
+// Les déplacements professionnels de la structure le séparent : l'usage reste
+// dans les déplacements, la fabrication passe en immobilisations (décision du
+// porteur, 12/11/2026 : « reclasser la part au km », totaux inchangés). Les
+// déplacements de la patientèle gardent le facteur combiné (véhicules des
+// patients, pas des immobilisations de la structure). Deux-roues : la Base
+// Carbone ne détaille pas la part de fabrication, tout reste en usage.
+// Les clés correspondent à celles de FE_TRANSPORT.
+export const FACTEURS_VEHICULES_USAGE_FABRICATION = {
+  // « Voiture, motorisation moyenne, 2023 », id 43791 : carburant amont 0,0532
+  // + combustion 0,161 = usage 0,2142 ; fabrication 0,041.
+  voiture_thermique: { usage: 0.2142, fabrication: 0.041, total: 0.2552 },
+  // « Voiture particulière, cœur de gamme, hybride mild essence », id 28011 :
+  // carburant 0,0408 + 0,151 = usage 0,1918 ; véhicule 0,04 (variante non
+  // rechargeable la plus émissive, règle R3, comme FE_TRANSPORT).
+  voiture_hybride: { usage: 0.1918, fabrication: 0.04, total: 0.2318 },
+  // « Voiture particulière, cœur de gamme, électrique », id 28007 : électricité
+  // 0,0198 ; véhicule 0,0836.
+  voiture_electrique: { usage: 0.0198, fabrication: 0.0836, total: 0.1034 },
+};
+
+// Bâtiment : carbone de construction par m², amorti sur 30 ans à partir de la
+// construction ou de la dernière rénovation lourde ; rien au-delà de 30 ans.
+// Durée de 30 ans : ESTIMÉ, choix éditorial (plus prudent que les 50 ans de la
+// RE2020 : une durée plus courte donne des émissions annuelles plus hautes).
+// Facteur par activité (Base Carbone V23.6, consultée le 12/11/2026 ; règle R2,
+// l'outil ne demande pas la structure du bâtiment) :
+// - santé : « Établissement de santé, structure en béton », 440 kgCO2e/m²,
+//   id 20739, Valide générique (déjà utilisé par MSP) ;
+// - juridique, conseil, architecture : « Bâtiments de bureaux », 650 kgCO2e/m²
+//   SHON, id 24302, Valide générique (expérimentation HQE Performance, 2017 ;
+//   l'élément « Immeubles de bureaux, structure béton », 469, id 20736, est
+//   archivé) ; la surface saisie est une surface utile, plus petite que la
+//   SHON : légère sous-estimation possible ;
+// - artisanat d'art : « Commerce, structure en béton », 550 kgCO2e/m², id 20734 ;
+// - autre profession libérale : valeur la plus haute des trois (règle R3), 650.
+export const FACTEURS_BATIMENT_PAR_ACTIVITE = {
+  sante: { kgCO2e_m2: 440, source: "Base Carbone V23.6, « Établissement de santé, structure en béton », id 20739" },
+  juridique: { kgCO2e_m2: 650, source: "Base Carbone V23.6, « Bâtiments de bureaux », id 24302 (par m² SHON)" },
+  conseil: { kgCO2e_m2: 650, source: "Base Carbone V23.6, « Bâtiments de bureaux », id 24302 (par m² SHON)" },
+  archi: { kgCO2e_m2: 650, source: "Base Carbone V23.6, « Bâtiments de bureaux », id 24302 (par m² SHON)" },
+  artisanat_art: { kgCO2e_m2: 550, source: "Base Carbone V23.6, « Commerce, structure en béton », id 20734" },
+  autre: { kgCO2e_m2: 650, source: "valeur la plus haute des trois éléments ci-dessus (règle R3)" },
+};
+export const DUREE_AMORTISSEMENT_BATIMENT_ANS = 30;
+// Rénovation lourde : coût des travaux ≥ 275 €/m² (réglementation des locaux
+// non résidentiels, SOURCÉ, repris de MSP) ; elle remet le compteur à zéro.
+export const SEUIL_RENOVATION_LOURDE_EUR_M2 = 275;
+// Compatibilité MSP (même valeurs que la santé).
+export const FACTEUR_BATIMENT_SANTE = {
+  kgCO2e_m2: FACTEURS_BATIMENT_PAR_ACTIVITE.sante.kgCO2e_m2,
+  dureeAmortissementAns: DUREE_AMORTISSEMENT_BATIMENT_ANS,
+  seuilRenovationLourde_eur_m2: SEUIL_RENOVATION_LOURDE_EUR_M2,
+};
+
+/**
+ * Émissions annuelles de construction du bâtiment (kgCO2e/an).
+ * @param {number} surfaceM2
+ * @param {number|null} anneeConstruction  null : inconnue, rien n'est compté.
+ * @param {{annee: number, coutTravaux: number}|null} renovationLourde
+ * @param {number} anneeActuelle
+ * @param {number} [kgParM2]  440 (santé) par défaut.
+ */
+export function emissionsBatimentAnnuelles(surfaceM2, anneeConstruction, renovationLourde, anneeActuelle, kgParM2 = FACTEUR_BATIMENT_SANTE.kgCO2e_m2) {
+  let anneeReference = anneeConstruction;
+  if (renovationLourde) {
+    const seuil = surfaceM2 * SEUIL_RENOVATION_LOURDE_EUR_M2;
+    if (renovationLourde.coutTravaux >= seuil && renovationLourde.annee > (anneeReference ?? -Infinity)) {
+      anneeReference = renovationLourde.annee;
+    }
+  }
+  if (anneeReference == null || !(anneeReference > 0)) return 0;
+  const age = anneeActuelle - anneeReference;
+  if (age > DUREE_AMORTISSEMENT_BATIMENT_ANS || age < 0) return 0;
+  return (surfaceM2 * kgParM2) / DUREE_AMORTISSEMENT_BATIMENT_ANS;
+}
+
 export const CATEGORIES_META = {
   deplacements_pro: { label: "Déplacements professionnels", icon: "deplacements", color: "#2E673E" },
   deplacements_patientele: { label: "Déplacements de la patientèle / clientèle", icon: "patientele", color: "#5C8A7A" },
@@ -1129,6 +1220,7 @@ export const CATEGORIES_META = {
   fret: { label: "Fret & livraisons", icon: "fret", color: "#0071C1" },
   medicaments: { label: "Médicaments & parapharmacie vendus", icon: "materiel", color: "#3E7A63" },
   prescriptions: { label: "Prescriptions (médicaments & actes)", icon: "materiel", color: "#946620" },
+  immobilisations: { label: "Immobilisations (bâtiment, véhicules)", icon: "local", color: "#8C4F7A" },
 };
 
 // Pondération du tri des actions par catégorie de coût (voir categorieCout).

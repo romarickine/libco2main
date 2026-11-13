@@ -42,48 +42,14 @@ export const PROFESSIONS_PRESCRIPTRICES = ["medecin_generaliste", "chirurgien_de
 // deux pour éviter un double comptage avec le nouveau poste immobilisation
 // véhicule. Les clés correspondent à celles de FE_TRANSPORT
 // (voiture_thermique / voiture_hybride / voiture_electrique).
-export const FACTEURS_VEHICULES_USAGE_FABRICATION = {
-  // « Voiture, motorisation moyenne, 2023 », id 43791 : carburant amont 0,0532
-  // + combustion 0,161 = usage 0,2142 ; fabrication 0,041.
-  voiture_thermique: { usage: 0.2142, fabrication: 0.041, total: 0.2552 },
-  // « Voiture particulière, cœur de gamme, hybride mild essence », id 28011 :
-  // carburant 0,0408 + 0,151 = usage 0,1918 ; véhicule 0,04 (variante non
-  // rechargeable la plus émissive, règle R3, comme FE_TRANSPORT).
-  voiture_hybride: { usage: 0.1918, fabrication: 0.04, total: 0.2318 },
-  // « Voiture particulière, cœur de gamme, électrique », id 28007 : électricité
-  // 0,0198 ; véhicule 0,0836.
-  voiture_electrique: { usage: 0.0198, fabrication: 0.0836, total: 0.1034 },
-};
-
-// ---------------------------------------------------------------------------
-// 2. BÂTIMENT — carbone de construction, sous-ligne du poste local/immobilisations
-// Facteur SOURCÉ (Base Carbone V23.6, id 20739, « Établissement de santé,
-// structure en béton », 440 kgCO2e/m², Valide générique, vérifié le
-// 06/10/2026). Durée d'amortissement de 30 ans : ESTIMÉ, choix éditorial —
-// plus prudent que la période de référence de 50 ans de la RE2020 (que
-// retient aussi la Banque de France pour ses bâtiments tertiaires) : une
-// durée plus courte donne des émissions annuelles plus hautes.
-export const FACTEUR_BATIMENT_SANTE = {
-  kgCO2e_m2: 440,
-  dureeAmortissementAns: 30,
-  seuilRenovationLourde_eur_m2: 275, // réglementation locaux non résidentiels, SOURCÉ
-};
-
-/**
- * Émissions annuelles du bâtiment, sous-ligne du poste local.
- */
-export function emissionsBatimentAnnuelles(surfaceM2, anneeConstruction, renovationLourde, anneeActuelle) {
-  let anneeReference = anneeConstruction;
-  if (renovationLourde) {
-    const seuil = surfaceM2 * FACTEUR_BATIMENT_SANTE.seuilRenovationLourde_eur_m2;
-    if (renovationLourde.coutTravaux >= seuil && renovationLourde.annee > anneeReference) {
-      anneeReference = renovationLourde.annee;
-    }
-  }
-  const age = anneeActuelle - anneeReference;
-  if (age > FACTEUR_BATIMENT_SANTE.dureeAmortissementAns) return 0;
-  return (surfaceM2 * FACTEUR_BATIMENT_SANTE.kgCO2e_m2) / FACTEUR_BATIMENT_SANTE.dureeAmortissementAns;
-}
+// Facteurs véhicules (usage / fabrication) et bâtiment : déplacés dans le
+// socle le 12/11/2026 (shared/js/data/facteurs-emission.js), communs avec
+// Lib&CO2 Cab. Réexportés ici pour les modules MSP.
+export {
+  FACTEURS_VEHICULES_USAGE_FABRICATION,
+  FACTEUR_BATIMENT_SANTE,
+  emissionsBatimentAnnuelles,
+} from "../../../shared/js/data/facteurs-emission.js";
 
 // ---------------------------------------------------------------------------
 // 3. IMMOBILISATIONS À DURÉE DE DÉTENTION DÉCLARÉE (remplace le forfait

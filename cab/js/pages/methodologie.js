@@ -11,10 +11,12 @@ import {
   ACTIONS,
   COST_LABELS,
   VALEUR_ACTION_CLIMAT_EUR_KG,
+  FACTEURS_VEHICULES_USAGE_FABRICATION,
+  FACTEURS_BATIMENT_PAR_ACTIVITE,
+  DUREE_AMORTISSEMENT_BATIMENT_ANS,
+  SEUIL_RENOVATION_LOURDE_EUR_M2,
 } from "../../../shared/js/data/facteurs-emission.js";
 import {
-  FACTEURS_VEHICULES_USAGE_FABRICATION,
-  FACTEUR_BATIMENT_SANTE,
   FACTEURS_MOBILIER_UNITE,
   ACTIONS_MSP_SUPPLEMENTAIRES,
 } from "../../../msp/js/data/facteurs-emission-msp.js";
@@ -107,15 +109,52 @@ html += tableau(
 for (const g of ["Alimentation", "Achats (ratios monétaires)", "Fret", "Immobilisations"]) {
   if (groupes.has(g)) html += tableau(g, groupes.get(g));
 }
+const SRC_VEHICULES = "SOURCÉ — Base Carbone® V23.6 (ADEME), mêmes éléments que les déplacements (ids 43791, 28011, 28007), décomposés en usage (carburant ou électricité, poste déplacements) et fabrication du véhicule (poste immobilisations). Deux-roues motorisé : la Base Carbone ne détaille pas la fabrication, tout reste en usage.";
+const LIB_VEHICULES = { voiture_thermique: "Voiture thermique", voiture_hybride: "Voiture hybride", voiture_electrique: "Voiture électrique" };
+html += tableau(
+  "Immobilisations — fabrication des voitures",
+  Object.entries(FACTEURS_VEHICULES_USAGE_FABRICATION).map(([cle, f]) => ({
+    label: LIB_VEHICULES[cle] || cle,
+    valeur: `${nombre(f.usage)} + ${nombre(f.fabrication)}`,
+    unite: "kgCO2e/km (usage + fabrication)",
+    source: SRC_VEHICULES,
+  })),
+);
+const LIB_ACTIVITES = {
+  sante: "Santé (Cab et MSP)",
+  juridique: "Juridique",
+  conseil: "Conseil",
+  archi: "Architecture",
+  artisanat_art: "Artisanat d'art",
+  autre: "Autre profession libérale",
+};
+html += tableau("Immobilisations — construction du bâtiment", [
+  ...Object.entries(FACTEURS_BATIMENT_PAR_ACTIVITE).map(([cle, f]) => ({
+    label: LIB_ACTIVITES[cle] || cle,
+    valeur: f.kgCO2e_m2,
+    unite: "kgCO2e/m²",
+    source: (cle === "autre" ? "SOURCÉ (partiel) — " : "SOURCÉ — ") + f.source + (["juridique", "conseil", "archi"].includes(cle) ? ". Valeur par m² SHON : la surface saisie (utile) est plus petite, légère sous-estimation possible." : "."),
+  })),
+  {
+    label: "Durée d'amortissement du bâtiment",
+    valeur: DUREE_AMORTISSEMENT_BATIMENT_ANS,
+    unite: "ans",
+    source: "ESTIMÉ (choix éditorial) — plus prudent que la période de référence de 50 ans de la RE2020 : une durée plus courte donne des émissions annuelles plus hautes. Au-delà, rien n'est compté. Locataire ou propriétaire, le bâtiment occupé est compté.",
+  },
+  {
+    label: "Seuil de rénovation lourde",
+    valeur: SEUIL_RENOVATION_LOURDE_EUR_M2,
+    unite: "€ de travaux par m²",
+    source: "SOURCÉ — seuil réglementaire des locaux non résidentiels ; une rénovation au-delà remet le compteur de 30 ans à zéro.",
+  },
+]);
 html += tableau("Déchets — traitement en fin de vie", [
   ...depuis(FE_DECHETS, () => "kgCO2e/kg"),
   { label: FE_DASRI.label, valeur: FE_DASRI.value, unite: "kgCO2e/kg", source: FE_DASRI.source },
 ]);
 document.getElementById("tables-facteurs").innerHTML = html;
 
-const SRC_VEHICULES = "SOURCÉ — Base Carbone® V23.6 (ADEME), mêmes éléments que les déplacements (ids 43791, 28011, 28007), décomposés en usage et fabrication pour éviter un double comptage avec le véhicule déclaré en immobilisation.";
 const SRC_MOBILIER = "SOURCÉ — Base Carbone® V23.6 (ADEME), éléments ids 26958 à 26965 (chaises, tables, armoire, canapés), vérifiés le 06/10/2026.";
-const LIB_VEHICULES = { voiture_thermique: "Voiture thermique", voiture_hybride: "Voiture hybride", voiture_electrique: "Voiture électrique" };
 const LIB_MOBILIER = {
   chaiseBois: "Chaise en bois",
   chaisePlastique: "Chaise en plastique",
@@ -127,29 +166,6 @@ const LIB_MOBILIER = {
   canapeCuir: "Canapé cuir",
 };
 let htmlMsp = "";
-htmlMsp += tableau(
-  "Véhicules des praticiens — usage et fabrication",
-  Object.entries(FACTEURS_VEHICULES_USAGE_FABRICATION).map(([cle, f]) => ({
-    label: LIB_VEHICULES[cle] || cle,
-    valeur: `${nombre(f.usage)} + ${nombre(f.fabrication)}`,
-    unite: "kgCO2e/km (usage + fabrication)",
-    source: SRC_VEHICULES,
-  })),
-);
-htmlMsp += tableau("Bâtiment de santé", [
-  {
-    label: "Construction (structure béton)",
-    valeur: FACTEUR_BATIMENT_SANTE.kgCO2e_m2,
-    unite: "kgCO2e/m²",
-    source: "SOURCÉ — Base Carbone® V23.6 (ADEME), « Établissement de santé, structure en béton », id 20739.",
-  },
-  {
-    label: "Durée d'amortissement du bâtiment",
-    valeur: FACTEUR_BATIMENT_SANTE.dureeAmortissementAns,
-    unite: "ans",
-    source: "ESTIMÉ (choix éditorial) — plus prudent que la période de référence de 50 ans de la RE2020 : une durée plus courte donne des émissions annuelles plus hautes.",
-  },
-]);
 htmlMsp += tableau(
   "Mobilier compté à l'unité",
   Object.entries(FACTEURS_MOBILIER_UNITE).map(([cle, v]) => ({
@@ -170,7 +186,9 @@ document.getElementById("table-actions").innerHTML = tableau(
     valeur:
       a.unit === "degres"
         ? `${nombre(Math.round(a.maxReductionParDegre * 1000) / 10)} % par °C`
-        : `${nombre(Math.round(a.maxReduction * 1000) / 10)} %`,
+        : a.partConcernee
+          ? a.partConcernee
+          : `${nombre(Math.round(a.maxReduction * 1000) / 10)} %`,
     unite: a.id.startsWith("msp") ? "MSP" : "Cab et MSP",
     source: a.source,
   })),

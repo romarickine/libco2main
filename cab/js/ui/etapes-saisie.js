@@ -37,6 +37,7 @@ export function majBadgesEtTotal(resultats) {
     localElec: det.localElec,
     localChauffage: det.localChauffage,
     localDeporte: det.localDeporte,
+    immoBatiment: det.immoBatiment,
     patientele: det.patientele,
     numOrdisFixes: det.numOrdisFixes,
     numOrdisPortables: det.numOrdisPortables,
@@ -302,6 +303,7 @@ export function renderStepLocal(el, { data, famille, zone, resultats, ctx }) {
   const l = data.local;
   const p = data.profil;
   const det = resultats.detail;
+  const anneeEnCours = new Date().getFullYear();
   el.innerHTML = `
     <div class="champ">
       <label class="libelle">Exercez-vous dans un ${famille.lieuLabel} professionnel (local dédié) ?</label>
@@ -332,6 +334,14 @@ export function renderStepLocal(el, { data, famille, zone, resultats, ctx }) {
       <div class="champ"><label class="libelle"><input type="checkbox" data-champ-case="consoChauffageConnue" ${l.consoChauffageConnue ? "checked" : ""} data-style="margin-right:8px;" />Je connais ma consommation réelle de chauffage (factures)</label>
         ${l.consoChauffageConnue ? champNombreHtml("consoChauffageKwh", l.consoChauffageKwh, { suffix: "kWh/an", ...bornesParPersonne(data, PLAFONDS.kWhParM2 * PLAFONDS.surfaceParPersonne) }) : ""}
       </div>
+      <hr class="separateur" />
+      <div class="groupe-champs-titre">Bâtiment (carbone de construction)${badgeLive(det.immoBatiment, "immoBatiment")}</div>
+      <div class="ligne-champs">
+        <div class="champ"><label class="libelle">Année de construction du bâtiment</label>${champNombreHtml("anneeConstruction", l.anneeConstruction, { max: anneeEnCours, libelle: "Année de construction du bâtiment" })}</div>
+        <div class="champ"><label class="libelle">Année de la dernière rénovation lourde (facultatif)</label>${champNombreHtml("anneeRenovation", l.anneeRenovation, { max: anneeEnCours, libelle: "Année de la dernière rénovation lourde" })}</div>
+        <div class="champ"><label class="libelle">Coût de cette rénovation (€, facultatif)</label>${champNombreHtml("coutRenovation", l.coutRenovation, { suffix: "€", max: maxPour(PLAFONDS.coutTravauxParM2, l.surface || 1), raison: "pour " + (l.surface || 0) + " m²", libelle: "Coût de la rénovation lourde" })}</div>
+      </div>
+      <p class="texte-discret" data-style="margin-top:-8px; margin-bottom:16px;">Locataire ou propriétaire, la construction du bâtiment que vous occupez est comptée : son empreinte est répartie sur 30 ans à partir de la construction ou de la dernière rénovation lourde (au moins 275 € de travaux par m²). Au-delà de 30 ans, ou si l'année n'est pas renseignée, rien n'est compté. Elle apparaît dans le poste « Immobilisations ».</p>
       <hr class="separateur" />
       <div class="champ"><label class="libelle"><input type="checkbox" data-champ-case="localDeporte" ${l.localDeporte ? "checked" : ""} data-style="margin-right:8px;" />Utilisez-vous un local déporté (ex : EHPAD, antenne secondaire) ?${badgeLive(det.localDeporte, "localDeporte")}</label>
         ${l.localDeporte ? champNombreHtml("surfaceDeportee", l.surfaceDeportee, { suffix: "m² approx.", ...bornesParPersonne(data, PLAFONDS.surfaceParPersonne) }) : ""}

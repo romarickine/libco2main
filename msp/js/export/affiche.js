@@ -107,17 +107,17 @@ async function genererCanvasAffiche(etat) {
     immobilisations: "#8FA05F",
   };
   const donneesPostesAffiche = [
-    { label: "Local", valeur: r.parPoste.local.total, couleur: PALETTE_POSTES.local },
+    { label: "Local", valeur: r.parPoste.local.emissionsEnergie, couleur: PALETTE_POSTES.local },
     { label: "Patientèle", valeur: r.parPoste.patientele.total, couleur: PALETTE_POSTES.patientele },
     {
       label: "Déplacements pro.",
-      valeur: r.parPoste.domicileTravail.usageTotal + r.parPoste.domicileTravail.fabricationVehiculeTotal,
+      valeur: r.parPoste.domicileTravail.usageTotal,
       couleur: PALETTE_POSTES.deplacements,
     },
     { label: "Alimentation", valeur: r.parPoste.alimentation.total, couleur: PALETTE_POSTES.alimentation },
     { label: "Prescriptions", valeur: r.parPoste.prescriptions.total, couleur: PALETTE_POSTES.prescriptions },
     { label: "Postes mutualisés", valeur: r.parPoste.support.total, couleur: PALETTE_POSTES.support },
-    { label: "Immobilisations", valeur: r.parPoste.immobilisations, couleur: PALETTE_POSTES.immobilisations },
+    { label: "Immobilisations", valeur: r.parPoste.immobilisationsGroupe.total, couleur: PALETTE_POSTES.immobilisations },
   ].filter((d) => d.valeur > 0);
   const totalPostesAffiche = donneesPostesAffiche.reduce((s, d) => s + d.valeur, 0) || 1;
 

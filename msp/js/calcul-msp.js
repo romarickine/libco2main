@@ -56,7 +56,11 @@ export function calculLocal(structureMSP, anneeActuelle = new Date().getFullYear
   const feChauffageLocal = feChauffage(local.energieChauffage);
   const feElec = FE_ENERGIE.electricite.value;
 
-  let emissionsEnergie = elec_kWh * feElec + chauffage_kWh * feChauffageLocal;
+  // Électricité et chauffage gardés à part : les actions du local ne portent
+  // que sur l'un ou l'autre (shared/js/plan-actions.js).
+  const emissionsElec = elec_kWh * feElec;
+  const emissionsChauffage = chauffage_kWh * feChauffageLocal;
+  let emissionsEnergie = emissionsElec + emissionsChauffage;
 
   if (local.localDeporte) {
     const s = local.localDeporte.surface;
@@ -70,7 +74,14 @@ export function calculLocal(structureMSP, anneeActuelle = new Date().getFullYear
     anneeActuelle,
   );
 
-  return { emissionsEnergie, emissionsBatiment, total: emissionsEnergie + emissionsBatiment };
+  return {
+    emissionsEnergie,
+    emissionsBatiment,
+    total: emissionsEnergie + emissionsBatiment,
+    elec: emissionsElec,
+    chauffage: emissionsChauffage,
+    energieChauffage: local.energieChauffage,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -83,6 +94,11 @@ export function calculDeplacementsPatientele(praticiens, codeCommuneMSP) {
 
   let emissionsTotales = 0;
   const detailParPraticien = [];
+  // Kilomètres par mode (plan d'action : gain sur la part concernée).
+  const parts = { quotidien: [], congres: [] };
+  const ajouterParts = (liste, kmTotal, modes) => {
+    for (const { mode, part } of modes || []) if (kmTotal > 0 && part > 0) liste.push({ km: kmTotal * (part / 100), mode });
+  };
 
   for (const p of praticiens) {
     const coeffRarete = coefficientRarete(p.professionAPL, codeCommuneMSP);
@@ -105,6 +121,11 @@ export function calculDeplacementsPatientele(praticiens, codeCommuneMSP) {
 export function calculAlimentation(praticiens) {
   let emissionsTotales = 0;
   const detailParPraticien = [];
+  // Kilomètres par mode (plan d'action : gain sur la part concernée).
+  const parts = { quotidien: [], congres: [] };
+  const ajouterParts = (liste, kmTotal, modes) => {
+    for (const { mode, part } of modes || []) if (kmTotal > 0 && part > 0) liste.push({ km: kmTotal * (part / 100), mode });
+  };
 
   for (const p of praticiens) {
     const repasAnnuels = p.alimentation.repasParSemaine * p.semainesTravailleesAn;
@@ -160,6 +181,11 @@ export function calculerRatiosParActeParProfession(praticiens, empreintesPratici
 export function calculPrescriptions(praticiens, ratiosParActeParProfession) {
   let emissionsTotales = 0;
   const detailParPraticien = [];
+  // Kilomètres par mode (plan d'action : gain sur la part concernée).
+  const parts = { quotidien: [], congres: [] };
+  const ajouterParts = (liste, kmTotal, modes) => {
+    for (const { mode, part } of modes || []) if (kmTotal > 0 && part > 0) liste.push({ km: kmTotal * (part / 100), mode });
+  };
 
   for (const p of praticiens) {
     if (!PROFESSIONS_PRESCRIPTRICES.includes(p.professionAPL)) continue;
@@ -199,6 +225,11 @@ export function calculMedicamentsPharmacie(praticiens, totalPrescriptionsMedicam
   let emissionsTotales = 0;
   let alerteNegatif = false;
   const detailParPraticien = [];
+  // Kilomètres par mode (plan d'action : gain sur la part concernée).
+  const parts = { quotidien: [], congres: [] };
+  const ajouterParts = (liste, kmTotal, modes) => {
+    for (const { mode, part } of modes || []) if (kmTotal > 0 && part > 0) liste.push({ km: kmTotal * (part / 100), mode });
+  };
 
   for (const p of praticiens) {
     if (p.professionAPL !== "pharmacien") continue;
@@ -278,12 +309,20 @@ export function calculDeplacementsDomicileTravail(praticiens, staffAdmin) {
   let usageDeplacementsProAnnuels = 0,
     fabricationDeplacementsProAnnuels = 0;
   const detailParPraticien = [];
+  // Kilomètres par mode (plan d'action : gain sur la part concernée).
+  const parts = { quotidien: [], congres: [] };
+  const ajouterParts = (liste, kmTotal, modes) => {
+    for (const { mode, part } of modes || []) if (kmTotal > 0 && part > 0) liste.push({ km: kmTotal * (part / 100), mode });
+  };
 
   for (const p of praticiens) {
     const kmAnnuelsDomicileTravail = p.distanceDomicileTravail * 2 * p.joursTravaillesSemaine * p.semainesTravailleesAn;
     const rTrajet = calculModeMixteAnnuel(kmAnnuelsDomicileTravail, p.modesDomicileTravail);
     const rTournees = calculModeMixteAnnuel(p.tourneesDomicile.kmAnnuel, p.tourneesDomicile.modes);
     const rCongres = calculModeMixteAnnuel(p.deplacementsProAnnuels.kmAnnuel, p.deplacementsProAnnuels.modes);
+    ajouterParts(parts.quotidien, kmAnnuelsDomicileTravail, p.modesDomicileTravail);
+    ajouterParts(parts.quotidien, p.tourneesDomicile.kmAnnuel, p.tourneesDomicile.modes);
+    ajouterParts(parts.congres, p.deplacementsProAnnuels.kmAnnuel, p.deplacementsProAnnuels.modes);
 
     usageDomicileTravail += rTrajet.emissionsUsage;
     fabricationDomicileTravail += rTrajet.emissionsFabricationVehicule;
@@ -317,6 +356,9 @@ export function calculDeplacementsDomicileTravail(praticiens, staffAdmin) {
   );
   const usageAdmin = rAdmin.emissionsUsage * staffAdmin.etp;
   const fabricationAdmin = rAdmin.emissionsFabricationVehicule * staffAdmin.etp;
+  if (rAdmin.kmAnnuels > 0 && staffAdmin.etp > 0) {
+    parts.quotidien.push({ km: rAdmin.kmAnnuels * staffAdmin.etp, mode: staffAdmin.modeDomicileTravailMoyen });
+  }
   usageDomicileTravail += usageAdmin;
   fabricationDomicileTravail += fabricationAdmin;
 
@@ -341,6 +383,7 @@ export function calculDeplacementsDomicileTravail(praticiens, staffAdmin) {
     usageTotal: usageDomicileTravail + usageTournees + usageDeplacementsProAnnuels,
     fabricationVehiculeTotal: fabricationDomicileTravail + fabricationTournees + fabricationDeplacementsProAnnuels,
     detailParPraticien,
+    parts,
   };
 }
 
@@ -500,6 +543,18 @@ export function calculBilanMSP(
     totalImmobilisations;
 
   const reventilationLocalArr = reventilerLocal(local.total, praticiens, staffAdmin, structureMSP.surfaceTotale);
+  // Immobilisations (12/11/2026) : la construction du bâtiment et la
+  // fabrication des véhicules sont présentées avec les immobilisations, et
+  // non plus dans le local et les déplacements. Les totaux sont inchangés.
+  // La part de bâtiment de chacun suit la même clé surface que le local
+  // (réventilation linéaire : part × bâtiment / total du local).
+  const partBatiment = local.total > 0 ? local.emissionsBatiment / local.total : 0;
+  const immobilisationsGroupe = {
+    batiment: local.emissionsBatiment,
+    vehicules: domicileTravail.fabricationVehiculeTotal,
+    diverses: totalImmobilisations,
+    total: local.emissionsBatiment + domicileTravail.fabricationVehiculeTotal + totalImmobilisations,
+  };
   const reventilationSupportArr = reventilerPostesSupport(support.total, praticiens);
   const reventilationDechetsArr = reventilerPostesSupport(dechets.total, praticiens);
 
@@ -511,12 +566,16 @@ export function calculBilanMSP(
   // (même clé de réventilation que les postes mutualisés : au prorata des
   // actes, faute d'une donnée plus fine sur qui produit quels déchets).
   const empreintesPraticiensBase = praticiens.map((p) => {
-    const partLocal = reventilationLocalArr.find((x) => x.id === p.id)?.part ?? 0;
+    const partLocalComplete = reventilationLocalArr.find((x) => x.id === p.id)?.part ?? 0;
+    const partBatimentPraticien = partLocalComplete * partBatiment;
+    const partLocal = partLocalComplete - partBatimentPraticien;
     const partPatientele = patientele.detailParPraticien.find((x) => x.id === p.id)?.emissions ?? 0;
     const detailDT = domicileTravail.detailParPraticien.find((x) => x.id === p.id);
-    const partDeplacementsPro = detailDT ? detailDT.emissionsUsage + detailDT.emissionsFabricationVehicule : 0;
+    const partDeplacementsPro = detailDT ? detailDT.emissionsUsage : 0;
+    const partFabricationVehicule = detailDT ? detailDT.emissionsFabricationVehicule : 0;
     const partAlimentation = alimentation.detailParPraticien.find((x) => x.id === p.id)?.emissions ?? 0;
-    const partImmobilisations = immobilisationsParPraticienTotal[p.id] || 0;
+    const partImmobilisations =
+      (immobilisationsParPraticienTotal[p.id] || 0) + partFabricationVehicule + partBatimentPraticien;
     const partSupport = reventilationSupportArr.find((x) => x.id === p.id)?.part ?? 0;
     const partDechets = reventilationDechetsArr.find((x) => x.id === p.id)?.part ?? 0;
     const total =
@@ -576,12 +635,13 @@ export function calculBilanMSP(
   // de part des postes mutualisés (c'est lui qui les "porte", pas l'inverse),
   // ni d'alimentation ni de prescriptions (postes saisis uniquement pour les
   // praticiens concernés à ce jour).
-  const partLocalAdmin = reventilationLocalArr.find((x) => x.id === "staffAdmin")?.part ?? 0;
+  const partLocalAdminComplete = reventilationLocalArr.find((x) => x.id === "staffAdmin")?.part ?? 0;
+  const partBatimentAdmin = partLocalAdminComplete * partBatiment;
   const empreinteStaffAdmin = {
-    partLocal: partLocalAdmin,
-    partDeplacements: domicileTravail.staffAdmin.total,
-    partImmobilisations: immobilisationsAdminTotal,
-    total: partLocalAdmin + domicileTravail.staffAdmin.total + immobilisationsAdminTotal,
+    partLocal: partLocalAdminComplete - partBatimentAdmin,
+    partDeplacements: domicileTravail.staffAdmin.usage,
+    partImmobilisations: immobilisationsAdminTotal + domicileTravail.staffAdmin.fabricationVehicule + partBatimentAdmin,
+    total: partLocalAdminComplete + domicileTravail.staffAdmin.total + immobilisationsAdminTotal,
   };
 
   // Base "sans médicaments" (ni prescriptions, ni médicaments/parapharmacie
@@ -613,6 +673,7 @@ export function calculBilanMSP(
       dechets,
       support,
       immobilisations: totalImmobilisations,
+      immobilisationsGroupe,
     },
     empreinteTotale: empreinteTotale,
     empreinteTotaleSansMedicaments: empreinteTotale,

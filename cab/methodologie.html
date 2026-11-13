@@ -57,6 +57,7 @@
     </header>
 
     <section aria-labelledby="t-principe">
+      <p>Notices méthodologiques complètes (Word) : <a href="LibCO2-Cab-Notice-methodologique.docx">Lib&amp;CO2 Cab</a>, <a href="../msp/LibCO2-MSP-Notice-methodologique.docx">Lib&amp;CO2 MSP</a>.</p>
       <h2 id="t-principe">Principe du calcul</h2>
       <p>Pour chaque poste, une donnée d'activité (kilomètres, kWh, euros dépensés, kilos de déchets, nombre d'appareils) est multipliée par un facteur d'émission, en kilogrammes d'équivalent CO2 (kgCO2e). Le périmètre suit le découpage des bilans d'émissions de gaz à effet de serre (GHG Protocol, méthode réglementaire française BEGES version 5) : émissions directes, énergie, et émissions indirectes (achats, déplacements, immobilisations, déchets). La méthode s'inspire de l'étude kinéCO2. Ce n'est pas un bilan réglementaire (BEGES) : c'est un ordre de grandeur, pour repérer les postes qui pèsent le plus.</p>
     </section>
@@ -96,7 +97,7 @@
 
     <section aria-labelledby="t-actions">
       <h2 id="t-actions">Gains des pistes d'action</h2>
-      <p>Le « gain maximal » est la part du poste concerné qui disparaît si l'action est menée à 100 %. Il combine souvent un gain unitaire sourcé (par exemple −96 % par kilomètre basculé de la voiture au vélo électrique) et une part du poste réellement concernée, qui reste une hypothèse : le texte distingue les deux.</p>
+      <p>Le gain d'une action est calculé sur la seule part des émissions qu'elle concerne (depuis le 12 novembre 2026, dans Cab comme dans MSP) : pour les déplacements, les kilomètres faits avec les modes concernés, avec les facteurs de l'outil (voiture thermique ou hybride pour l'électrification, voiture ou deux-roues motorisé pour le vélo, congrès en voiture pour le covoiturage, congrès pour la visioconférence) ; pour la pompe à chaleur, le chauffage au gaz ou au fioul ; pour les autres actions du local, la part chauffage ou la part électricité. Ailleurs, le « gain maximal » est la part du poste qui disparaît si l'action est menée à 100 % : il combine souvent un gain unitaire sourcé et une part du poste réellement concernée, qui reste une hypothèse (le texte distingue les deux). Une action sans gain n'est pas proposée, et le total d'un plan n'additionne pas les actions qui touchent les mêmes émissions : elles s'appliquent l'une après l'autre sur ce qui reste.</p>
       <div id="table-actions"></div>
     </section>
 
@@ -124,6 +125,11 @@
 
     <section aria-labelledby="t-historique">
       <h2 id="t-historique">Historique des révisions</h2>
+      <h3>12 novembre 2026 — immobilisations : bâtiment et véhicules</h3>
+      <ul>
+        <li><strong>Fabrication des voitures</strong> : dans Cab comme dans MSP, la part « fabrication du véhicule » des facteurs voiture (Base Carbone) est présentée dans un poste « Immobilisations » ; les déplacements gardent l'usage (carburant ou électricité). Le facteur par kilomètre est inchangé, le total aussi. Les gains des actions de déplacement restent calculés avec le facteur complet : une voiture évitée n'est pas fabriquée.</li>
+        <li><strong>Construction du bâtiment</strong> : Cab compte désormais le bâtiment occupé, locataire ou propriétaire, s'il a moins de 30 ans (construction ou dernière rénovation lourde), avec un facteur selon l'activité : santé 440 kgCO2e/m² (id 20739), bureaux 650 (id 24302) pour le juridique, le conseil et l'architecture, commerce 550 (id 20734) pour l'artisanat d'art, 650 sinon. Sans année de construction, rien n'est compté. Dans MSP, le bâtiment (déjà compté) passe du poste local au poste immobilisations.</li>
+      </ul>
       <h3>3 novembre 2026 — dernières valeurs estimées remplacées par des sources</h3>
       <ul>
         <li><strong>Consommation du local par m² (sans facture)</strong> : déclarations OPERAT 2024 de l'ADEME (dispositif Éco Énergie Tertiaire) par activité, partagées entre chauffage et autres usages avec les données SDES-CEREN 2019 par branche. Santé 128 + 71 → 73 + 99 kWh/m²/an ; bureaux 138 + 127 → 57 + 64 ; commerces 103 + 130 → 44 + 76 ; moyenne 120 + 86 → 55 + 75. Les anciennes valeurs dataient de 2012. Limite : OPERAT ne couvre que les bâtiments de 1 000 m² et plus.</li>

@@ -36,57 +36,86 @@ export function haversineMeters(lon1, lat1, lon2, lat2) {
 }
 
 // La BD TOPO® ne fournit pas d'identifiant de nœud de carrefour (contrairement
-// à OSM) : on identifie chaque nœud par ses coordonnées arrondies.
-// Appariement spatial par voisinage plutôt qu'un simple arrondi de
-// coordonnées : un arrondi, même à 1m, s'est révélé insuffisant en pratique
-// (9% de connexité brute observée sur un vrai réseau — 91% du réseau
-// téléchargé topologiquement inaccessible depuis l'origine). Cette approche
-// cherche, pour chaque point, un nœud existant à moins de `toleranceMeters`
-// (recherche dans les cellules voisines d'une grille, pas seulement la même
-// cellule arrondie), ce qui absorbe des écarts plus importants entre
-// tronçons censés se toucher — au prix d'un risque, si la tolérance est trop
-// grande, de fusionner à tort deux intersections réellement distinctes très
-// proches l'une de l'autre.
-function createNodeSnapper(toleranceMeters) {
-  const mPerDegLat = 111320;
-  const buckets = new Map();
-  const nodeCoords = new Map();
-  let nextId = 0;
+// à OSM) : les carrefours sont reconstitués à partir des coordonnées des
+// extrémités de tronçons (creerCarrefours, plus bas).
 
-  function cellSize(lat) {
-    const mPerDegLon = 111320 * Math.cos((lat * Math.PI) / 180);
-    return [toleranceMeters / mPerDegLon, toleranceMeters / mPerDegLat];
+/**
+ * Carrefours du graphe en deux temps (correctif du 12/11/2026) :
+ * 1. Les extrémités de tronçons aux coordonnées IDENTIQUES forment un même
+ *    carrefour : la BD TOPO® donne des coordonnées exactement communes aux
+ *    tronçons qui se rejoignent (vérifié sur un rond-point de Saint-Étienne).
+ * 2. Seules les extrémités restées isolées (qui ne touchent aucun autre
+ *    tronçon) sont raccrochées au carrefour le plus proche à moins de
+ *    `toleranceMeters` : c'est la réparation des petits trous du réseau qui
+ *    justifiait la tolérance de 12 m.
+ * Auparavant, chaque extrémité était fusionnée avec le PREMIER nœud trouvé à
+ * moins de 12 m : deux carrefours réels distincts étaient fusionnés (479 sur
+ * 3 km autour du centre de Saint-Étienne, 1 234 à Paris 1er ; relevés du
+ * 12/11/2026), ce qui cassait notamment les petits ronds-points (entrées à
+ * 8-10 m les unes des autres) et bloquait la voiture, tenue au sens unique.
+ * @param {object[]} features  Tronçons GeoJSON.
+ * @param {number} toleranceMeters
+ * @returns {{idDe: (lon: number, lat: number) => number, nodeCoords: Map<number, [number, number]>}}
+ */
+function creerCarrefours(features, toleranceMeters) {
+  const cle = (lon, lat) => lon + "," + lat;
+  const compte = new Map(); // clé exacte → nombre d'extrémités
+  const premier = new Map(); // clé exacte → [lon, lat]
+  for (const feature of features) {
+    const geom = feature.geometry;
+    if (!geom) continue;
+    const lignes =
+      geom.type === "LineString" ? [geom.coordinates] : geom.type === "MultiLineString" ? geom.coordinates : [];
+    for (const c of lignes) {
+      if (c.length < 2) continue;
+      for (const p of [c[0], c[c.length - 1]]) {
+        const k = cle(p[0], p[1]);
+        compte.set(k, (compte.get(k) || 0) + 1);
+        if (!premier.has(k)) premier.set(k, [p[0], p[1]]);
+      }
+    }
   }
-
-  return {
-    nodeCoords,
-    snap(lon, lat) {
-      const [cellW, cellH] = cellSize(lat);
-      const cx = Math.floor(lon / cellW),
-        cy = Math.floor(lat / cellH);
-      for (let dx = -1; dx <= 1; dx++) {
-        for (let dy = -1; dy <= 1; dy++) {
-          const bucket = buckets.get(cx + dx + "_" + (cy + dy));
-          if (!bucket) {
-            continue;
-          }
-          for (const cand of bucket) {
-            if (haversineMeters(lon, lat, cand.lon, cand.lat) <= toleranceMeters) {
-              return cand.id;
-            }
+  const mPerDegLat = 111320;
+  const cellule = (lon, lat) => {
+    const mPerDegLon = 111320 * Math.cos((lat * Math.PI) / 180);
+    return [Math.floor(lon / (toleranceMeters / mPerDegLon)), Math.floor(lat / (toleranceMeters / mPerDegLat))];
+  };
+  const grille = new Map();
+  const nodeCoords = new Map();
+  const idParCle = new Map();
+  let nextId = 0;
+  const creer = (k, [lon, lat]) => {
+    const id = nextId++;
+    nodeCoords.set(id, [lon, lat]);
+    idParCle.set(k, id);
+    const [cx, cy] = cellule(lon, lat);
+    const g = cx + "_" + cy;
+    if (!grille.has(g)) grille.set(g, []);
+    grille.get(g).push({ id, lon, lat });
+  };
+  // 1. Carrefours exacts (au moins deux extrémités au même point).
+  for (const [k, n] of compte) if (n >= 2) creer(k, premier.get(k));
+  // 2. Extrémités isolées : carrefour le plus proche à moins de la tolérance,
+  // sinon nouveau nœud (lui-même candidat pour les suivantes).
+  for (const [k, n] of compte) {
+    if (n >= 2) continue;
+    const [lon, lat] = premier.get(k);
+    const [cx, cy] = cellule(lon, lat);
+    let meilleur = null,
+      dMin = Infinity;
+    for (let dx = -1; dx <= 1; dx++)
+      for (let dy = -1; dy <= 1; dy++)
+        for (const cand of grille.get(cx + dx + "_" + (cy + dy)) || []) {
+          const d = haversineMeters(lon, lat, cand.lon, cand.lat);
+          if (d <= toleranceMeters && d < dMin) {
+            dMin = d;
+            meilleur = cand.id;
           }
         }
-      }
-      const id = nextId++;
-      const key = cx + "_" + cy;
-      if (!buckets.has(key)) {
-        buckets.set(key, []);
-      }
-      buckets.get(key).push({ id, lon, lat });
-      nodeCoords.set(id, [lon, lat]);
-      return id;
-    },
-  };
+    if (meilleur != null) idParCle.set(k, meilleur);
+    else creer(k, [lon, lat]);
+  }
+  return { idDe: (lon, lat) => idParCle.get(cle(lon, lat)), nodeCoords };
 }
 
 /**
@@ -99,7 +128,7 @@ function createNodeSnapper(toleranceMeters) {
  *   nodeElev : altitude (m) des nœuds dont le sommet porte un Z valide (géométrie 3D BD TOPO®).
  */
 export function parseIGNRoadsToGraph(featureCollection, nodeSnapTolerance) {
-  const snapper = createNodeSnapper(nodeSnapTolerance);
+  const snapper = creerCarrefours(featureCollection.features || [], nodeSnapTolerance);
   const edges = [];
   // Altitude par nœud, lue dans la 3e coordonnée des sommets (la BD TOPO®
   // livre des géométries 3D). Valeurs hors de la plage plausible (la BD TOPO®
@@ -160,8 +189,8 @@ export function parseIGNRoadsToGraph(featureCollection, nodeSnapTolerance) {
       // aucune intersection réelle peut accumuler des dizaines de pénalités
       // de carrefour totalement artificielles.
       const nodeIds = new Array(n);
-      nodeIds[0] = snapper.snap(coords[0][0], coords[0][1]);
-      nodeIds[n - 1] = snapper.snap(coords[n - 1][0], coords[n - 1][1]);
+      nodeIds[0] = snapper.idDe(coords[0][0], coords[0][1]);
+      nodeIds[n - 1] = snapper.idDe(coords[n - 1][0], coords[n - 1][1]);
       for (let i = 1; i < n - 1; i++) {
         const id = privateNodeCounter--;
         snapper.nodeCoords.set(id, [coords[i][0], coords[i][1]]);

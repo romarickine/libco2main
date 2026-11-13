@@ -54,6 +54,10 @@ export function etatInitial() {
       consoChauffageKwh: 0,
       localDeporte: false,
       surfaceDeportee: 15,
+      // Bâtiment (12/11/2026) : 0 = non renseigné, aucune émission comptée.
+      anneeConstruction: 0,
+      anneeRenovation: 0,
+      coutRenovation: 0,
     },
     numerique: { nbOrdisFixes: 0, nbOrdisPortables: 1, nbEcransSuppl: 1, usage: "moyen" },
     materiel: {},

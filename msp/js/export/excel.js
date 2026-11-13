@@ -85,7 +85,7 @@ export function exporterExcel(etat) {
   );
   lignesPostes.push(
     ligneExcel([
-      celluleTexte("Local"),
+      celluleTexte("Immobilisations"),
       celluleTexte("Bâtiment (construction)"),
       celluleNombre(r.parPoste.local.emissionsBatiment),
     ]),
@@ -102,8 +102,8 @@ export function exporterExcel(etat) {
   );
   lignesPostes.push(
     ligneExcel([
-      celluleTexte("Déplacements professionnels"),
-      celluleTexte("Domicile-travail — fabrication véhicule"),
+      celluleTexte("Immobilisations"),
+      celluleTexte("Véhicules : fabrication (domicile-travail)"),
       celluleNombre(r.parPoste.domicileTravail.domicileTravail.fabricationVehicule),
     ]),
   );
@@ -116,8 +116,8 @@ export function exporterExcel(etat) {
   );
   lignesPostes.push(
     ligneExcel([
-      celluleTexte("Déplacements professionnels"),
-      celluleTexte("Tournées à domicile — fabrication véhicule"),
+      celluleTexte("Immobilisations"),
+      celluleTexte("Véhicules : fabrication (tournées à domicile)"),
       celluleNombre(r.parPoste.domicileTravail.tournees.fabricationVehicule),
     ]),
   );
@@ -130,8 +130,8 @@ export function exporterExcel(etat) {
   );
   lignesPostes.push(
     ligneExcel([
-      celluleTexte("Déplacements professionnels"),
-      celluleTexte("Congrès/formations — fabrication véhicule"),
+      celluleTexte("Immobilisations"),
+      celluleTexte("Véhicules : fabrication (congrès/formations)"),
       celluleNombre(r.parPoste.domicileTravail.deplacementsProAnnuels.fabricationVehicule),
     ]),
   );
