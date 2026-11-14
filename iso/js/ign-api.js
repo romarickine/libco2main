@@ -132,7 +132,14 @@ async function fetchWithRetry(url, options, maxAttempts = 5, service = "alti") {
       if (!res.ok) {
         throw new Error("HTTP " + res.status);
       }
-      return await res.json();
+      try {
+        return await res.json();
+      } catch (e) {
+        // Réponse 200 non JSON (incident du service, voir fetchIGNRoadsPage) :
+        // l'essai suivant contourne le cache HTTP du navigateur.
+        options = { ...options, cache: "reload" };
+        throw e;
+      }
     } catch (e) {
       if (e.definitif) throw e;
       lastError = e;
@@ -195,12 +202,15 @@ async function fetchIGNRoadsPage(bbox, pageSize, startIndex, maxAttempts = 6) {
     return garde;
   }
   let lastError;
+  // Options de la requête : après une réponse non JSON, on contourne le cache
+  // HTTP du navigateur (voir plus bas).
+  let optionsRequete = {};
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     await attendrePause("wfs");
     await wfsRateLimiter.wait();
     let res;
     try {
-      res = await fetchWithTimeout(url, {}, 25000);
+      res = await fetchWithTimeout(url, optionsRequete, 25000);
     } catch (e) {
       lastError = new Error(
         "Échec réseau vers le WFS IGN (" + (e.name === "AbortError" ? "délai dépassé" : e.message) + "). URL : " + url,
@@ -242,12 +252,23 @@ async function fetchIGNRoadsPage(bbox, pageSize, startIndex, maxAttempts = 6) {
     try {
       json = JSON.parse(rawText);
     } catch (e) {
-      throw new Error(
-        "Réponse WFS IGN non JSON (probablement une erreur XML du service). URL : " +
+      // Réponse HTTP 200 qui n'est pas du JSON : incident du service. Le
+      // 14/11/2026, environ une ville sur trois a reçu les métriques internes
+      // du serveur (« # HELP jmx_exporter… ») à la place des tronçons, et le
+      // navigateur les avait gardées dans son cache HTTP : la même adresse
+      // renvoyait ensuite toujours ces métriques, alors que le serveur
+      // répondait de nouveau correctement. On réessaie donc en forçant une
+      // nouvelle demande au serveur (cache « reload », qui remplace aussi
+      // l'entrée fautive du cache), avec une attente croissante.
+      optionsRequete = { cache: "reload" };
+      lastError = new Error(
+        "Réponse WFS IGN non JSON (incident passager du service). URL : " +
           url +
           " — début de la réponse : " +
-          rawText.slice(0, 500),
+          rawText.slice(0, 300),
       );
+      await new Promise((r) => setTimeout(r, attenteGigue(800, attempt)));
+      continue;
     }
     if (json.exceptionText || json.exceptionReport || json.code) {
       throw new Error("Le WFS IGN a renvoyé une exception : " + JSON.stringify(json).slice(0, 500) + ". URL : " + url);

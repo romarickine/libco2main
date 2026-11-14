@@ -74,13 +74,18 @@ export const RADIUS_TIER_DENSE_M = 11500;
 export const RADIUS_TIER_INTERMEDIATE_MIN_JUNCTIONS = 30;
 export const RADIUS_TIER_INTERMEDIATE_M = 8000;
 export const RADIUS_TIER_SPARSE_M = 6000;
-// Très dense (≥ 300 carrefours) : 15 km d'emblée (Lyon Croix-Rousse, 312 :
-// résultat identique à 15 et 17 km le 09/11/2026).
-export const RADIUS_TIER_VERY_DENSE_M = 15000;
+// Très dense (≥ 300 carrefours) : 11,5 km d'emblée. 15 km jusqu'au
+// 14/11/2026 ; depuis la baisse des vitesses vélo et VAE et la pénalité de
+// cyclabilité, les zones des centres très denses mesurés (Paris, Lyon)
+// s'arrêtent à 8,5 km au plus (rayons-communes.js), sous le seuil de relance
+// de 11,5 km (10,35 km).
+export const RADIUS_TIER_VERY_DENSE_M = 11500;
 // Rayon maximal, réservé aux cas où la zone touche encore le bord à 15 km
 // (Paris 1er, 311 carrefours : zone VAE en aller-retour différente à 15 km,
 // identique à 17 et 19 km ; relevés du 09/11/2026). Choix du porteur : grande
-// zone utilisée exceptionnellement.
+// zone utilisée exceptionnellement. Remesure du 14/11/2026 (nouvelles
+// vitesses) : aucune des 44 villes ou arrondissements mesurés ne dépasse
+// 11 km ; ce rayon reste un filet de sécurité.
 export const NETWORK_RADIUS_MAX_M = 17000;
 // Relances successives quand une zone touche le bord : rayon suivant de cette
 // liste (le téléchargement ne demande que l'anneau manquant), plutôt qu'un
