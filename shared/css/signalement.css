@@ -1,0 +1,203 @@
+/* SPDX-License-Identifier: EUPL-1.2 */
+/* Copyright (c) 2026 Lib&CO2 SASU — La carte du sans-voiture, licence EUPL 1.2 (voir iso/LICENCE.md). */
+/**
+ * signalement.css — bouton « Signaler un bug / suggestion » et sa fenêtre
+ * (shared/js/signalement.js). Cadres homogènes, même bordure fine sur les
+ * quatre côtés ; l'option choisie change seulement de couleur.
+ */
+
+/* Ordinateur : petite étiquette grise « Un souci ? Une idée ? » ;
+   téléphone (≤ 600 px) : rond de 36 px « ?! » (décision du porteur, 14/11/2026). */
+.sig-bouton {
+  position: fixed;
+  right: 16px;
+  bottom: 12px;
+  z-index: 1500;
+  font: 500 12px/1.2 var(--lc-police-texte, system-ui, sans-serif);
+  color: var(--lc-discret, #5b6a60);
+  background: var(--lc-carte, #fff);
+  border: 1px solid var(--lc-bordure-legere, #d9ddd6);
+  border-radius: var(--lc-rayon-bouton, 999px);
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.sig-bouton:hover,
+.sig-bouton:focus-visible {
+  color: var(--lc-encre, #1d2b22);
+  border-color: var(--lc-vert-fonce, #1f4a2c);
+  background: var(--lc-vert-fond, #eef5ef);
+}
+.sig-court {
+  display: none;
+}
+@media (max-width: 600px) {
+  .sig-bouton {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--lc-encre, #1d2b22);
+    border-color: var(--lc-vert-fonce, #1f4a2c);
+  }
+  .sig-long {
+    display: none;
+  }
+  .sig-court {
+    display: inline;
+  }
+}
+.sig-bouton:focus-visible,
+.sig-dialogue button:focus-visible,
+.sig-dialogue textarea:focus-visible,
+.sig-dialogue input:focus-visible,
+.sig-dialogue summary:focus-visible {
+  outline: 2px solid var(--lc-vert-fonce, #1f4a2c);
+  outline-offset: 2px;
+}
+
+/* Carte du sans-voiture : le bouton remonte au-dessus de l'attribution des
+   fonds IGN, en bas à droite de la carte. */
+.sig-carte .sig-bouton {
+  bottom: 32px;
+}
+
+@media print {
+  .sig-bouton,
+  .sig-dialogue {
+    display: none !important;
+  }
+}
+
+.sig-dialogue {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  border: 1px solid var(--lc-vert-fonce, #1f4a2c);
+  border-radius: var(--lc-rayon-carte, 8px);
+  background: var(--lc-carte, #fff);
+  color: var(--lc-texte, #2b3a30);
+  font: 400 15px/1.45 var(--lc-police-texte, system-ui, sans-serif);
+}
+.sig-dialogue::backdrop {
+  background: rgba(20, 30, 24, 0.45);
+}
+.sig-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+}
+.sig-entete {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sig-entete h2 {
+  margin: 0;
+  font: var(--lc-titres-graisse, 700) 18px/1.25 var(--lc-police-titres, inherit);
+  color: var(--lc-encre, #1d2b22);
+}
+.sig-fermer {
+  border: 0;
+  background: none;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--lc-discret, #5b6a60);
+  padding: 0 4px;
+}
+.sig-types {
+  display: flex;
+  gap: 8px;
+}
+.sig-type {
+  flex: 1;
+  font: inherit;
+  padding: 8px 12px;
+  border: 1px solid var(--lc-vert-fonce, #1f4a2c);
+  border-radius: var(--lc-rayon-bouton, 6px);
+  background: var(--lc-carte, #fff);
+  color: var(--lc-encre, #1d2b22);
+  cursor: pointer;
+}
+.sig-type.sig-type-actif {
+  background: var(--lc-vert-fonce, #1f4a2c);
+  color: #fff;
+}
+.sig-libelle {
+  font-weight: 600;
+  color: var(--lc-encre, #1d2b22);
+}
+.sig-dialogue textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--lc-vert-fonce, #1f4a2c);
+  border-radius: 8px;
+  resize: vertical;
+}
+.sig-case {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.sig-case input {
+  margin-top: 4px;
+  accent-color: var(--lc-vert-fonce, #1f4a2c);
+}
+.sig-details summary {
+  cursor: pointer;
+  color: var(--lc-discret, #5b6a60);
+  font-size: 14px;
+}
+.sig-apercu {
+  margin: 8px 0 0;
+  padding: 10px;
+  max-height: 180px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: 12px/1.4 var(--lc-police-mono, ui-monospace, monospace);
+  background: var(--lc-fond, #f7f5f0);
+  border: 1px solid var(--lc-bordure-legere, #d9ddd6);
+  border-radius: 8px;
+}
+.sig-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sig-principal,
+.sig-secondaire {
+  font: 600 15px/1.2 var(--lc-police-texte, system-ui, sans-serif);
+  padding: 10px 16px;
+  border-radius: var(--lc-rayon-bouton, 6px);
+  border: 1px solid var(--lc-vert-fonce, #1f4a2c);
+  cursor: pointer;
+}
+.sig-principal {
+  background: var(--lc-vert-fonce, #1f4a2c);
+  color: #fff;
+}
+.sig-secondaire {
+  background: var(--lc-carte, #fff);
+  color: var(--lc-encre, #1d2b22);
+}
+.sig-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--lc-discret, #5b6a60);
+}
+.sig-etat {
+  margin: 0;
+  font-size: 14px;
+  color: var(--lc-encre, #1d2b22);
+}
+.sig-etat:empty {
+  display: none;
+}

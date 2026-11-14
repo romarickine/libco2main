@@ -8,11 +8,30 @@
 // En premier : rend possibles les styles calculés sous CSP stricte (voir ce fichier).
 import "../../shared/js/styles-dynamiques.js";
 import { initUI } from "./ui.js";
+import { installerSignalement } from "../../shared/js/signalement.js";
 
 // La bibliothèque de carte Leaflet est chargée par index.html depuis le site
 // (shared/vendor/leaflet/, avec contrôle d'intégrité ; variable globale L).
 // Si ce chargement échoue (fichier manquant, réseau coupé), on l'explique à l'utilisateur plutôt que de laisser une
 // page vide et une erreur visible seulement dans la console.
+// Bouton « Signaler un bug / suggestion » (e-mail pré-rempli, 14/11/2026),
+// au-dessus de l'attribution des fonds de carte. Installé avant le reste :
+// il sert aussi quand la carte ne se charge pas.
+document.body.classList.add("sig-carte");
+const valeur = (id) => document.getElementById(id)?.value ?? "";
+installerSignalement({
+  outil: "La carte du sans-voiture",
+  ecran: () => "Carte",
+  saisies: () => ({
+    adresse: valeur("address"),
+    latitude: valeur("lat"),
+    longitude: valeur("lon"),
+    sens: valeur("direction"),
+    reglagesPage: location.search,
+  }),
+  libelleSaisies: "Joindre l'adresse et les réglages utilisés (utile pour reproduire un bug)",
+});
+
 if (typeof window.L === "undefined") {
   const zone = document.getElementById("map");
   if (zone) {

@@ -30,6 +30,8 @@ import {
   chargerDonneesCalcul,
 } from "./etat-msp.js";
 import { echapperHtml } from "../../shared/js/echappement.js";
+import { installerSignalement } from "../../shared/js/signalement.js";
+import { ETAPES as ETAPES_MSP } from "./ui/commun.js";
 // Réexportée pour ui-msp.js, qui l'importe depuis ce module.
 export { calculerSurfaceDeclaree } from "./etat-msp.js";
 
@@ -43,6 +45,15 @@ const etat = migrerEtat(chargerBrouillon()?.data ?? etatInitial());
 export function getEtat() {
   return etat;
 }
+
+// Bouton « Signaler un bug / suggestion » (e-mail pré-rempli, 14/11/2026).
+installerSignalement({
+  outil: "Lib&CO2 MSP",
+  ecran: () => (etat.ecranActuel >= 1 ? `Étape ${etat.ecranActuel} (${ETAPES_MSP[etat.ecranActuel - 1] || "?"})` : "Accueil"),
+  saisies: () => etat,
+  defauts: etatInitial,
+  libelleSaisies: "Joindre mes saisies (utile pour reproduire un bug ; elles peuvent contenir les noms saisis pour la structure et les praticiens)",
+});
 
 /**
  * Modifie une valeur de l'état, la sauvegarde en brouillon et redemande

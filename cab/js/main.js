@@ -17,6 +17,7 @@ import { calculerBilan, calculerActions, totalReductionPlan } from "./calcul.js"
 import { lireBrouillon, sauvegarderBrouillon, supprimerBrouillon, enregistrerBilan, listerBilans } from "./stockage.js";
 import * as ui from "./ui.js";
 import { etatInitial, fusionnerAvecDefauts } from "./etat-initial.js";
+import { installerSignalement } from "../../shared/js/signalement.js";
 
 const ETAPES = ["profil", "deplacements", "local", "numerique", "materiel", "dechets", "alimentation", "services"];
 
@@ -50,6 +51,19 @@ function resultatsCourants() {
 }
 
 const racine = document.getElementById("app");
+
+// Bouton « Signaler un bug / suggestion » (e-mail pré-rempli, 14/11/2026).
+const LIBELLES_ECRANS = { intro: "Accueil", resultats: "Résultats et plan d'action", historique: "Historique" };
+installerSignalement({
+  outil: "Lib&CO2 Cab",
+  ecran: () =>
+    etat.ecran === "wizard"
+      ? `Questionnaire, étape ${etat.etapeIndex + 1} (${ETAPES[etat.etapeIndex]})`
+      : LIBELLES_ECRANS[etat.ecran] || etat.ecran,
+  saisies: () => etat.data,
+  defauts: etatInitial,
+  libelleSaisies: "Joindre mes saisies (utile pour reproduire un bug ; le nom du cabinet n'est pas joint)",
+});
 
 // --- Boucle de rendu : redessine l'écran courant. Préserve le focus (et la
 // position du curseur) du champ actif pour ne pas gêner la saisie lorsqu'un
