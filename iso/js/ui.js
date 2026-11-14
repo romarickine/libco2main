@@ -262,6 +262,7 @@ export function initUI() {
     }
 
     const direction = document.getElementById("direction")?.value || "aller-retour";
+    const moment = document.getElementById("moment")?.value || "pointe";
     btn.disabled = true;
     statusEl.className = "";
     statusEl.textContent = "Démarrage…";
@@ -280,6 +281,7 @@ export function initUI() {
           lon,
           lat,
           direction,
+          moment,
           ilots: reglagesIlotsDepuisUrl(),
           onEtat: ({ message, fraction }) => {
             statusEl.textContent = message;
@@ -298,6 +300,7 @@ export function initUI() {
         rawFeatureCount,
         urbanContext,
         delayCarApplied,
+        facteurCongestion,
         parkingLisiere,
         diagnostics,
       } = computation;
@@ -318,7 +321,10 @@ export function initUI() {
         URBAN_CLASSIFICATION_RADIUS_M +
         " m, délai voiture appliqué : " +
         delayCarApplied +
-        " min)" +
+        " min ; temps voiture × " +
+        String(facteurCongestion ?? 1).replace(".", ",") +
+        (facteurCongestion > 1 ? (moment === "pointe" ? ", heure de pointe" : ", moyenne de la journée") : ", hors ville : pas de congestion") +
+        ")" +
         (parkingLisiere
           ? " — adresse hors réseau voiture : voiture garée à " +
             parkingLisiere.distanceMeters +

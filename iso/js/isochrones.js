@@ -38,7 +38,7 @@ import {
 import { filtrerIlots, trousACombler, NATURES_DEGRADEES } from "./ilots.js";
 import { HexGrid, ClesParTroncon, traceOuterBoundaries, buildPolygonsWithHoles, smoothPolygonsWithHoles } from "./hexgrid.js";
 import { fetchIGNRoads, etendreIGNRoads, fetchElevations } from "./ign-api.js";
-import { DELAY_BIKE_MIN, DELAY_CAR_MIN_URBAN, DELAY_CAR_MIN_RURAL, ILOTS } from "./config.js";
+import { DELAY_BIKE_MIN, DELAY_CAR_MIN_URBAN, DELAY_CAR_MIN_RURAL, ILOTS, COEF_TEMPS_VOITURE_URBAIN, MOMENT_PAR_DEFAUT } from "./config.js";
 
 // Rend la main au navigateur le temps d'une image, pour qu'il ait l'occasion
 // de repeindre l'écran (barre de progression, pourcentage) avant de reprendre
@@ -270,6 +270,7 @@ export async function computeIsochronesNetwork(opts) {
     reseauPrecedent = null,
     garderReseau = false,
     ilots = undefined,
+    moment = MOMENT_PAR_DEFAUT,
     onProgress,
   } = opts;
   const bufferRadiusMeters = 40;
@@ -327,7 +328,9 @@ export async function computeIsochronesNetwork(opts) {
   await yieldToBrowser();
   const maxCarCutoff = Math.max(...modeDefs.map((m) => m.maxTime + m.carPenalty));
   const urbain = urbanContext.isUrban;
-  const carCSR = adjacenceCSR(prep, "car", { urbain, details: true });
+  // Congestion voiture en ville (COEF_TEMPS_VOITURE_URBAIN, config.js).
+  const facteurCongestion = urbain ? COEF_TEMPS_VOITURE_URBAIN[moment] ?? 1 : 1;
+  const carCSR = adjacenceCSR(prep, "car", { urbain, details: true, facteurTemps: facteurCongestion });
   const rc = tempsSelonDirectionCSR(carCSR, origineIdx, maxCarCutoff, direction, true);
   let carTimes = versMap(ids, rc.ordre, rc.temps);
   let carDistances = new ValeursParNoeud(ids, indexNoeud, rc.ordre, rc.temps, rc.distance);
@@ -625,6 +628,8 @@ export async function computeIsochronesNetwork(opts) {
     rawFeatureCount: reseau.rawFeatureCount,
     urbanContext,
     delayCarApplied: delayCar,
+    moment,
+    facteurCongestion,
     parkingLisiere,
     direction,
     // Conservé pour l'outil de diagnostic (inspection d'un point) : permet de

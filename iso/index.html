@@ -77,7 +77,7 @@
     <p>Fonction de randonnée de <strong>Tobler (1993)</strong> : <code>W = 6 × exp(−3.5 × |pente + 0.05|)</code> km/h — référence quasi universelle (ArcGIS, GRASS GIS), qui donne la vitesse maximale (6 km/h) en légère descente plutôt qu'à plat, et ralentit fortement au-delà d'une pente soutenue.</p>
 
     <h3>Vitesse de vélo et VAE</h3>
-    <p>À plat, <strong>vitesses moyennes de roulage</strong> mesurées par l'étude naturaliste allemande de Schleinitz et al. (2017, 85 participants suivis au quotidien, arrêts exclus) : <strong>15,3 km/h</strong> en vélo classique et <strong>17,4 km/h</strong> en VAE. Jusqu'au 12/11/2026, la carte utilisait 21,6 km/h (Parkin &amp; Rotheram, 2010) : à la relecture du texte intégral, il s'agit de la vitesse atteinte en fin d'accélération par 16 cyclistes expérimentés de Leeds, que les auteurs proposent comme vitesse de conception des aménagements, et non d'une vitesse moyenne.</p>
+    <p>À plat, <strong>vitesses moyennes de roulage</strong> mesurées par l'étude naturaliste allemande de Schleinitz et al. (2017, 85 participants suivis au quotidien, arrêts exclus) : <strong>15,3 km/h</strong> en vélo classique et <strong>17,4 km/h</strong> en VAE. Ce sont des moyennes en conditions réelles. Les 21,6 km/h souvent cités d'après Parkin &amp; Rotheram (2010) ne sont pas utilisés : c'est la vitesse atteinte en fin d'accélération par 16 cyclistes expérimentés de Leeds, proposée comme vitesse de conception des aménagements, et non une vitesse moyenne.</p>
     <p>En montée, un modèle <strong>physique</strong> (résistance au roulement + traînée aérodynamique + gravité, résolu numériquement), avec une puissance qui augmente avec la pente jusqu'à un plafond. Sa forme a été calibrée sur une montée réelle à Saint-Étienne (~3,5 km, 150 m de dénivelé, ~10,5 km/h à effort soutenu sur ~4,3 % pour un cycliste entraîné), puis toute la courbe (montée, plat, descente) est ramenée en proportion des vitesses moyennes ci-dessus :</p>
     <table>
       <tr><th>Pente</th><th>Vélo classique</th><th>VAE</th></tr>
@@ -94,6 +94,12 @@
 
     <h3>Vitesse de voiture</h3>
     <p>Vitesse moyenne du tronçon calculée par l'IGN (<code>vitesse_moyenne_vl</code>, BD TOPO®) quand elle est disponible. Une vitesse de 0 signifie, d'après la documentation de l'IGN, un tronçon fermé à la circulation ordinaire (accès réservé aux ayants droit, voie privée, barrière, plot amovible, piste cyclable, voie verte, hors service) : il est interdit à la voiture et reste ouvert à la marche et au vélo. Si l'attribut manque, sinon une table de repli par type de voie (voie autoroutière 110 km/h, route à 2 chaussées 90, route à 1 chaussée 70, voie empierrée 30, chemin 10, bretelle 50, rond-point 30, défaut 50 km/h).</p>
+    <p><strong>Congestion en ville</strong>. Cette vitesse de l'IGN est une vitesse de circulation fluide estimée, sans trafic ni feux ; l'IGN indique lui-même qu'elle est en général trop rapide (feuille de route « navigabilité », 2022). En zone urbaine, le temps voiture de chaque tronçon, pénalité de carrefour comprise, est donc multiplié selon le <strong>moment du trajet</strong> choisi :</p>
+    <ul>
+      <li><strong>Heure de pointe : × 1,8</strong> (choix par défaut). À Paris, la vitesse mesurée sur les axes équipés de capteurs est de 10,4 km/h en moyenne de 7 h à 21 h (Ville de Paris, bilan 2024), contre 22 à 30 km/h pour les mêmes catégories d'axes dans la BD TOPO® ; en pointe, le temps de trajet y approche le double du temps en trafic fluide (Nair et al., <em>PLOS ONE</em>, 2019, données Google sur 29 villes). À Montréal, la vitesse voiture de pointe est à 70-72 % de celle de nuit (Saunier et Chabin, <em>Findings</em>, 2020, traces GPS), soit un facteur 1,4, borne basse. Valeur estimée entre ces bornes : aucune étude française revue par des pairs ne donne directement ce coefficient.</li>
+      <li><strong>Moyenne de la journée : × 1,4</strong>. Temps de trajet supplémentaire par rapport au trafic fluide de 31 à 47 % selon l'agglomération française (TomTom Traffic Index 2025 : Toulon 31 %, Marseille 39 %, Paris 40 %, Montpellier 41 %, Bordeaux 43,5 %, Lyon 47 %) ; ordre de grandeur cohérent avec la littérature : un calcul longueur ÷ vitesse sous-estime le temps de trajet de 15 à 25 % même sans trafic (Adepitan et al., <em>Transportation Research Procedia</em>, 2026), et l'accessibilité en voiture à Paris sur la journée est à 87 % de celle en trafic fluide (Moya-Gómez et García-Palomares, <em>Journal of Transport Geography</em>, 2017).</li>
+      <li><strong>Hors ville : aucun coefficient</strong> (l'arrêt-démarrage représente 7 % du temps de conduite sur route, contre 36 % en ville : André, 2020, cité par A. Bigo, thèse, 2020).</li>
+    </ul>
 
     <h3>Pénalités et frictions</h3>
     <ul>
@@ -116,7 +122,7 @@
     <p>Pour limiter la taille du calcul, la recherche des plus courts chemins s'arrête à <strong>20 minutes à pied, 40 minutes à vélo et 60 minutes en vélo électrique</strong>. Ce n'est pas une définition des zones : une zone reste l'endroit où le mode arrive avant la voiture. Ce plafond repose sur l'hypothèse, posée par le porteur du projet, que chaque mode perd toujours contre la voiture avant d'atteindre sa limite (la marche avant 20 min, le vélo avant 40 min, le VAE avant 60 min), de sorte qu'il ne coupe aucune zone. Cette hypothèse n'a pas été vérifiée sur des données réelles : si elle était fausse dans un cas particulier, la zone serait coupée à la limite. Ce cas est signalé par le diagnostic « hors budget-temps ».</p>
 
     <h3>Fusion des nœuds</h3>
-    <p>Deux tronçons censés se toucher au même carrefour peuvent avoir des coordonnées légèrement différentes dans les données : les extrémités aux coordonnées identiques forment un même carrefour ; seules les extrémités restées isolées sont raccrochées au carrefour le plus proche à moins de 12 m, pour éviter un réseau artificiellement fragmenté sans fusionner deux carrefours réels voisins (correctif du 12/11/2026 : l'ancienne fusion à 12 m réunissait à tort environ 10 % des carrefours, dont les entrées des petits ronds-points, ce qui bloquait la voiture).</p>
+    <p>Deux tronçons censés se toucher au même carrefour peuvent avoir des coordonnées légèrement différentes dans les données : les extrémités aux coordonnées identiques forment un même carrefour ; seules les extrémités restées isolées sont raccrochées au carrefour le plus proche à moins de 12 m, pour éviter un réseau artificiellement fragmenté. Appliquée à toutes les extrémités, cette tolérance réunirait à tort des carrefours voisins (environ 10 % des carrefours en ville, dont les entrées des petits ronds-points), ce qui bloquerait la voiture.</p>
 
     <h3>Îlots et trous</h3>
     <p>Un mode peut battre la voiture à un endroit sans y arriver par une suite continue de rues où il gagne déjà (par exemple en bas d'une longue descente à vélo électrique, alors que la voiture reprend l'avantage sur la pente elle-même). La carte distingue la <strong>zone principale</strong>, reliée à l'adresse par des rues où le mode gagne de proche en proche, et les <strong>îlots</strong> : tout le reste des secteurs gagnants, même quand ils touchent la zone principale sur la carte. Les îlots ne sont affichés que s'ils passent un filtre de pertinence :</p>
@@ -125,7 +131,7 @@
       <li><strong>Taille et éloignement</strong> — un îlot de moins de 5 hexagones (≈ 1,7 ha) est écarté ; un îlot de 40 hexagones ou plus est gardé d'office ; entre les deux, il est gardé s'il est assez proche d'une grande zone (100 m de distance permise par hexagone au-delà de 5).</li>
       <li><strong>Trous comblés</strong> — une parcelle sans rue entièrement entourée par la zone (champ, parc, cœur d'îlot bâti) est rattachée à la zone : sans cela, la carte ne montrerait qu'un squelette de rues. Une poche entourée où la voiture gagne sur une vraie route reste vide si elle compte 10 hexagones ou plus ; plus petite, elle est comblée.</li>
     </ul>
-    <p>Ces seuils reprennent une solution existante, puis ont été vérifiés sur quatre sites (Saint-Étienne, Pélussin, Feurs, Charly) en comparant quatre jeux de valeurs : le filtre « peu accessible en voiture » fait l'essentiel du tri, et des seuils de taille plus stricts n'écartaient que des îlots visiblement légitimes. La première version comptait dans la zone principale tout ce qui la touchait sur la carte ; elle laissait passer à Charly une large bande de berges du Rhône faite surtout de sentiers, corrigée le 09/10/2026. Ce sont des <strong>choix raisonnés</strong>, pas des valeurs publiées. Pour comparer, l'adresse de la page accepte <code>?ilots=off</code> (zone reliée au départ seulement, sans trous comblés).</p>
+    <p>Ces seuils reprennent une solution existante, puis ont été vérifiés sur quatre sites (Saint-Étienne, Pélussin, Feurs, Charly) en comparant quatre jeux de valeurs : le filtre « peu accessible en voiture » fait l'essentiel du tri, et des seuils de taille plus stricts n'écartaient que des îlots visiblement légitimes. Compter dans la zone principale tout ce qui la touche sur la carte ferait entrer, à Charly, une large bande de berges du Rhône faite surtout de sentiers : d'où la règle de proche en proche. Ce sont des <strong>choix raisonnés</strong>, pas des valeurs publiées. Pour comparer, l'adresse de la page accepte <code>?ilots=off</code> (zone reliée au départ seulement, sans trous comblés).</p>
 
     <h3>Affichage</h3>
     <p>Chaque mode est affiché comme un <strong>anneau</strong> (ce qu'il ajoute au-delà du mode précédent), pas sa zone complète — les trois zones ne se chevauchent donc jamais visuellement. Le nombre d'hexagones dans la légende reste la taille <em>totale</em> de la zone de ce mode, pas seulement l'anneau visible.</p>
@@ -133,8 +139,8 @@
     <div class="limits-box">
       <strong>Limites connues, assumées :</strong>
       <ul>
-        <li><strong>Valeurs estimées, sans mesure publiée trouvée</strong> (recherche du 09/11/2026, gardées en l'état faute de mieux) : délai d'accès au vélo de 3 min ; délai voiture de 4 min hors ville et seuil ville/campagne de 120 carrefours (l'urbain, 8 min, est proche de la moyenne de 8,1 min de recherche de place de Shoup, 2006, mesurée en centre-ville dense) ; pénalités de carrefour 6 / 4 / 2 s (les mesures trouvées portent sur des baisses de vitesse, −1,9 km/h aux carrefours sans feux et −3,6 km/h aux feux, Yan et al., 2025, ou sur les seuls carrefours à feux, 34 s de retard médian à vélo, Yuan et al., 2023 ; les vitesses moyennes de Schleinitz et al. excluent les arrêts, la pénalité de carrefour les représente) ; puissance VAE plafonnée à 300 W en montée (seule la puissance du moteur, 250 W, est fixée par le règlement UE 168/2013).</li>
-        <li>Dans 24 grandes villes (66 communes ou arrondissements), le rayon est fixé d'avance selon la commune du point et le sens du trajet, d'après des mesures refaites le 14/11/2026 avec les vitesses actuelles (zones de 4,5 à 11 km du point ; 8 km suffisent dans la plupart des cas) ; ailleurs, réseau interrogé dans un carré de 6 à 11,5 km autour du point selon la densité de carrefours. Dans tous les cas, il est agrandi par paliers (8 ; 11,5 ; 15 ; 17 km) tant qu'une zone touche le bord. Le rayon de 17 km reste un filet de sécurité ; avant la baisse des vitesses vélo et VAE, il arrivait qu'un petit îlot lointain n'apparaisse qu'au-delà (relevés du 09/11/2026).</li>
+        <li><strong>Valeurs estimées, sans mesure publiée trouvée</strong> (aucune mesure publiée trouvée) : délai d'accès au vélo de 3 min ; délai voiture de 4 min hors ville et seuil ville/campagne de 120 carrefours (l'urbain, 8 min, est proche de la moyenne de 8,1 min de recherche de place de Shoup, 2006, mesurée en centre-ville dense) ; pénalités de carrefour 6 / 4 / 2 s (les mesures trouvées portent sur des baisses de vitesse, −1,9 km/h aux carrefours sans feux et −3,6 km/h aux feux, Yan et al., 2025, ou sur les seuls carrefours à feux, 34 s de retard médian à vélo, Yuan et al., 2023 ; les vitesses moyennes de Schleinitz et al. excluent les arrêts, la pénalité de carrefour les représente) ; puissance VAE plafonnée à 300 W en montée (seule la puissance du moteur, 250 W, est fixée par le règlement UE 168/2013).</li>
+        <li>Dans 24 grandes villes (66 communes ou arrondissements), le rayon de départ est fixé d'avance selon la commune du point et le sens du trajet, d'après des mesures faites dans ces villes ; ailleurs, le réseau est interrogé dans un carré de 6 à 15 km autour du point selon la densité de carrefours. Dans tous les cas, il est agrandi par paliers (8 ; 11,5 ; 15 ; 17 km) tant qu'une zone touche le bord. Au-delà de 17 km, rayon maximal, une zone qui touche encore le bord est signalée « tronquée ».</li>
         <li>Le point de départ est rattaché au carrefour le plus proche qu'on peut quitter à pied ou à vélo : une adresse au-dessus d'un tunnel autoroutier (place de la Liberté à Toulon) part de la rue, pas du tunnel. S'il n'y en a aucun, le calcul est refusé. Si l'adresse est hors du réseau voiture (zone piétonne, rues réservées aux ayants droit), la voiture part du parking en lisière le plus proche qui rejoint vraiment le réseau routier, marche comprise.</li>
         <li>Modèle de pente vélo/VAE calibré sur un seul point de terrain réel (fiable pour corriger l'erreur qu'il corrige, mais pas une courbe validée sur plusieurs profils).</li>
         <li>Pas de données sur le type de régulation des carrefours (feu/stop/cédez-le-passage) : approximation par hiérarchie routière plutôt qu'une valeur exacte par carrefour.</li>
@@ -144,10 +150,18 @@
         <li>Le repli du temps voiture (chemins non reliés au réseau voiture) utilise une distance à vol d'oiseau et une vitesse de marche prudente, pas un vrai itinéraire calculé.</li>
         <li>Le seuil de hiérarchie routière pour compter un carrefour (écart de 0,5 rang, et un cap à ±45° pour distinguer un croisement d'une ligne droite) est un choix raisonné, pas calibré sur des mesures réelles — un carrefour ignoré à tort ou compté à tort reste possible, notamment dans un virage prononcé qui pourrait être confondu avec un croisement.</li>
         <li>Seuils des îlots et des trous (5 et 40 hexagones, 100 m, 70 %, 10 hexagones) choisis et vérifiés visuellement sur quatre sites de la Loire et du Rhône, pas calibrés sur des trajets mesurés ; une parcelle comblée n'est pas forcément accessible (propriété privée, clôture).</li>
-        <li>L'altitude est lissée le long des rues (une passe) : un relevé exact à chaque mètre n'est pas visé. Ce réglage a été choisi en comparant, sur 4 sites de la Loire et du Rhône, les zones obtenues avec celles de l'ancienne méthode (grille d'altitude de 70 m) : 91 % de recouvrement en moyenne pour le vélo, 86 % au pire.</li>
+        <li>L'altitude est lissée le long des rues (une passe) : un relevé exact à chaque mètre n'est pas visé. Ce réglage a été choisi en comparant, sur 4 sites de la Loire et du Rhône, les zones obtenues avec celles d'une grille d'altitude de 70 m : 91 % de recouvrement en moyenne pour le vélo, 86 % au pire.</li>
         <li>En périurbain vallonné, la zone vélo peut être au bord du basculement (le vélo y fait presque jeu égal avec la voiture) : quelques décimètres de pente suffisent alors à en changer nettement l'étendue.</li>
       </ul>
     </div>
+
+    <h3>Historique des révisions</h3>
+    <ul>
+      <li><strong>14/11/2026</strong> — congestion voiture en ville selon le moment du trajet (× 1,8 en heure de pointe, × 1,4 en moyenne de la journée) ; rayons de départ des grandes villes remesurés.</li>
+      <li><strong>12/11/2026</strong> — vitesses vélo et VAE : moyennes de Schleinitz et al. (15,3 / 17,4 km/h) au lieu de 21,6 / 24,6 km/h (vitesse de conception de Parkin et Rotheram) ; cyclabilité rue par rue (−3,5 % en circulation mêlée) ; carrefours reconstitués aux coordonnées identiques (la fusion à 12 m réunissait à tort environ 10 % des carrefours).</li>
+      <li><strong>10/11/2026</strong> — rayon fixé d'avance dans les grandes villes ; parking en lisière qui rejoint vraiment le réseau voiture ; départ au carrefour praticable à pied ou à vélo le plus proche.</li>
+      <li><strong>09/10/2026</strong> — zone principale limitée aux rues reliées de proche en proche (les secteurs qui la touchent seulement sur la carte deviennent des îlots).</li>
+    </ul>
   </div>
 </div>
 
@@ -180,6 +194,14 @@
       </select>
     </div>
 
+    <div class="sens-choix">
+      <label for="moment" class="sens-libelle">Moment du trajet</label>
+      <select id="moment" name="moment">
+        <option value="pointe" selected>Heure de pointe</option>
+        <option value="journee">Moyenne de la journée</option>
+      </select>
+    </div>
+
     <button id="compute">Calculer les isochrones</button>
     <div class="progress-wrapper" id="progressWrapper">
       <div class="progress-outer"><div class="progress-inner" id="progressInner"></div></div>
@@ -194,6 +216,7 @@
       <a href="https://en.wikipedia.org/wiki/Tobler%27s_hiking_function" target="_blank" rel="noopener">Tobler (1993)</a> pour la marche
       et, pour le vélo et le VAE, les vitesses moyennes de Schleinitz et al. (2017) avec un modèle physique de la pente. Aucun service isochrone tiers n'est utilisé.</p>
       <p><strong>Adresse</strong> : autocomplétion sur l'ensemble des adresses françaises (Base Adresse Nationale, via l'IGN), dès 3 caractères.</p>
+      <p><strong>Moment du trajet</strong> : en ville, la voiture est ralentie par le trafic. « Heure de pointe » allonge ses temps de 80 %, « moyenne de la journée » de 40 % (voir la méthodologie). À la campagne, le choix ne change rien.</p>
       <p><strong>Sens du trajet</strong> : « j'en pars » = trajets depuis l'adresse ; « j'y vais » = trajets vers l'adresse ; « aller-retour » = aller et retour cumulés. Sens uniques, pentes et carrefours comptent dans chaque sens : la carte « j'y vais » peut différer de « j'en pars ». En aller-retour, un mode gagne si l'aller + le retour à vélo ou à pied durent moins que l'aller + le retour en voiture (délai d'accès voiture compté deux fois).</p>
       <p><button type="button" class="lien-bouton" id="openMethodologyBis">Méthodologie complète et hypothèses</button></p>
     </details>

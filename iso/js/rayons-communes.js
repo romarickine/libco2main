@@ -13,6 +13,11 @@
 // zones sont identiques au calcul à 17 km (5 cas, au nombre d'hexagones
 // près). Les autres communes gardent la sonde de densité, et toutes gardent
 // la relance par paliers comme filet de sécurité.
+// ATTENTION (14/11/2026, soir) : mesures faites SANS la congestion voiture en
+// ville (COEF_TEMPS_VOITURE_URBAIN, config.js), ajoutée ensuite ; avec elle,
+// les zones sont nettement plus grandes et ces rayons sont trop petits : la
+// relance par paliers corrige le résultat, au prix de calculs refaits. À
+// remesurer après mise en ligne, pour chaque moment du trajet.
 // Ordre : [aller-retour, j'en pars, j'y vais], en mètres.
 // Commentaire : distance la plus lointaine mesurée dans chaque sens.
 export const RAYONS_COMMUNES = {

@@ -28,6 +28,38 @@ export const DELAY_BIKE_MIN = 3;
 export const DELAY_CAR_MIN_URBAN = 8;
 export const DELAY_CAR_MIN_RURAL = 4;
 
+// Congestion voiture en ville (choix du porteur, 14/11/2026 ; revue dans
+// site/revue-vitesse-voiture-2026-11-14.md du projet). La vitesse BD TOPO
+// (vitesse_moyenne_vl) est une vitesse de circulation fluide estimée, sans
+// trafic ni feux ; l'IGN la juge lui-même trop rapide (« Globalement, on va
+// trop vite sur la BD Topo », feuille de route navigabilité, 2022). En
+// contexte urbain seulement (même détection que DELAY_CAR_MIN_URBAN), le temps
+// de chaque tronçon voiture, pénalité de carrefour comprise, est multiplié par :
+// - moyenne de la journée : 1,4. TomTom Traffic Index 2025 (sondes GPS) :
+//   temps de trajet supplémentaire par rapport au trafic fluide de 31 à 47 %
+//   selon l'agglomération française (Toulon 31 %, Marseille 39 %, Paris 40 %,
+//   Montpellier 41 %, Bordeaux 43,5 %, Lyon 47 %) ; source industrielle.
+//   Ordre de grandeur cohérent avec Moya-Gómez et García-Palomares (Journal of
+//   Transport Geography, 2017 ; Paris parmi 8 villes européennes, profils de
+//   vitesse TomTom : l'accessibilité moyenne de la journée à 87 % de celle en
+//   trafic fluide à Paris) et avec Adepitan et al. (Transportation Research
+//   Procedia, 2026 : un calcul longueur ÷ vitesse sous-estime le temps de 21 %
+//   même la nuit, 15 à 25 % selon la littérature citée).
+// - heure de pointe : 1,8. Paris, réseau instrumenté (Ville de Paris, bilan
+//   2024) : 10,4 km/h en moyenne de 7 h à 21 h, contre 22 à 30 km/h sur les
+//   mêmes catégories d'axes dans la BD TOPO ; Nair et al. (PLOS ONE, 2019,
+//   29 villes, données Google) : à Paris, retard en pointe proche de 100 % du
+//   temps en trafic fluide ; Saunier et Chabin (Findings, 2020, Montréal,
+//   GPS) : vitesse voiture de pointe à 70-72 % de celle de nuit, soit un
+//   facteur 1,4, borne basse. Valeur retenue entre ces bornes : ESTIMÉ
+//   (partiellement sourcé), aucune étude française revue par des pairs ne
+//   donnant directement ce coefficient.
+// Hors contexte urbain : 1 (congestion faible : 7 % du temps de conduite en
+// arrêt-démarrage sur route, contre 36 % en ville, André 2020, cité par Bigo,
+// thèse, 2020).
+export const COEF_TEMPS_VOITURE_URBAIN = { pointe: 1.8, journee: 1.4 };
+export const MOMENT_PAR_DEFAUT = "pointe";
+
 // Rayon du réseau interrogé, choisi en deux temps.
 //
 // 1) Une sonde légère (réseau téléchargé sur NETWORK_RADIUS_PROBE_M, un
@@ -74,12 +106,11 @@ export const RADIUS_TIER_DENSE_M = 11500;
 export const RADIUS_TIER_INTERMEDIATE_MIN_JUNCTIONS = 30;
 export const RADIUS_TIER_INTERMEDIATE_M = 8000;
 export const RADIUS_TIER_SPARSE_M = 6000;
-// Très dense (≥ 300 carrefours) : 11,5 km d'emblée. 15 km jusqu'au
-// 14/11/2026 ; depuis la baisse des vitesses vélo et VAE et la pénalité de
-// cyclabilité, les zones des centres très denses mesurés (Paris, Lyon)
-// s'arrêtent à 8,5 km au plus (rayons-communes.js), sous le seuil de relance
-// de 11,5 km (10,35 km).
-export const RADIUS_TIER_VERY_DENSE_M = 11500;
+// Très dense (≥ 300 carrefours) : 15 km d'emblée. Ramené à 11,5 km le
+// 14/11/2026 (zones de 8,5 km au plus à Paris et Lyon sans congestion), puis
+// remis à 15 km le même jour avec la congestion voiture en ville
+// (COEF_TEMPS_VOITURE_URBAIN), qui agrandit fortement les zones. À remesurer.
+export const RADIUS_TIER_VERY_DENSE_M = 15000;
 // Rayon maximal, réservé aux cas où la zone touche encore le bord à 15 km
 // (Paris 1er, 311 carrefours : zone VAE en aller-retour différente à 15 km,
 // identique à 17 et 19 km ; relevés du 09/11/2026). Choix du porteur : grande

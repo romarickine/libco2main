@@ -101,10 +101,12 @@ export function preparerReseau(graph, elevations, nodeDegrees, nodeIncidentEdges
  * buildAdjacency.
  * @param {object} prep  Résultat de preparerReseau.
  * @param {string} mode  « car », « walk », « bike » ou « ebike ».
- * @param {{urbain?: boolean, details?: boolean}} [o]  details : garder longueur
- *   et pénalité de chaque arc (diagnostic voiture).
+ * @param {{urbain?: boolean, details?: boolean, facteurTemps?: number}} [o]
+ *   details : garder longueur et pénalité de chaque arc (diagnostic voiture) ;
+ *   facteurTemps : multiplie le coût de chaque arc, pénalité de carrefour
+ *   comprise (congestion voiture, COEF_TEMPS_VOITURE_URBAIN) ; 1 : inchangé.
  */
-export function adjacenceCSR(prep, mode, { urbain = false, details = false } = {}) {
+export function adjacenceCSR(prep, mode, { urbain = false, details = false, facteurTemps = 1 } = {}) {
   const { graph, idx, pente, carrefour, croisement } = prep;
   const { n, m, de, vers } = idx;
   const delai = delaiCarrefour(mode);
@@ -149,7 +151,7 @@ export function adjacenceCSR(prep, mode, { urbain = false, details = false } = {
     const k = pos[from]++;
     if (k === debut[from]) ordreSources.push(from);
     cible[k] = to;
-    cout[k] = base + d;
+    cout[k] = facteurTemps === 1 ? base + d : (base + d) * facteurTemps;
     if (details) {
       longueur[k] = graph.edges[e].length;
       penalite[k] = d;
