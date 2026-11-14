@@ -32,9 +32,11 @@ export const DELAY_CAR_MIN_RURAL = 4;
 // site/revue-vitesse-voiture-2026-11-14.md du projet). La vitesse BD TOPO
 // (vitesse_moyenne_vl) est une vitesse de circulation fluide estimée, sans
 // trafic ni feux ; l'IGN la juge lui-même trop rapide (« Globalement, on va
-// trop vite sur la BD Topo », feuille de route navigabilité, 2022). En
-// contexte urbain seulement (même détection que DELAY_CAR_MIN_URBAN), le temps
-// de chaque tronçon voiture, pénalité de carrefour comprise, est multiplié par :
+// trop vite sur la BD Topo », feuille de route navigabilité, 2022). Sur les
+// tronçons en contexte urbain seulement (tronconsUrbains, graph.js : même
+// règle que DELAY_CAR_MIN_URBAN, appliquée au milieu de chaque tronçon ; choix
+// du porteur, 14/11/2026), le temps de chaque tronçon voiture, pénalité de
+// carrefour comprise, est multiplié par :
 // - moyenne de la journée : 1,4. TomTom Traffic Index 2025 (sondes GPS) :
 //   temps de trajet supplémentaire par rapport au trafic fluide de 31 à 47 %
 //   selon l'agglomération française (Toulon 31 %, Marseille 39 %, Paris 40 %,

@@ -14,6 +14,7 @@ import {
   estimateCarTime,
   haversineMeters,
   classifyUrbanContext,
+  tronconsUrbains,
   buildCarReachabilityIndex,
   computeNodeIncidentEdges,
   noeudsCarrossablesProches,
@@ -328,9 +329,18 @@ export async function computeIsochronesNetwork(opts) {
   await yieldToBrowser();
   const maxCarCutoff = Math.max(...modeDefs.map((m) => m.maxTime + m.carPenalty));
   const urbain = urbanContext.isUrban;
-  // Congestion voiture en ville (COEF_TEMPS_VOITURE_URBAIN, config.js).
-  const facteurCongestion = urbain ? COEF_TEMPS_VOITURE_URBAIN[moment] ?? 1 : 1;
-  const carCSR = adjacenceCSR(prep, "car", { urbain, details: true, facteurTemps: facteurCongestion });
+  // Congestion voiture en ville (COEF_TEMPS_VOITURE_URBAIN, config.js),
+  // tronçon par tronçon : seulement sur les tronçons en contexte urbain
+  // (tronconsUrbains, graph.js), quel que soit le contexte de l'adresse.
+  const facteurCongestion = COEF_TEMPS_VOITURE_URBAIN[moment] ?? 1;
+  if (!reseau.tronconsUrbains) reseau.tronconsUrbains = tronconsUrbains(graph, nodeDegrees);
+  const urbainsTroncon = reseau.tronconsUrbains;
+  let nUrbains = 0;
+  for (let e = 0; e < urbainsTroncon.length; e++) nUrbains += urbainsTroncon[e];
+  const partReseauUrbain = urbainsTroncon.length ? nUrbains / urbainsTroncon.length : 0;
+  const facteursTroncon = new Float32Array(urbainsTroncon.length);
+  for (let e = 0; e < urbainsTroncon.length; e++) facteursTroncon[e] = urbainsTroncon[e] ? facteurCongestion : 1;
+  const carCSR = adjacenceCSR(prep, "car", { urbain, details: true, facteurTemps: facteursTroncon });
   const rc = tempsSelonDirectionCSR(carCSR, origineIdx, maxCarCutoff, direction, true);
   let carTimes = versMap(ids, rc.ordre, rc.temps);
   let carDistances = new ValeursParNoeud(ids, indexNoeud, rc.ordre, rc.temps, rc.distance);
@@ -630,6 +640,7 @@ export async function computeIsochronesNetwork(opts) {
     delayCarApplied: delayCar,
     moment,
     facteurCongestion,
+    partReseauUrbain,
     parkingLisiere,
     direction,
     // Conservé pour l'outil de diagnostic (inspection d'un point) : permet de

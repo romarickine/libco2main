@@ -104,7 +104,8 @@ export function preparerReseau(graph, elevations, nodeDegrees, nodeIncidentEdges
  * @param {{urbain?: boolean, details?: boolean, facteurTemps?: number}} [o]
  *   details : garder longueur et pénalité de chaque arc (diagnostic voiture) ;
  *   facteurTemps : multiplie le coût de chaque arc, pénalité de carrefour
- *   comprise (congestion voiture, COEF_TEMPS_VOITURE_URBAIN) ; 1 : inchangé.
+ *   comprise (congestion voiture, COEF_TEMPS_VOITURE_URBAIN) : un nombre pour
+ *   tout le réseau, ou un tableau indexé par tronçon ; 1 : inchangé.
  */
 export function adjacenceCSR(prep, mode, { urbain = false, details = false, facteurTemps = 1 } = {}) {
   const { graph, idx, pente, carrefour, croisement } = prep;
@@ -151,7 +152,8 @@ export function adjacenceCSR(prep, mode, { urbain = false, details = false, fact
     const k = pos[from]++;
     if (k === debut[from]) ordreSources.push(from);
     cible[k] = to;
-    cout[k] = facteurTemps === 1 ? base + d : (base + d) * facteurTemps;
+    const f = typeof facteurTemps === "number" ? facteurTemps : facteurTemps[e];
+    cout[k] = f === 1 ? base + d : (base + d) * f;
     if (details) {
       longueur[k] = graph.edges[e].length;
       penalite[k] = d;

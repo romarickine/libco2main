@@ -559,6 +559,90 @@ export function classifyUrbanContext(graph, nodeDegrees, originLon, originLat) {
   return { isUrban: junctionCount >= URBAN_CLASSIFICATION_JUNCTION_THRESHOLD, junctionCount };
 }
 
+/**
+ * Contexte urbain tronçon par tronçon (choix du porteur, 14/11/2026) : même
+ * règle que classifyUrbanContext (au moins 120 carrefours à moins de 600 m),
+ * appliquée au milieu de chaque tronçon. Sert à n'appliquer la congestion
+ * voiture (COEF_TEMPS_VOITURE_URBAIN) qu'en ville : une carte partie d'une
+ * adresse urbaine qui déborde sur la campagne y garde les vitesses BD TOPO®,
+ * et inversement une carte partie de la campagne compte la congestion dans
+ * la ville voisine.
+ * Calcul approché sur une grille de 100 m : carrefours comptés par case, puis
+ * sommés sur le disque de cases dont le centre est à 600 m au plus de la case
+ * du tronçon (écart d'environ une demi-case au bord du disque). En bordure du
+ * réseau téléchargé, les carrefours hors du carré ne sont pas comptés : les
+ * tronçons du bord peuvent être classés ruraux à tort, à 15 km ou plus du
+ * point dans les grandes villes.
+ * @param {object} graph @param {Map<number, number>} nodeDegrees
+ * @returns {Uint8Array} 1 si le tronçon (index dans graph.edges) est urbain.
+ */
+export function tronconsUrbains(graph, nodeDegrees) {
+  const CASE_M = 100;
+  const n = graph.edges.length;
+  const urbain = new Uint8Array(n);
+  if (!n) return urbain;
+  // Projection locale équirectangulaire autour de la latitude moyenne.
+  let latMoy = 0,
+    k = 0;
+  for (const [, [, lat]] of graph.nodeCoords) {
+    latMoy += lat;
+    k++;
+  }
+  latMoy /= k || 1;
+  const mParDegLat = (EARTH_RADIUS * Math.PI) / 180;
+  const mParDegLon = mParDegLat * Math.cos((latMoy * Math.PI) / 180);
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
+  for (const [, [lon, lat]] of graph.nodeCoords) {
+    const x = lon * mParDegLon,
+      y = lat * mParDegLat;
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+  const nx = Math.floor((maxX - minX) / CASE_M) + 1;
+  const ny = Math.floor((maxY - minY) / CASE_M) + 1;
+  const caseDe = (lon, lat) => [
+    Math.min(nx - 1, Math.max(0, Math.floor((lon * mParDegLon - minX) / CASE_M))),
+    Math.min(ny - 1, Math.max(0, Math.floor((lat * mParDegLat - minY) / CASE_M))),
+  ];
+  // Sommes cumulées par ligne : cumul[j * (nx + 1) + i] = carrefours des
+  // cases 0..i-1 de la ligne j.
+  const compte = new Uint32Array(nx * ny);
+  for (const [id, [lon, lat]] of graph.nodeCoords) {
+    if ((nodeDegrees.get(id) || 0) < 3) continue;
+    const [i, j] = caseDe(lon, lat);
+    compte[j * nx + i]++;
+  }
+  const cumul = new Uint32Array((nx + 1) * ny);
+  for (let j = 0; j < ny; j++) {
+    for (let i = 0; i < nx; i++) cumul[j * (nx + 1) + i + 1] = cumul[j * (nx + 1) + i] + compte[j * nx + i];
+  }
+  const r = URBAN_CLASSIFICATION_RADIUS_M / CASE_M;
+  const demiLargeur = [];
+  for (let dj = -r; dj <= r; dj++) demiLargeur.push([dj, Math.floor(Math.sqrt(r * r - dj * dj))]);
+  for (let e = 0; e < n; e++) {
+    const edge = graph.edges[e];
+    const a = graph.nodeCoords.get(edge.from),
+      b = graph.nodeCoords.get(edge.to);
+    if (!a || !b) continue;
+    const [ci, cj] = caseDe((a[0] + b[0]) / 2, (a[1] + b[1]) / 2);
+    let total = 0;
+    for (const [dj, w] of demiLargeur) {
+      const j = cj + dj;
+      if (j < 0 || j >= ny) continue;
+      const i0 = Math.max(0, ci - w),
+        i1 = Math.min(nx - 1, ci + w);
+      total += cumul[j * (nx + 1) + i1 + 1] - cumul[j * (nx + 1) + i0];
+    }
+    if (total >= URBAN_CLASSIFICATION_JUNCTION_THRESHOLD) urbain[e] = 1;
+  }
+  return urbain;
+}
+
 // Pénalité de vitesse selon la nature de la surface (09/11/2026, sourcée).
 // Vélo et VAE : rapport des vitesses médianes mesurées à Hambourg par type de
 // revêtement (Schuhmacher, Wilkes, Kagerbauer, Vortisch, « Cycling Speeds in

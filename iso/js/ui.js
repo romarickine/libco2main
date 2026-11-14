@@ -301,6 +301,7 @@ export function initUI() {
         urbanContext,
         delayCarApplied,
         facteurCongestion,
+        partReseauUrbain,
         parkingLisiere,
         diagnostics,
       } = computation;
@@ -323,8 +324,10 @@ export function initUI() {
         delayCarApplied +
         " min ; temps voiture × " +
         String(facteurCongestion ?? 1).replace(".", ",") +
-        (facteurCongestion > 1 ? (moment === "pointe" ? ", heure de pointe" : ", moyenne de la journée") : ", hors ville : pas de congestion") +
-        ")" +
+        (moment === "pointe" ? " en heure de pointe" : " en moyenne de la journée") +
+        " sur les tronçons en ville, soit " +
+        Math.round((partReseauUrbain ?? 0) * 100) +
+        " % du réseau)" +
         (parkingLisiere
           ? " — adresse hors réseau voiture : voiture garée à " +
             parkingLisiere.distanceMeters +
