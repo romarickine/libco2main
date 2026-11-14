@@ -195,11 +195,13 @@
     </div>
 
     <div class="sens-choix">
-      <label for="moment" class="sens-libelle">Moment du trajet</label>
-      <select id="moment" name="moment">
-        <option value="pointe" selected>Heure de pointe</option>
-        <option value="journee">Moyenne de la journée</option>
-      </select>
+      <span class="sens-libelle" id="trafic-titre">Trafic</span>
+      <div class="trafic-choix">
+        <span class="trafic-option" id="trafic-pointe">Heure de pointe</span>
+        <input type="checkbox" role="switch" id="trafic" class="trafic-interrupteur" aria-labelledby="trafic-titre" aria-describedby="trafic-etat" />
+        <span class="trafic-option" id="trafic-journee">Moyenne de la journée</span>
+      </div>
+      <span id="trafic-etat" class="visually-hidden">Heure de pointe à gauche, moyenne de la journée à droite.</span>
     </div>
 
     <button id="compute">Calculer les isochrones</button>
@@ -216,7 +218,7 @@
       <a href="https://en.wikipedia.org/wiki/Tobler%27s_hiking_function" target="_blank" rel="noopener">Tobler (1993)</a> pour la marche
       et, pour le vélo et le VAE, les vitesses moyennes de Schleinitz et al. (2017) avec un modèle physique de la pente. Aucun service isochrone tiers n'est utilisé.</p>
       <p><strong>Adresse</strong> : autocomplétion sur l'ensemble des adresses françaises (Base Adresse Nationale, via l'IGN), dès 3 caractères.</p>
-      <p><strong>Moment du trajet</strong> : en ville, la voiture est ralentie par le trafic. « Heure de pointe » allonge ses temps de 80 %, « moyenne de la journée » de 40 %, sur les rues et routes situées en ville (voir la méthodologie). Sur les routes de campagne, le choix ne change rien. Les deux moments sont calculés pour chaque adresse (le moment choisi d'abord, l'autre juste après, en arrière-plan) : une fois la carte affichée, changer le moment dans la liste bascule d'une carte à l'autre sans nouveau calcul.</p>
+      <p><strong>Trafic</strong> (interrupteur : heure de pointe à gauche, moyenne de la journée à droite) : en ville, la voiture est ralentie par le trafic. « Heure de pointe » allonge ses temps de 80 %, « moyenne de la journée » de 40 %, sur les rues et routes situées en ville (voir la méthodologie). Sur les routes de campagne, le choix ne change rien. Les deux moments sont calculés pour chaque adresse (le moment choisi d'abord, l'autre juste après, en arrière-plan) : une fois la carte affichée, changer le moment dans la liste bascule d'une carte à l'autre sans nouveau calcul.</p>
       <p><strong>Sens du trajet</strong> : « j'en pars » = trajets depuis l'adresse ; « j'y vais » = trajets vers l'adresse ; « aller-retour » = aller et retour cumulés. Sens uniques, pentes et carrefours comptent dans chaque sens : la carte « j'y vais » peut différer de « j'en pars ». En aller-retour, un mode gagne si l'aller + le retour à vélo ou à pied durent moins que l'aller + le retour en voiture (délai d'accès voiture compté deux fois).</p>
       <p><button type="button" class="lien-bouton" id="openMethodologyBis">Méthodologie complète et hypothèses</button></p>
     </details>

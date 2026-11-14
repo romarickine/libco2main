@@ -443,8 +443,21 @@ export function initUI() {
   const autreMoment = (m) => (m === "pointe" ? "journee" : "pointe");
   const libelleMoment = (m) => (m === "pointe" ? "heure de pointe" : "moyenne de la journée");
 
-  document.getElementById("moment")?.addEventListener("change", async () => {
-    const moment = document.getElementById("moment").value;
+  // Interrupteur « Trafic » : décoché = heure de pointe (à gauche), coché =
+  // moyenne de la journée (à droite). Les libellés de part et d'autre
+  // basculent aussi l'interrupteur.
+  const momentChoisi = () => (document.getElementById("trafic")?.checked ? "journee" : "pointe");
+  for (const [id, coche] of [["trafic-pointe", false], ["trafic-journee", true]]) {
+    document.getElementById(id)?.addEventListener("click", () => {
+      const inter = document.getElementById("trafic");
+      if (inter && inter.checked !== coche) {
+        inter.checked = coche;
+        inter.dispatchEvent(new Event("change"));
+      }
+    });
+  }
+  document.getElementById("trafic")?.addEventListener("change", async () => {
+    const moment = momentChoisi();
     const statusEl = document.getElementById("status");
     const direction = document.getElementById("direction")?.value || "aller-retour";
     const lat = parseFloat(document.getElementById("lat").value);
@@ -463,7 +476,7 @@ export function initUI() {
       } catch {
         /* message affiché ci-dessous */
       }
-      if (calculs?.cle === cle && document.getElementById("moment").value === moment) {
+      if (calculs?.cle === cle && momentChoisi() === moment) {
         if (calculs.parMoment[moment]) afficherCarte(calculs.parMoment[moment], { ...calculs, moment, recadrer: false });
         else {
           statusEl.className = "error";
@@ -489,7 +502,7 @@ export function initUI() {
     }
 
     const direction = document.getElementById("direction")?.value || "aller-retour";
-    const moment = document.getElementById("moment")?.value || "pointe";
+    const moment = momentChoisi();
     btn.disabled = true;
     statusEl.className = "";
     statusEl.textContent = calculs?.enCours ? "Démarrage… (fin du calcul de l'autre moment du trajet en cours)" : "Démarrage…";

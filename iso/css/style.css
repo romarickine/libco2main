@@ -342,6 +342,62 @@ button.geo-btn:hover {
   background: var(--paper);
   color: var(--ink);
 }
+/* Trafic : interrupteur glissant, heure de pointe à gauche, moyenne de la
+   journée à droite. L'option active change de couleur seulement. */
+.trafic-choix {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+.trafic-option {
+  flex: 1;
+  color: var(--muted);
+  font-weight: 600;
+}
+.trafic-option:first-child {
+  text-align: right;
+}
+.trafic-choix:has(.trafic-interrupteur:not(:checked)) #trafic-pointe,
+.trafic-choix:has(.trafic-interrupteur:checked) #trafic-journee {
+  color: var(--moss-dark);
+}
+.trafic-interrupteur {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  position: relative;
+  width: 46px;
+  height: 26px;
+  margin: 0;
+  border: 1px solid var(--lc-bordure-champ);
+  border-radius: 13px;
+  background: var(--paper);
+  cursor: pointer;
+}
+.trafic-interrupteur::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--moss-dark);
+  transition: transform 0.15s ease;
+}
+.trafic-interrupteur:checked::before {
+  transform: translateX(20px);
+}
+.trafic-interrupteur:focus-visible {
+  outline: 2px solid var(--moss-dark);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .trafic-interrupteur::before {
+    transition: none;
+  }
+}
 .method-note {
   font-size: 12px;
   color: var(--muted);
@@ -532,4 +588,16 @@ a {
   color: var(--danger);
   font-family: var(--sans);
   font-size: 13.5px;
+}
+.trafic-option {
+  cursor: pointer;
+}
+/* Texte lu par les lecteurs d'écran seulement. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
