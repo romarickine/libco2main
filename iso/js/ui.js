@@ -246,6 +246,233 @@ export function initUI() {
   tabFormButton.addEventListener("click", () => showMobileTab("form"));
   tabMapButton.addEventListener("click", () => showMobileTab("map"));
 
+  // Affiche le résultat d'un calcul (carte, compteurs, informations, état).
+  // Sert au calcul demandé et au basculement entre moments du trajet.
+  function afficherCarte(r, { lat, lon, direction, moment, recadrer = true }) {
+    const statusEl = document.getElementById("status");
+    const { computation, probeJunctionCount, probeChosenRadiusMeters, usedRadiusMeters, radiusRetried } = r;
+    clearLayers();
+    placeMarker(lat, lon);
+    const {
+      results,
+      nodeCount,
+      edgeCount,
+      rawConnectivity,
+      roadsTruncated,
+      rawFeatureCount,
+      urbanContext,
+      delayCarApplied,
+      facteurCongestion,
+      partReseauUrbain,
+      parkingLisiere,
+      diagnostics,
+    } = computation;
+
+    document.getElementById("networkInfo").textContent =
+      nodeCount +
+      " nœuds, " +
+      edgeCount +
+      " rues (rayon interrogé : " +
+      usedRadiusMeters / 1000 +
+      " km, sonde : " +
+      probeJunctionCount +
+      " carrefours/1km) — contexte détecté : " +
+      (urbanContext.isUrban ? "urbain" : "rural") +
+      " (" +
+      urbanContext.junctionCount +
+      " carrefours à moins de " +
+      URBAN_CLASSIFICATION_RADIUS_M +
+      " m, délai voiture appliqué : " +
+      delayCarApplied +
+      " min ; temps voiture × " +
+      String(facteurCongestion ?? 1).replace(".", ",") +
+      (moment === "pointe" ? " en heure de pointe" : " en moyenne de la journée") +
+      " sur les tronçons en ville, soit " +
+      Math.round((partReseauUrbain ?? 0) * 100) +
+      " % du réseau)" +
+      (parkingLisiere
+        ? " — adresse hors réseau voiture : voiture garée à " +
+          parkingLisiere.distanceMeters +
+          " m, marche ajoutée au temps voiture"
+        : "");
+    lastComputation = {
+      results,
+      lat,
+      lon,
+      address: document.getElementById("address").value.trim(),
+      diagnostics,
+      delayCarApplied,
+      direction,
+      moment,
+    };
+    document.getElementById("exportSection").classList.add("active");
+    document.getElementById("diagnosticSection").classList.add("active");
+
+    // Anneaux non chevauchants : l'ordre d'empilement n'a plus d'incidence
+    // visuelle (aucune zone ne recouvre une autre), on garde Ebike -> Bike ->
+    // Walk par habitude de lecture (grand vers petit).
+    for (const key of ["Ebike", "Bike", "Walk"]) {
+      const r = results[key];
+      document.getElementById("count" + key).textContent =
+        r.hexagonCount +
+        " hexagones" +
+        (r.possiblyTruncated ? " ⚠️ tronquée" : "") +
+        (r.plafondAtteint ? " (limitée à " + r.plafondAtteint.minutes + " min)" : "");
+      if (r.polygons.length === 0) {
+        continue;
+      }
+      const geojson = { type: "MultiPolygon", coordinates: r.polygons };
+      const layer = L.geoJSON(geojson, {
+        style: { color: colors[key], weight: 1.5, opacity: 1, fillColor: colors[key], fillOpacity: 0.5 },
+      }).addTo(map);
+      layers[key].push(layer);
+    }
+
+    showMobileTab("map");
+    map.invalidateSize();
+    const allLayers = [...layers.Walk, ...layers.Bike, ...layers.Ebike];
+    if (recadrer && allLayers.length > 0) {
+      const group = L.featureGroup(allLayers);
+      map.fitBounds(group.getBounds(), { maxZoom: 15 });
+    }
+
+    const modeLabelsFr = { Walk: "Marche", Bike: "Vélo", Ebike: "Vélo électrique" };
+    const truncatedModes = ["Walk", "Bike", "Ebike"]
+      .filter((key) => results[key].possiblyTruncated)
+      .map((key) => modeLabelsFr[key]);
+    const bikeEbikeIdentical =
+      !results.Bike.possiblyTruncated &&
+      !results.Ebike.possiblyTruncated &&
+      results.Bike.hexagonCount > 0 &&
+      results.Bike.hexagonCount === results.Ebike.hexagonCount;
+
+    const formatDiagnosis = (d) => {
+      const total = d.excludedByFilter + d.beyondTimeBudget + d.carWins + d.other;
+      if (total === 0) {
+        return 'aucune arête de frontière (zone entourée de "gagnant")';
+      }
+      const pct = (n) => Math.round((n / total) * 100);
+      return (
+        d.carWins +
+        " arêtes (" +
+        pct(d.carWins) +
+        "%) où la voiture gagne réellement, " +
+        d.excludedByFilter +
+        " (" +
+        pct(d.excludedByFilter) +
+        "%) exclues par le filtre de vitesse, " +
+        d.beyondTimeBudget +
+        " (" +
+        pct(d.beyondTimeBudget) +
+        "%) hors du budget-temps du mode" +
+        (d.other > 0 ? ", " + d.other + " (" + pct(d.other) + "%) autre" : "")
+      );
+    };
+
+    const rawPct = Math.round((rawConnectivity.reachable / rawConnectivity.total) * 100);
+    // Diagnostic technique (connexité brute) gardé pour la console, pas pour
+    // l'utilisateur ; seul l'agrandissement du rayon lui est signalé.
+    console.info(
+      "Connexité brute du réseau : " + rawConnectivity.reachable + "/" + rawConnectivity.total + " nœuds (" + rawPct + " %).",
+    );
+    // Plafond de recherche atteint : la zone s'arrête à la durée maximale du
+    // mode, pas là où la voiture reprend l'avantage (signalé à l'usager).
+    const modesPlafond = ["Walk", "Bike", "Ebike"].filter((key) => results[key].plafondAtteint);
+    const notePlafond = modesPlafond.length
+      ? " " +
+        modesPlafond
+          .map(
+            (key) =>
+              "La zone " +
+              modeLabelsFr[key].toLowerCase() +
+              " s'arrête en partie à la durée maximale de trajet calculée (" +
+              results[key].plafondAtteint.minutes +
+              " min, sur " +
+              Math.round(results[key].plafondAtteint.partFrontiere * 100) +
+              " % de sa limite) : au-delà, ce mode pourrait encore arriver avant la voiture.",
+          )
+          .join(" ")
+      : "";
+    const connectivityNote = radiusRetried
+      ? "Zone de calcul agrandie de " +
+        probeChosenRadiusMeters / 1000 +
+        " à " +
+        usedRadiusMeters / 1000 +
+        " km pour ne pas couper les zones."
+      : "";
+
+    if (roadsTruncated) {
+      statusEl.className = "error";
+      statusEl.textContent =
+        "Calcul terminé, mais le téléchargement du réseau routier semble avoir été tronqué (" +
+        rawFeatureCount +
+        " tronçons récupérés, la limite de pagination a été atteinte) — le réseau est probablement incomplet dans cette zone très dense. " +
+        connectivityNote;
+    } else if (truncatedModes.length > 0) {
+      statusEl.className = "error";
+      statusEl.textContent =
+        "Calcul terminé, mais la zone " +
+        truncatedModes.join(" et ") +
+        " atteint le bord du rayon interrogé (" +
+        usedRadiusMeters +
+        " m) — sa vraie limite est probablement plus loin, hors de la zone couverte par ce calcul. " +
+        connectivityNote +
+        notePlafond;
+    } else if (bikeEbikeIdentical) {
+      statusEl.className = "error";
+      statusEl.textContent =
+        "Calcul terminé, mais Vélo et VAE atteignent exactement la même limite. " +
+        connectivityNote +
+        " Diagnostic de la frontière — Vélo : " +
+        formatDiagnosis(results.Bike.frontierDiagnosis) +
+        ". VAE : " +
+        formatDiagnosis(results.Ebike.frontierDiagnosis) +
+        ".";
+    } else {
+      statusEl.className = "";
+      statusEl.textContent = ("Calcul terminé. " + connectivityNote + notePlafond).trim();
+    }
+  }
+
+  // Les deux moments du trajet sont calculés pour la même adresse : le moment
+  // choisi d'abord, l'autre ensuite en arrière-plan, sur le même réseau
+  // (choix du porteur, 14/11/2026). La liste « Moment du trajet » bascule
+  // alors d'une carte à l'autre sans nouveau calcul.
+  // calculs : { cle, lat, lon, direction, parMoment: { pointe, journee }, enCours: Promise|null }
+  let calculs = null;
+  const autreMoment = (m) => (m === "pointe" ? "journee" : "pointe");
+  const libelleMoment = (m) => (m === "pointe" ? "heure de pointe" : "moyenne de la journée");
+
+  document.getElementById("moment")?.addEventListener("change", async () => {
+    const moment = document.getElementById("moment").value;
+    const statusEl = document.getElementById("status");
+    const direction = document.getElementById("direction")?.value || "aller-retour";
+    const lat = parseFloat(document.getElementById("lat").value);
+    const lon = parseFloat(document.getElementById("lon").value);
+    if (!calculs || calculs.cle !== [lat, lon, direction].join("|")) return; // pas de carte pour ce point : rien à basculer
+    if (calculs.parMoment[moment]) {
+      afficherCarte(calculs.parMoment[moment], { ...calculs, moment, recadrer: false });
+      return;
+    }
+    if (calculs.enCours) {
+      statusEl.className = "";
+      statusEl.textContent = "Calcul « " + libelleMoment(moment) + " » en cours, la carte s'affichera dès qu'il sera prêt…";
+      const cle = calculs.cle;
+      try {
+        await calculs.enCours;
+      } catch {
+        /* message affiché ci-dessous */
+      }
+      if (calculs?.cle === cle && document.getElementById("moment").value === moment) {
+        if (calculs.parMoment[moment]) afficherCarte(calculs.parMoment[moment], { ...calculs, moment, recadrer: false });
+        else {
+          statusEl.className = "error";
+          statusEl.textContent = "Le calcul « " + libelleMoment(moment) + " » n'a pas abouti : relancez le calcul avec ce moment.";
+        }
+      }
+    }
+  });
+
   document.getElementById("compute").addEventListener("click", async () => {
     const btn = document.getElementById("compute");
     const statusEl = document.getElementById("status");
@@ -265,7 +492,7 @@ export function initUI() {
     const moment = document.getElementById("moment")?.value || "pointe";
     btn.disabled = true;
     statusEl.className = "";
-    statusEl.textContent = "Démarrage…";
+    statusEl.textContent = calculs?.enCours ? "Démarrage… (fin du calcul de l'autre moment du trajet en cours)" : "Démarrage…";
     progressWrapper.classList.add("active");
     progressInner.style.width = "0%";
     progressPercent.textContent = "0%";
@@ -276,8 +503,7 @@ export function initUI() {
     });
 
     try {
-      const { computation, probeJunctionCount, probeChosenRadiusMeters, usedRadiusMeters, radiusRetried } =
-        await calculerCarteArrierePlan({
+      const resultat = await calculerCarteArrierePlan({
           lon,
           lat,
           direction,
@@ -291,162 +517,27 @@ export function initUI() {
           },
         });
 
-      const {
-        results,
-        nodeCount,
-        edgeCount,
-        rawConnectivity,
-        roadsTruncated,
-        rawFeatureCount,
-        urbanContext,
-        delayCarApplied,
-        facteurCongestion,
-        partReseauUrbain,
-        parkingLisiere,
-        diagnostics,
-      } = computation;
-
-      document.getElementById("networkInfo").textContent =
-        nodeCount +
-        " nœuds, " +
-        edgeCount +
-        " rues (rayon interrogé : " +
-        usedRadiusMeters / 1000 +
-        " km, sonde : " +
-        probeJunctionCount +
-        " carrefours/1km) — contexte détecté : " +
-        (urbanContext.isUrban ? "urbain" : "rural") +
-        " (" +
-        urbanContext.junctionCount +
-        " carrefours à moins de " +
-        URBAN_CLASSIFICATION_RADIUS_M +
-        " m, délai voiture appliqué : " +
-        delayCarApplied +
-        " min ; temps voiture × " +
-        String(facteurCongestion ?? 1).replace(".", ",") +
-        (moment === "pointe" ? " en heure de pointe" : " en moyenne de la journée") +
-        " sur les tronçons en ville, soit " +
-        Math.round((partReseauUrbain ?? 0) * 100) +
-        " % du réseau)" +
-        (parkingLisiere
-          ? " — adresse hors réseau voiture : voiture garée à " +
-            parkingLisiere.distanceMeters +
-            " m, marche ajoutée au temps voiture"
-          : "");
-      lastComputation = {
-        results,
-        lat,
+      const contexte = { lat, lon, direction, moment };
+      calculs = { cle: [lat, lon, direction].join("|"), lat, lon, direction, parMoment: { [moment]: resultat }, enCours: null };
+      afficherCarte(resultat, contexte);
+      // Second moment en arrière-plan, même rayon de départ (même réseau).
+      const second = autreMoment(moment);
+      const suivi = calculs;
+      suivi.enCours = calculerCarteArrierePlan({
         lon,
-        address: document.getElementById("address").value.trim(),
-        diagnostics,
-        delayCarApplied,
+        lat,
         direction,
-      };
-      document.getElementById("exportSection").classList.add("active");
-      document.getElementById("diagnosticSection").classList.add("active");
-
-      // Anneaux non chevauchants : l'ordre d'empilement n'a plus d'incidence
-      // visuelle (aucune zone ne recouvre une autre), on garde Ebike -> Bike ->
-      // Walk par habitude de lecture (grand vers petit).
-      for (const key of ["Ebike", "Bike", "Walk"]) {
-        const r = results[key];
-        document.getElementById("count" + key).textContent =
-          r.hexagonCount + " hexagones" + (r.possiblyTruncated ? " ⚠️ tronquée" : "");
-        if (r.polygons.length === 0) {
-          continue;
-        }
-        const geojson = { type: "MultiPolygon", coordinates: r.polygons };
-        const layer = L.geoJSON(geojson, {
-          style: { color: colors[key], weight: 1.5, opacity: 1, fillColor: colors[key], fillOpacity: 0.5 },
-        }).addTo(map);
-        layers[key].push(layer);
-      }
-
-      showMobileTab("map");
-      map.invalidateSize();
-      const allLayers = [...layers.Walk, ...layers.Bike, ...layers.Ebike];
-      if (allLayers.length > 0) {
-        const group = L.featureGroup(allLayers);
-        map.fitBounds(group.getBounds(), { maxZoom: 15 });
-      }
-
-      const modeLabelsFr = { Walk: "Marche", Bike: "Vélo", Ebike: "Vélo électrique" };
-      const truncatedModes = ["Walk", "Bike", "Ebike"]
-        .filter((key) => results[key].possiblyTruncated)
-        .map((key) => modeLabelsFr[key]);
-      const bikeEbikeIdentical =
-        !results.Bike.possiblyTruncated &&
-        !results.Ebike.possiblyTruncated &&
-        results.Bike.hexagonCount > 0 &&
-        results.Bike.hexagonCount === results.Ebike.hexagonCount;
-
-      const formatDiagnosis = (d) => {
-        const total = d.excludedByFilter + d.beyondTimeBudget + d.carWins + d.other;
-        if (total === 0) {
-          return 'aucune arête de frontière (zone entourée de "gagnant")';
-        }
-        const pct = (n) => Math.round((n / total) * 100);
-        return (
-          d.carWins +
-          " arêtes (" +
-          pct(d.carWins) +
-          "%) où la voiture gagne réellement, " +
-          d.excludedByFilter +
-          " (" +
-          pct(d.excludedByFilter) +
-          "%) exclues par le filtre de vitesse, " +
-          d.beyondTimeBudget +
-          " (" +
-          pct(d.beyondTimeBudget) +
-          "%) hors du budget-temps du mode" +
-          (d.other > 0 ? ", " + d.other + " (" + pct(d.other) + "%) autre" : "")
-        );
-      };
-
-      const rawPct = Math.round((rawConnectivity.reachable / rawConnectivity.total) * 100);
-      // Diagnostic technique (connexité brute) gardé pour la console, pas pour
-      // l'utilisateur ; seul l'agrandissement du rayon lui est signalé.
-      console.info(
-        "Connexité brute du réseau : " + rawConnectivity.reachable + "/" + rawConnectivity.total + " nœuds (" + rawPct + " %).",
-      );
-      const connectivityNote = radiusRetried
-        ? "Zone de calcul agrandie de " +
-          probeChosenRadiusMeters / 1000 +
-          " à " +
-          usedRadiusMeters / 1000 +
-          " km pour ne pas couper les zones."
-        : "";
-
-      if (roadsTruncated) {
-        statusEl.className = "error";
-        statusEl.textContent =
-          "Calcul terminé, mais le téléchargement du réseau routier semble avoir été tronqué (" +
-          rawFeatureCount +
-          " tronçons récupérés, la limite de pagination a été atteinte) — le réseau est probablement incomplet dans cette zone très dense. " +
-          connectivityNote;
-      } else if (truncatedModes.length > 0) {
-        statusEl.className = "error";
-        statusEl.textContent =
-          "Calcul terminé, mais la zone " +
-          truncatedModes.join(" et ") +
-          " atteint le bord du rayon interrogé (" +
-          usedRadiusMeters +
-          " m) — sa vraie limite est probablement plus loin, hors de la zone couverte par ce calcul. " +
-          connectivityNote;
-      } else if (bikeEbikeIdentical) {
-        statusEl.className = "error";
-        statusEl.textContent =
-          "Calcul terminé, mais Vélo et VAE atteignent exactement la même limite. " +
-          connectivityNote +
-          " Diagnostic de la frontière — Vélo : " +
-          formatDiagnosis(results.Bike.frontierDiagnosis) +
-          ". VAE : " +
-          formatDiagnosis(results.Ebike.frontierDiagnosis) +
-          ".";
-      } else {
-        statusEl.className = "";
-        statusEl.textContent = ("Calcul terminé. " + connectivityNote).trim();
-      }
+        moment: second,
+        rayonImpose: resultat.usedRadiusMeters,
+        ilots: reglagesIlotsDepuisUrl(),
+      })
+        .then((r2) => {
+          suivi.parMoment[second] = r2;
+        })
+        .catch((err) => console.warn("Calcul « " + libelleMoment(second) + " » en arrière-plan :", err))
+        .finally(() => {
+          suivi.enCours = null;
+        });
     } catch (e) {
       console.error(e);
       afficherErreurCalcul(statusEl, e);

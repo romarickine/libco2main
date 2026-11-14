@@ -390,7 +390,10 @@ export async function rendreImageCarte(computation, options = {}) {
   ctx.font = "700 " + S(34) + 'px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   ctx.textBaseline = "middle";
   const libelleDirection = LIBELLES_DIRECTION[computation.direction] || LIBELLES_DIRECTION.depart;
-  const texteTitre = titre || "Carte Isochrone de l\u2019adresse : " + addressLabel + libelleDirection.suffixeTitre;
+  // Moment du trajet (ui.js) : absent pour les cartes faites sans ce choix.
+  const suffixeMoment =
+    computation.moment === "pointe" ? " — heure de pointe" : computation.moment === "journee" ? " — moyenne de la journée" : "";
+  const texteTitre = titre || "Carte Isochrone de l\u2019adresse : " + addressLabel + libelleDirection.suffixeTitre + suffixeMoment;
   const logoH = logo ? Math.round(TITLE_H * 0.72) : 0;
   const logoW = logo
     ? Math.round((logoH * (logo.naturalWidth || logo.width)) / (logo.naturalHeight || logo.height))

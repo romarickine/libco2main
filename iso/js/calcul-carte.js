@@ -52,12 +52,14 @@ function estTronque(c) {
  * @param {string} [p.direction]  « depart » (j'en pars, défaut), « arrivee » (j'y vais) ou « aller-retour ».
  * @param {string} [p.moment]  « pointe » (heure de pointe, défaut) ou « journee » (moyenne de la journée) :
  *   congestion voiture en ville, voir COEF_TEMPS_VOITURE_URBAIN (config.js).
+ * @param {number} [p.rayonImpose]  Rayon de départ imposé (m), sans sonde ni tableau des villes :
+ *   second moment du trajet calculé sur le réseau du premier (ui.js). La relance par paliers reste active.
  * @param {(etat:{phase:string, message:string, fraction:number}) => void} [p.onEtat]
  *   phase : « sonde » | « calcul » | « nouvel-essai ».
  * @returns {Promise<{computation:object, probeJunctionCount:number,
  *   probeChosenRadiusMeters:number, usedRadiusMeters:number, radiusRetried:boolean}>}
  */
-export async function calculerCarte({ lon, lat, modes, direction, ilots, moment, onEtat = () => {} }) {
+export async function calculerCarte({ lon, lat, modes, direction, ilots, moment, rayonImpose, onEtat = () => {} }) {
   setWfsMaxRequestsPerSecond(WFS_MAX_REQUESTS_PER_SECOND);
   const opts = {
     lon,
@@ -79,12 +81,14 @@ export async function calculerCarte({ lon, lat, modes, direction, ilots, moment,
   });
   // Commune du point (géocodage inverse IGN), en parallèle de la sonde : dans
   // les grandes villes mesurées, le rayon est connu d'avance (rayons-communes.js).
-  const [codeCommune, probeJunctionCount] = await Promise.all([
-    communeDuPoint(lon, lat),
-    probeJunctionDensity(lon, lat, NETWORK_RADIUS_PROBE_M, opts.nodeSnapToleranceMeters, opts.wfsPageSize),
-  ]);
-  const rayonPrevu = rayonCommune(codeCommune, direction ?? "depart");
-  const probeChosenRadiusMeters = rayonPrevu ?? choisirRayonInitial(probeJunctionCount);
+  const [codeCommune, probeJunctionCount] = rayonImpose
+    ? [null, null]
+    : await Promise.all([
+        communeDuPoint(lon, lat),
+        probeJunctionDensity(lon, lat, NETWORK_RADIUS_PROBE_M, opts.nodeSnapToleranceMeters, opts.wfsPageSize),
+      ]);
+  const rayonPrevu = rayonImpose ? null : rayonCommune(codeCommune, direction ?? "depart", moment ?? "pointe");
+  const probeChosenRadiusMeters = rayonImpose ?? rayonPrevu ?? choisirRayonInitial(probeJunctionCount);
   let usedRadiusMeters = probeChosenRadiusMeters;
   let computation = await computeIsochronesNetwork({
     ...opts,

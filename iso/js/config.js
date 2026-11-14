@@ -104,14 +104,19 @@ export const MOMENT_PAR_DEFAUT = "pointe";
 export const NETWORK_RADIUS_PROBE_M = 1000;
 export const RADIUS_TIER_VERY_DENSE_MIN_JUNCTIONS = 300;
 export const RADIUS_TIER_DENSE_MIN_JUNCTIONS = 150;
-export const RADIUS_TIER_DENSE_M = 11500;
+// 12 km depuis le 14/11/2026 (11,5 km avant ; choix du porteur) : en heure
+// de pointe, les villes moyennes mesurées vont jusqu'à 9,6 à 10,8 km
+// (Rouen, Saint-Étienne), sous le seuil de relance de 12 km (10,8 km).
+export const RADIUS_TIER_DENSE_M = 12000;
 export const RADIUS_TIER_INTERMEDIATE_MIN_JUNCTIONS = 30;
 export const RADIUS_TIER_INTERMEDIATE_M = 8000;
 export const RADIUS_TIER_SPARSE_M = 6000;
 // Très dense (≥ 300 carrefours) : 15 km d'emblée. Ramené à 11,5 km le
 // 14/11/2026 (zones de 8,5 km au plus à Paris et Lyon sans congestion), puis
 // remis à 15 km le même jour avec la congestion voiture en ville
-// (COEF_TEMPS_VOITURE_URBAIN), qui agrandit fortement les zones. À remesurer.
+// (COEF_TEMPS_VOITURE_URBAIN), qui agrandit fortement les zones : mesures du
+// même jour, centres de Paris 14 à 16 km en heure de pointe, 11 à 14 km en
+// moyenne de la journée (rayons-communes.js).
 export const RADIUS_TIER_VERY_DENSE_M = 15000;
 // Rayon maximal, réservé aux cas où la zone touche encore le bord à 15 km
 // (Paris 1er, 311 carrefours : zone VAE en aller-retour différente à 15 km,
@@ -123,7 +128,7 @@ export const NETWORK_RADIUS_MAX_M = 17000;
 // Relances successives quand une zone touche le bord : rayon suivant de cette
 // liste (le téléchargement ne demande que l'anneau manquant), plutôt qu'un
 // saut direct au maximum.
-export const RAYONS_RELANCE_M = [8000, 11500, 15000, 17000];
+export const RAYONS_RELANCE_M = [8000, 12000, 15000, 17000];
 
 // Résolution de la grille altimétrique, tolérance de fusion des nœuds, et
 // paramètres WFS.

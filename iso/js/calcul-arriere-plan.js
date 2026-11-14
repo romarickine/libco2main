@@ -78,7 +78,8 @@ function demander(message, onEtat) {
 export async function calculerCarteArrierePlan({ onEtat = () => {}, ...params }) {
   if (await demarrerWorker()) {
     const r = await demander({ type: "calculer", params }, onEtat);
-    r.computation.diagnostics = { inspecter: (lon, lat) => demander({ type: "inspecter", lon, lat }) };
+    const moment = params.moment || "pointe";
+    r.computation.diagnostics = { inspecter: (lon, lat) => demander({ type: "inspecter", lon, lat, moment }) };
     return r;
   }
   // Repli : calcul dans la page (la page se fige pendant les phases longues).

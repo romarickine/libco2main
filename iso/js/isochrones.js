@@ -283,11 +283,18 @@ export async function computeIsochronesNetwork(opts) {
   // à Paris, mesure du 09/11/2026). Une seule entrée, vidée avant tout
   // nouveau réseau pour ne pas cumuler deux réseaux en mémoire.
   const cleReseau = [lon, lat, networkRadiusMeters, nodeSnapToleranceMeters, wfsPageSize, reseauPrecedent ? "anneau:" + JSON.stringify([reseauPrecedent.emprise, reseauPrecedent.truncated, reseauPrecedent.ordreAxes, reseauPrecedent.rawFeatureCount]) : "direct"].join("|");
-  let reseau = memoReseau && memoReseau.cle === cleReseau ? memoReseau : null;
+  // Sans réseau précédent fourni (nouveau calcul au même point et au même
+  // rayon, par exemple l'autre moment du trajet, ui.js), le réseau gardé est
+  // repris quel que soit le chemin qui l'a construit (direct ou par anneaux
+  // successifs) : même emprise, mêmes tuiles IGN.
+  const cleBase = [lon, lat, networkRadiusMeters, nodeSnapToleranceMeters, wfsPageSize].join("|");
+  let reseau =
+    memoReseau && (memoReseau.cle === cleReseau || (!reseauPrecedent && memoReseau.cleBase === cleBase)) ? memoReseau : null;
   if (!reseau) {
     memoReseau = null;
     reseau = await preparerReseauComplet({ lon, lat, networkRadiusMeters, nodeSnapToleranceMeters, wfsPageSize, reseauPrecedent, onProgress });
     reseau.cle = cleReseau;
+    reseau.cleBase = cleBase;
     memoReseau = reseau;
   } else {
     onProgress("Réseau routier déjà préparé pour ce point…", 0.5);
@@ -422,7 +429,7 @@ export async function computeIsochronesNetwork(opts) {
   // Hexagones traversés par chaque tronçon : calculés une fois, servent aux trois modes.
   const clesTroncons = new ClesParTroncon(hexGrid, prep.idx);
   const progressPerMode = { Walk: 0.65, Bike: 0.78, Ebike: 0.9 };
-  const zonesVides = () => ({ polygons: [], hexagonCount: 0, possiblyTruncated: false, frontierDiagnosis: null, ilots: null });
+  const zonesVides = () => ({ polygons: [], hexagonCount: 0, possiblyTruncated: false, plafondAtteint: null, frontierDiagnosis: null, ilots: null });
   // Mode « toutes zones gagnantes » + filtre de pertinence (ilots.js, réglages
   // dans config.js). `ilots: false` revient à la seule zone reliée au départ.
   const reglagesIlots = ilots === false ? null : { ...ILOTS, ...(ilots || {}) };
@@ -577,6 +584,17 @@ export async function computeIsochronesNetwork(opts) {
     hexagonsByMode[mode.key + "_ilots"] = statsIlots;
     hexagonsByMode[mode.key + "_truncated"] = possiblyTruncated;
     hexagonsByMode[mode.key + "_frontier"] = frontierDiagnosis;
+    // Plafond de recherche atteint (choix du porteur, 14/11/2026 : le signaler
+    // à l'usager) : part des arêtes de frontière où la zone s'arrête parce que
+    // le mode n'est plus calculé au-delà de maxTime, et non parce que la
+    // voiture gagne. Seuil : au moins 10 % de la frontière et 20 arêtes, pour
+    // ne pas signaler quelques impasses isolées.
+    const totalFrontiere =
+      frontierDiagnosis.excludedByFilter + frontierDiagnosis.beyondTimeBudget + frontierDiagnosis.carWins + frontierDiagnosis.other;
+    hexagonsByMode[mode.key + "_plafond"] =
+      frontierDiagnosis.beyondTimeBudget >= 20 && frontierDiagnosis.beyondTimeBudget >= 0.1 * totalFrontiere
+        ? { minutes: mode.maxTime / 60, partFrontiere: frontierDiagnosis.beyondTimeBudget / totalFrontiere }
+        : null;
   }
 
   // Chaque mode est vectorisé sur son ANNEAU (ce qu'il ajoute au-delà du mode
@@ -607,6 +625,7 @@ export async function computeIsochronesNetwork(opts) {
       polygons,
       hexagonCount: Object.keys(hexagons).length,
       possiblyTruncated: hexagonsByMode[mode.key + "_truncated"],
+      plafondAtteint: hexagonsByMode[mode.key + "_plafond"],
       frontierDiagnosis: hexagonsByMode[mode.key + "_frontier"],
       ilots: hexagonsByMode[mode.key + "_ilots"],
     };
