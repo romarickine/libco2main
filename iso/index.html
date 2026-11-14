@@ -134,7 +134,7 @@
     <p>Ces seuils reprennent une solution existante, puis ont été vérifiés sur quatre sites (Saint-Étienne, Pélussin, Feurs, Charly) en comparant quatre jeux de valeurs : le filtre « peu accessible en voiture » fait l'essentiel du tri, et des seuils de taille plus stricts n'écartaient que des îlots visiblement légitimes. Compter dans la zone principale tout ce qui la touche sur la carte ferait entrer, à Charly, une large bande de berges du Rhône faite surtout de sentiers : d'où la règle de proche en proche. Ce sont des <strong>choix raisonnés</strong>, pas des valeurs publiées. Pour comparer, l'adresse de la page accepte <code>?ilots=off</code> (zone reliée au départ seulement, sans trous comblés).</p>
 
     <h3>Affichage</h3>
-    <p>Chaque mode est affiché comme un <strong>anneau</strong> (ce qu'il ajoute au-delà du mode précédent), pas sa zone complète — les trois zones ne se chevauchent donc jamais visuellement. Le nombre d'hexagones dans la légende reste la taille <em>totale</em> de la zone de ce mode, pas seulement l'anneau visible.</p>
+    <p>Chaque mode est affiché comme un <strong>anneau</strong> (ce qu'il ajoute au-delà du mode précédent), pas sa zone complète — les trois zones ne se chevauchent donc jamais visuellement.</p>
 
     <div class="limits-box">
       <strong>Limites connues, assumées :</strong>
@@ -229,7 +229,11 @@
       <div class="legend-item"><span class="legend-swatch st-80c0ec"></span> Vélo <span class="legend-count" id="countBike"></span></div>
       <div class="legend-item"><span class="legend-swatch st-4a152a"></span> Vélo électrique <span class="legend-count" id="countEbike"></span></div>
     </div>
-    <p class="hint">Zones où le mode actif est plus rapide que la voiture. Comme le VAE inclut généralement le vélo, qui inclut généralement la marche, l'affichage se fait par anneaux (chaque couleur montre ce que ce mode ajoute au-delà du précédent) ; le nombre d'hexagones dans la légende reste la taille totale de chaque zone. Réseau : <span id="networkInfo">—</span>.</p>
+    <p class="hint">Zones où le mode actif est plus rapide que la voiture. Chaque couleur montre ce que ce mode ajoute au-delà du précédent. « Limitée à … min » : la zone s'arrête en partie à la durée maximale de trajet calculée pour ce mode.</p>
+    <details class="hint details-calcul">
+      <summary>Détails du calcul</summary>
+      <p>Réseau : <span id="networkInfo">—</span>.</p>
+    </details>
 
     <div id="exportSection" class="export-section">
       <div class="section-title">Exporter la carte</div>

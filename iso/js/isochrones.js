@@ -39,7 +39,7 @@ import {
 import { filtrerIlots, trousACombler, NATURES_DEGRADEES } from "./ilots.js";
 import { HexGrid, ClesParTroncon, traceOuterBoundaries, buildPolygonsWithHoles, smoothPolygonsWithHoles } from "./hexgrid.js";
 import { fetchIGNRoads, etendreIGNRoads, fetchElevations } from "./ign-api.js";
-import { DELAY_BIKE_MIN, DELAY_CAR_MIN_URBAN, DELAY_CAR_MIN_RURAL, ILOTS, COEF_TEMPS_VOITURE_URBAIN, MOMENT_PAR_DEFAUT } from "./config.js";
+import { DELAY_BIKE_MIN, DELAY_CAR_MIN_URBAN, DELAY_CAR_MIN_RURAL, ILOTS, COEF_TEMPS_VOITURE_URBAIN, MOMENT_PAR_DEFAUT, PLAFONDS_RECHERCHE_MIN } from "./config.js";
 
 // Rend la main au navigateur le temps d'une image, pour qu'il ait l'occasion
 // de repeindre l'écran (barre de progression, pourcentage) avant de reprendre
@@ -272,6 +272,7 @@ export async function computeIsochronesNetwork(opts) {
     garderReseau = false,
     ilots = undefined,
     moment = MOMENT_PAR_DEFAUT,
+    plafondsMinutes,
     onProgress,
   } = opts;
   const bufferRadiusMeters = 40;
@@ -307,6 +308,7 @@ export async function computeIsochronesNetwork(opts) {
   const brut = reseau.brut;
   reseau.brut = null;
   const delayBike = DELAY_BIKE_MIN;
+  const plafonds = { ...PLAFONDS_RECHERCHE_MIN, ...(plafondsMinutes || {}) };
   const delayCar = urbanContext.isUrban ? DELAY_CAR_MIN_URBAN : DELAY_CAR_MIN_RURAL;
 
   // Plafond de recherche par mode (20/40/60 min) : choix technique pour limiter
@@ -316,9 +318,9 @@ export async function computeIsochronesNetwork(opts) {
   // plafond, donc le plafond ne coupe aucune zone. Documenté dans la
   // méthodologie de la page (index.html) et dans README.md.
   const toutesDefs = [
-    { key: "Walk", mode: "walk", maxTime: 20 * 60, carPenalty: delayCar * 60 },
-    { key: "Bike", mode: "bike", maxTime: 40 * 60, carPenalty: (delayCar - delayBike) * 60 },
-    { key: "Ebike", mode: "ebike", maxTime: 60 * 60, carPenalty: (delayCar - delayBike) * 60 },
+    { key: "Walk", mode: "walk", maxTime: plafonds.Walk * 60, carPenalty: delayCar * 60 },
+    { key: "Bike", mode: "bike", maxTime: plafonds.Bike * 60, carPenalty: (delayCar - delayBike) * 60 },
+    { key: "Ebike", mode: "ebike", maxTime: plafonds.Ebike * 60, carPenalty: (delayCar - delayBike) * 60 },
   ];
   // Chaque mode est tracé comme l'anneau qu'il ajoute au précédent : on calcule
   // donc tous les modes jusqu'au plus lointain demandé (marche, puis vélo, puis

@@ -62,6 +62,12 @@ export const DELAY_CAR_MIN_RURAL = 4;
 export const COEF_TEMPS_VOITURE_URBAIN = { pointe: 1.8, journee: 1.4 };
 export const MOMENT_PAR_DEFAUT = "pointe";
 
+// Plafond de recherche par mode, en minutes par trajet (choix technique pour
+// limiter la taille du calcul, pas une définition des zones ; la carte signale
+// quand il coupe une zone). Réglable par appel (option plafondsMinutes de
+// computeIsochronesNetwork) pour les mesures.
+export const PLAFONDS_RECHERCHE_MIN = { Walk: 20, Bike: 40, Ebike: 60 };
+
 // Rayon du réseau interrogé, choisi en deux temps.
 //
 // 1) Une sonde légère (réseau téléchargé sur NETWORK_RADIUS_PROBE_M, un

@@ -313,11 +313,11 @@ export function initUI() {
     // Walk par habitude de lecture (grand vers petit).
     for (const key of ["Ebike", "Bike", "Walk"]) {
       const r = results[key];
-      document.getElementById("count" + key).textContent =
-        r.hexagonCount +
-        " hexagones" +
-        (r.possiblyTruncated ? " ⚠️ tronquée" : "") +
-        (r.plafondAtteint ? " (limitée à " + r.plafondAtteint.minutes + " min)" : "");
+      // Légende : seule la limite de durée est montrée à l'usager (choix du
+      // porteur, 14/11/2026) ; taille de zone et bord atteint vont dans la console.
+      document.getElementById("count" + key).textContent = r.plafondAtteint
+        ? "limitée à " + r.plafondAtteint.minutes + " min"
+        : "";
       if (r.polygons.length === 0) {
         continue;
       }
@@ -401,37 +401,24 @@ export function initUI() {
         " km pour ne pas couper les zones."
       : "";
 
-    if (roadsTruncated) {
-      statusEl.className = "error";
-      statusEl.textContent =
-        "Calcul terminé, mais le téléchargement du réseau routier semble avoir été tronqué (" +
-        rawFeatureCount +
-        " tronçons récupérés, la limite de pagination a été atteinte) — le réseau est probablement incomplet dans cette zone très dense. " +
-        connectivityNote;
-    } else if (truncatedModes.length > 0) {
-      statusEl.className = "error";
-      statusEl.textContent =
-        "Calcul terminé, mais la zone " +
-        truncatedModes.join(" et ") +
-        " atteint le bord du rayon interrogé (" +
-        usedRadiusMeters +
-        " m) — sa vraie limite est probablement plus loin, hors de la zone couverte par ce calcul. " +
-        connectivityNote +
-        notePlafond;
-    } else if (bikeEbikeIdentical) {
-      statusEl.className = "error";
-      statusEl.textContent =
-        "Calcul terminé, mais Vélo et VAE atteignent exactement la même limite. " +
-        connectivityNote +
-        " Diagnostic de la frontière — Vélo : " +
-        formatDiagnosis(results.Bike.frontierDiagnosis) +
-        ". VAE : " +
-        formatDiagnosis(results.Ebike.frontierDiagnosis) +
-        ".";
-    } else {
-      statusEl.className = "";
-      statusEl.textContent = ("Calcul terminé. " + connectivityNote + notePlafond).trim();
-    }
+    // Message à l'usager : « Calcul terminé. » seulement (choix du porteur,
+    // 14/11/2026 : les diagnostics ne lui apprennent rien). Le détail
+    // (réseau tronqué, zone au bord, plafond, vélo = VAE) reste dans la
+    // console pour le diagnostic.
+    const diagnosticsConsole = [];
+    if (roadsTruncated) diagnosticsConsole.push("téléchargement du réseau tronqué (" + rawFeatureCount + " tronçons, limite de pagination atteinte)");
+    if (truncatedModes.length > 0) diagnosticsConsole.push("zone " + truncatedModes.join(" et ") + " au bord du rayon interrogé (" + usedRadiusMeters + " m)");
+    if (notePlafond) diagnosticsConsole.push(notePlafond.trim());
+    if (bikeEbikeIdentical)
+      diagnosticsConsole.push(
+        "vélo et VAE identiques ; frontière vélo : " + formatDiagnosis(results.Bike.frontierDiagnosis) + " ; VAE : " + formatDiagnosis(results.Ebike.frontierDiagnosis),
+      );
+    if (connectivityNote) diagnosticsConsole.push(connectivityNote);
+    for (const d of diagnosticsConsole) console.info("Carte : " + d);
+    for (const key of ["Walk", "Bike", "Ebike"])
+      console.info("Carte : " + modeLabelsFr[key] + " " + results[key].hexagonCount + " hexagones" + (results[key].possiblyTruncated ? ", tronquée" : ""));
+    statusEl.className = "";
+    statusEl.textContent = "Calcul terminé.";
   }
 
   // Les deux moments du trajet sont calculés pour la même adresse : le moment
