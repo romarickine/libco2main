@@ -66,7 +66,13 @@ export const MOMENT_PAR_DEFAUT = "pointe";
 // limiter la taille du calcul, pas une définition des zones ; la carte signale
 // quand il coupe une zone). Réglable par appel (option plafondsMinutes de
 // computeIsochronesNetwork) pour les mesures.
-export const PLAFONDS_RECHERCHE_MIN = { Walk: 20, Bike: 40, Ebike: 60 };
+// Valeurs mesurées le 15/11/2026 sur 10 lieux, en heure de pointe et en
+// moyenne de la journée (site/mesure-plafonds-carte-2026-11-15.md du projet) :
+// à 40 / 80 / 90 min, plus aucune zone n'est coupée (marche encore coupée à
+// 30 min à Lyon et Saint-Étienne ; vélo : 80 min ajoute au plus 4 % à 60 min ;
+// VAE : 90 et 120 min identiques). Sur un réseau donné, relever le plafond ne
+// rallonge pas le calcul de façon mesurable.
+export const PLAFONDS_RECHERCHE_MIN = { Walk: 40, Bike: 80, Ebike: 90 };
 
 // Rayon du réseau interrogé, choisi en deux temps.
 //
@@ -104,7 +110,7 @@ export const PLAFONDS_RECHERCHE_MIN = { Walk: 20, Bike: 40, Ebike: 60 };
 //    (marche/vélo/VAE tronquée en bord de rayon, ou téléchargement du
 //    réseau lui-même tronqué par la pagination), un nouvel essai est
 //    relancé automatiquement au rayon suivant de RAYONS_RELANCE_M, jusqu'à
-//    NETWORK_RADIUS_MAX_M (17 km) — ce filet de sécurité
+//    NETWORK_RADIUS_MAX_M (22 km) — ce filet de sécurité
 //    garantit un résultat complet même quand la sonde sous-estime le rayon
 //    nécessaire.
 export const NETWORK_RADIUS_PROBE_M = 1000;
@@ -124,17 +130,19 @@ export const RADIUS_TIER_SPARSE_M = 6000;
 // même jour, centres de Paris 14 à 16 km en heure de pointe, 11 à 14 km en
 // moyenne de la journée (rayons-communes.js).
 export const RADIUS_TIER_VERY_DENSE_M = 15000;
-// Rayon maximal, réservé aux cas où la zone touche encore le bord à 15 km
-// (Paris 1er, 311 carrefours : zone VAE en aller-retour différente à 15 km,
-// identique à 17 et 19 km ; relevés du 09/11/2026). Choix du porteur : grande
-// zone utilisée exceptionnellement. Remesure du 14/11/2026 (nouvelles
-// vitesses) : aucune des 44 villes ou arrondissements mesurés ne dépasse
-// 11 km ; ce rayon reste un filet de sécurité.
-export const NETWORK_RADIUS_MAX_M = 17000;
+// Rayon maximal : 22 km (choix du porteur, 15/11/2026), atteint seulement par
+// relance quand la zone touche encore le bord à 17 km. Cas mesuré : Paris en
+// heure de pointe avec le plafond VAE de 90 min (Paris 1er : zone VAE jusqu'à
+// 20,1 km ; à 17 km elle est surestimée de 2,5 % faute de contournement
+// voiture par l'extérieur ; encore + 2,3 % à 21 km ; 22 et 27 km donnent la
+// même zone à 0,07 % près).
+// Coût à Paris : environ 1,6 million de nœuds et 2 Go de mémoire du
+// navigateur (site/mesure-plafonds-carte-2026-11-15.md du projet).
+export const NETWORK_RADIUS_MAX_M = 22000;
 // Relances successives quand une zone touche le bord : rayon suivant de cette
 // liste (le téléchargement ne demande que l'anneau manquant), plutôt qu'un
 // saut direct au maximum.
-export const RAYONS_RELANCE_M = [8000, 12000, 15000, 17000];
+export const RAYONS_RELANCE_M = [8000, 12000, 15000, 17000, 22000];
 
 // Résolution de la grille altimétrique, tolérance de fusion des nœuds, et
 // paramètres WFS.
